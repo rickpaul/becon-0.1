@@ -7,47 +7,56 @@ import logging as log
 import lib_QuandlAPI
 import lib_Logging
 import lib_DB
+from lib_EMF		 		import TEMP_MODE, TEST_MODE, QA_MODE, PROD_MODE
 
 ######################## DIRECTORY CODE
-def get_EMF_settings(mode='TEMP'):
-	if mode=='TEMP':
+def get_EMF_settings(mode=TEMP_MODE):
+	if mode==TEMP_MODE:
 		return {
-			'dbDir':		lib_DB.TempDBFilePath,
+			'dbLoc':		lib_DB.TempDBFilePath,
 			'overwriteDB':	True,
 			'deleteDB':		True,
-			'logDir':		lib_Logging.TempLogFilePath,
+			'logLoc':		lib_Logging.TempLogFilePath,
 			'recordLog':	False,
 			'recordLevel':	log.DEBUG,
+			'deleteLog':	True,
+			'logAppend':	True,
 			'QuandlCSVDir': lib_QuandlAPI.TempQuandlCSV
 		}
-	elif mode=='TEST':
+	elif mode==TEST_MODE:
 		return {
-			'dbDir':		lib_DB.TestDBFilePath,
+			'dbLoc':		lib_DB.TestDBFilePath,
 			'overwriteDB':	False,
 			'deleteDB':		False,
-			'logDir':		lib_Logging.TestLogFilePath,
+			'logLoc':		lib_Logging.TestLogFilePath,
 			'recordLog':	False,
 			'recordLevel':	log.DEBUG,
+			'deleteLog':	False,
+			'logAppend':	False,
 			'QuandlCSVDir': lib_QuandlAPI.TestQuandlCSV
 		}
-	elif mode=='QA':
+	elif mode==QA_MODE:
 		return {
-			'dbDir':		lib_DB.QADBFilePath,
+			'dbLoc':		lib_DB.QADBFilePath,
 			'overwriteDB':	False,
 			'deleteDB':		False,
-			'logDir':		lib_Logging.QALogFilePath,
+			'logLoc':		lib_Logging.QALogFilePath,
 			'recordLog':	True,
 			'recordLevel':	log.INFO,
+			'deleteLog':	False,
+			'logAppend':	True,
 			'QuandlCSVDir': lib_QuandlAPI.QAQuandlCSV
 		}
-	elif mode=='PROD':
+	elif mode==PROD_MODE:
 		return {
-			'dbDir':		lib_DB.ProdDBFilePath,
+			'dbLoc':		lib_DB.ProdDBFilePath,
 			'overwriteDB':	False,
 			'deleteDB':		False,
-			'logDir':		lib_Logging.ProdLogFilePath,
+			'logLoc':		lib_Logging.ProdLogFilePath,
 			'recordLog':	True,
-			'recordLevel':	log.INFO,
+			'recordLevel':	log.WARNING,
+			'deleteLog':	False,
+			'logAppend':	True,
 			'QuandlCSVDir': lib_QuandlAPI.ProdQuandlCSV
 		}
 	else:

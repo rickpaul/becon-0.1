@@ -9,7 +9,6 @@ import 	lib_CreateDB	as createDB_lib
 import 	sqlite3 		as sq
 import 	logging 		as log
 # System 	From...Import
-from 	sys 		import argv
 from 	os.path 	import isfile, exists, dirname
 from 	os 			import makedirs
 
@@ -44,42 +43,6 @@ def __drop_table(conn, cursor, tableName):
 	'''
 	statement = 'drop table if exists {0};'.format(tableName)
 	return commitDBStatement(conn, cursor, statement)
-
-# DELETE THIS
-# def checkIfDBTablesExist(DBFilePath, tableNames):
-# 	'''
-# 	Checks if a full DB exists with a list of expected tables
-
-# 	PARAMETERS:
-# 	DBFilePath <string> full local path to a Database
-# 	tableNames <list> list of table names
-
-# 	RETURNS:
-# 	Whether all tables exist in the database
-
-# 	TODO:
-# 	Deprecated? Where is this used? Delete this.
-# 	'''
-# 	# Check if DB File Exists
-# 	if not isfile(DBFilePath):
-# 		return False
-
-# 	conn = sq.connect(DBFilePath)
-# 	cursor = conn.cursor()
-# 	# Check for Existence of Individual Tables
-# 	try:
-# 		for tableName in tableNames:
-# 			exists = __table_exists(conn, cursor, tableName)
-# 			if not exists:
-# 				log.warning("%s doesn't exist.", tableName)
-# 				return False
-# 			log.debug("%s exists as expected.", tableName)
-# 		log.info("DB exists with appropriate tables.")
-# 		return True
-# 	except:
-# 		raise
-# 	finally:
-# 		conn.close()
 
 def __db_exists(DBFilePath):
 	return isfile(DBFilePath)
@@ -121,7 +84,7 @@ def create_DB(mode=TEMP_MODE, manualOverride=False):
 	# Get Settings
 	settings = get_EMF_settings(mode)
 	force = settings['overwriteDB']
-	dbLocation = settings['dbDir']
+	dbLocation = settings['dbLoc']
 	deleteDB  = settings['deleteDB']
 	# Get Table Instruction
 	if manualOverride:
