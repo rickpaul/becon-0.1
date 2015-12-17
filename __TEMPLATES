@@ -1,0 +1,18 @@
+# EMF 		From...Import
+# EMF 		Import...As
+# System 	Import...As
+# System 	From...Import
+
+
+'''
+Checks for a table within a database
+
+PARAMETERS:
+			conn <sqlite3 connection> 
+			cursor <sqlite3 connection> 
+			tableName <string> a table name
+RETURNS:
+			<bool> whether a table exists
+CONSIDER:
+TODOS:
+'''	
