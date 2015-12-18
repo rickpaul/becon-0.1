@@ -14,11 +14,16 @@ import logging 	as log
 import numpy 	as np
 
 class EMF_WordSeries_Handle:
-	def __init__(self, dbHandle, transformationPattern):
+	def __init__(self, dbHandle, dataSeriesTicker, transformationPattern):
 		self.hndl_DB = dbHandle
 		self.hndl_Data = DataHandle(dbHandle)
+		self.hndl_Data.set_data_series(ticker=dataSeriesTicker, insertIfNot=False)
 		self.hndl_Trns = TransformationHandle(transformationPattern)
-		self.wordSeriesID = None
+		self.wordSeriesID = lib_DBInst.retrieve_WordSeriesID(	self.hndl_DB.conn_(), 
+																self.hndl_DB.cursor_(), 
+																self.hndl_Data.seriesID,
+																self.hndl_Trns.transformationCode,
+																insertIfNot=True)
 		self.stored_words = None
 		self.stored_dates = None
 
@@ -31,42 +36,25 @@ class EMF_WordSeries_Handle:
 	def __send_to_DB(self, column, value):
 		return lib_DBInst.update_WordSeriesMetaData(self.hndl_DB.conn_(), self.hndl_DB.cursor_(), column, value, self.wordSeriesID)
 
-	def __set_word_series(self):
-		if (self.hndl_Trns.transformationCode is not None) and (self.hndl_Data.seriesID is not None):
-			self.wordSeriesID = lib_DBInst.retrieve_WordSeriesID(	self.hndl_DB.conn_(), 
-																	self.hndl_DB.cursor_(), 
-																	self.hndl_Data.seriesID,
-																	self.hndl_Trns.transformationCode,
-																	insertIfNot=True)
-
-	def __unset_word_series(self):
-		self.wordSeriesID = None
-		self.stored_words = None
-		self.stored_dates = None
-		# self.wordIsCategorical = None
-
-	def set_data_series(self, name=None, ticker=None):
-		'''
-		TODOS:
-					Check and store if data series is categorical (matters for transformations)
-		'''
-		self.hndl_Data.set_data_series(	name=name,
-										ticker=ticker,
-										insertIfNot=False)
-		self.__set_word_series()
-
-	def unset_data_series(self):
-		self.hndl_Data.unset_data_series()
-		self.__unset_word_series()
-
 	def check_word_alignment(self, otherWordHandle):
-		return np.all(self.get_word_history['dates'] == otherWordHandle.get_word_history['dates'])
+		return np.all(self.get_date_series == otherWordHandle.get_date_series)
 
-	def set_transformation(self, trnsSeries):
-		'''
-		trnsSeries tuple<list<string>, string> is modeled off lib_Transformation.CommonTransformations
-		'''
-		self.__set_word_series()
+
+	def __generate_words(self):
+		data = self.hndl_Data.get_data_history()
+		(dataLen, ) = data.shape
+		words = np.reshape(self.hndl_Trns.transform_data(data[DATA_VALUE_COL]), (dataLen, 1))
+		dates = np.reshape(self.hndl_Trns.transform_time(data[DATA_DATE_COL]), (dataLen, 1))
+		return (words, dates)
+
+	def __from_DB_get_word_series(self):
+		wordSeries = lib_DBInst.getCompleteWordHistory_WordHistoryTable(self.hndl_DB.cursor_(), 
+																		self.wordSeriesID)
+		wordSeries = np.asarray(wordSeries, dtype=WORD_HISTORY_DTYPE)
+		(dataLen, ) = wordSeries.shape
+		words = np.reshape(wordSeries[VALUE_COL], (dataLen, 1))
+		dates = np.reshape(wordSeries[DATE_COL], (dataLen, 1))
+		return (words, dates)
 
 	def get_word_series(self, saveHistoryLocal=False):
 		'''
@@ -79,22 +67,35 @@ class EMF_WordSeries_Handle:
 		if self.stored_words is not None:
 			return self.stored_words
 		else:
-			if self.__get_from_DB('bool_word_is_stored'): #Retrieve Words from DB
-				wordSeries = lib_DBInst.getCompleteWordHistory_WordHistoryTable(self.hndl_DB.cursor_(), 
-																				self.wordSeriesID)
-				wordSeries = np.asarray(wordSeries, dtype=WORD_HISTORY_DTYPE)
-				(dataLen, ) = wordSeries.shape
-				words = np.reshape(wordSeries, (dataLen, 1))
-				dates = np.reshape(wordSeries, (dataLen, 1))
-			else: # Generate Words
-				data = self.hndl_Data.get_data_history()
-				(dataLen, ) = data.shape
-				words = np.reshape(self.hndl_Trns.transform_data(data[DATA_VALUE_COL]), (dataLen, 1))
-				dates = np.reshape(self.hndl_Trns.transform_time(data[DATA_DATE_COL]), (dataLen, 1))
+			# If stored, Retrieve Words from DB
+			if self.__get_from_DB('bool_word_is_stored'): 
+				(words, dates) = self.__from_db_get_word_series()
+			# If not stored, Generate Words
+			else: 
+				(words, dates) = self.__generate_words()
 			if saveHistoryLocal:
 				self.stored_words = words
 				self.stored_dates = dates
 			return words
+
+	def get_date_series(self, saveHistoryLocal=False):
+		'''
+		PARAMETERS:
+					<bool> saveHistoryLocal | tells whether to save the history internally
+		TODOS:
+		'''
+		assert self.wordSeriesID is not None
+		if self.stored_dates is not None:
+			return self.stored_dates
+		else:
+			if self.__get_from_DB('bool_word_is_stored'): #Retrieve Words from DB
+				(words, dates) = self.__from_db_get_word_series()
+			else: # Generate Words
+				(words, dates) = self.__generate_words()
+			if saveHistoryLocal:
+				self.stored_words = words
+				self.stored_dates = dates
+			return dates
 
 	def __insert_word_point(self, date, value):
 		'''
