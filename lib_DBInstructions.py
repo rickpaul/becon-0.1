@@ -30,6 +30,11 @@ def __get_insert_DataSeriesID_Statement(name=None, ticker=None):
 	columns = ['txt_data_name', 'txt_data_ticker']
 	values = [name, ticker]
 	return DB_util.generateInsertStatement(table, columns, values)
+def __get_insert_DataSeriesID_Metadata(seriesID):
+	table = 'T_DATA_SERIES_METADATA'
+	columns = ['int_data_series_ID']
+	values = [seriesID]
+	return DB_util.generateInsertStatement(table, columns, values)
 def retrieve_DataSeriesID(conn, cursor, name=None, ticker=None, insertIfNot=False):
 	'''
 	
@@ -50,6 +55,8 @@ def retrieve_DataSeriesID(conn, cursor, name=None, ticker=None, insertIfNot=Fals
 			statement = __get_insert_DataSeriesID_Statement(name, ticker)
 			(success, rowID_or_Error) = DB_util.commitDBStatement(conn, cursor, statement)
 			if success:
+				statement = __get_insert_DataSeriesID_Metadata(rowID_or_Error)
+				(success, rowID_or_Error) = DB_util.commitDBStatement(conn, cursor, statement)
 				return rowID_or_Error # a row ID
 			else:
 				log.error('Series ID Not Created for %s. Error:\n%s', ticker, rowID_or_Error)
