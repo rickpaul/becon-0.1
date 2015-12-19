@@ -38,7 +38,7 @@ class EMF_Quandl_Runner:
 		qndlHandle.set_extra_parameter('transform', Q_TRANSFORM_INSTR)
 		(dates, values) = qndlHandle.get_data_history()
 		self.dataHandle.set_data_series(name=db_name, ticker=db_ticker, insertIfNot=True)
-		self.dataHandle.insert_data_history(dates, values)
+		self.dataHandle.write_to_DB(dates, values)
 		self.dataHandle.unset_data_series()
 
 	def download_CSV_datasets(self):
