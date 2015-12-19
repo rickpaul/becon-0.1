@@ -109,7 +109,6 @@ def categorize_UniformLengthRange(data, kwargs):
 		out += data>split
 	return out
 
-
 def categorize_QuantileRange(data, kwargs):
 	'''
 	returns quantile data
@@ -117,6 +116,8 @@ def categorize_QuantileRange(data, kwargs):
 	key = 'numQuartiles'
 	numQuartiles = kwargs.get(key, kwargDefaults[key])
 	raise NotImplementedError
+
+# TIME SERIES TRANSFORMATIONS BELOW
 
 def timeSeriesTransform_Trailing(timeSeries, kwargs):
 	key = 'periodDelay'

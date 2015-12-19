@@ -1,6 +1,5 @@
 CURRENTLY:
-	+ Create TransformationHash
-	+ Create ModelRunner
+
 
 PRIORITY 1:
 	+ Create Statistics Database
@@ -27,6 +26,10 @@ PRIORITY 3:
 		? Who's raising errors where? See Database select/retrieval statements for example
 	+ Need a comprehensive Logging Strategy
 		+ Log Channeling (i.e. separate db debugging)
+
+PRIORITY 4:
+	+ Create Logging Handle to deal with automatic deletion, etc. (from Testing Handle)
+	+ Remove 'Succeeded' Logging from update/select db statements
 
 INDIVIDUAL FILES:
 
