@@ -1,13 +1,18 @@
 # TODO: 
 #	rename in underscore style
 
-from calendar import monthrange
-import datetime
-import logging as log
+# EMF 		From...Import
+from lib_EMF		 		import 	TEMP_MODE, TEST_MODE, QA_MODE, PROD_MODE
+# EMF 		Import...As
 import lib_QuandlAPI
 import lib_Logging
 import lib_DB
-from lib_EMF		 		import TEMP_MODE, TEST_MODE, QA_MODE, PROD_MODE
+# System 	Import...As
+import 	logging 			as 		log
+import 	datetime
+# System 	From...Import
+from 	calendar 			import 	monthrange
+
 
 ######################## DIRECTORY CODE
 def get_EMF_settings(mode=TEMP_MODE):
@@ -103,6 +108,8 @@ def dtConvert_Mmm_YtoEpoch(timeString, endOfMonth=True):
 def dtConvert_EpochtoY_M_D(epochTime):
 	return strftime(datetime.datetime.fromtimestamp(epochTime), '%Y-%m-%d', force=True)
 
+def dtConvert_EpochtoYMD(epochTime):
+	return strftime(datetime.datetime.fromtimestamp(epochTime), '%Y%m%d', force=True)
 
 # Taken from StackOverflow
 def strftime(datetime_, format, force=False):
