@@ -4,12 +4,15 @@ from lib_EMF import HomeDirectory
 ######################### CSV CODE
 
 CSVRepository = HomeDirectory + 'csv/'
-TempQuandlCSV = CSVRepository + 'single_line_QuandlDataSeries.csv'
-TestQuandlCSV = CSVRepository + 'QuandlDataSeries.csv'
+TempQuandlCSV = CSVRepository + 'KansasCityFed.csv'
+TestQuandlCSV = CSVRepository + 'KansasCityFed.csv'
 QAQuandlCSV = CSVRepository + 'QuandlDataSeries.csv'
 ProdQuandlCSV = CSVRepository + 'QuandlDataSeries.csv'
 
 QuandlCSVColumns = [
+	'category1',
+	'category2',
+	'category3',
 	'source',
 	'db_name',
 	'db_ticker',
@@ -23,17 +26,30 @@ QuandlCSVColumns = [
 	'Q_EARLIEST_DATE',
 	'Q_LATEST_DATE',
 	'Q_PERIODICITY',
+	'UNIT_TYPE',
+	'SEASONALLY_ADJUSTED',
+	'IS_CATEGORICAL'
 	'EMF_periodicity',
 	'EMF_DataType',
-	'EMF_DataSector	',
+	'EMF_DataSector',
+	'Q_DESCRIPTION',
+	'Q_NAME',
+	'NUM_COLUMNS',
+	'NUM_POINTS',
+	'ERROR'
 ]
 QuandlCSVColumns = dict(zip(QuandlCSVColumns, xrange(len(QuandlCSVColumns))))
 
 QuandlEditableColumns = [
-	QuandlCSVColumns['Q_REFRESHED_AT'],
-	QuandlCSVColumns['Q_EARLIEST_DATE'],
-	QuandlCSVColumns['Q_LATEST_DATE'],
-	QuandlCSVColumns['Q_PERIODICITY'],
+	'Q_REFRESHED_AT',
+	'Q_EARLIEST_DATE',
+	'Q_LATEST_DATE',
+	'Q_PERIODICITY',
+	'Q_DESCRIPTION',
+	'Q_NAME',
+	'NUM_POINTS',
+	'NUM_COLUMNS',
+	'ERROR'
 ]
 
 ######################### API CODE

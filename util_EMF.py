@@ -26,19 +26,19 @@ def get_EMF_settings(mode=TEMP_MODE):
 			'recordLevel':	log.DEBUG,
 			'deleteLog':	True,
 			'logAppend':	True,
-			'QuandlCSVDir': lib_QuandlAPI.TempQuandlCSV
+			'QuandlCSVLoc': lib_QuandlAPI.TempQuandlCSV,
 		}
 	elif mode==TEST_MODE:
 		return {
 			'dbLoc':		lib_DB.TestDBFilePath,
-			'overwriteDB':	False,
+			'overwriteDB':	True,
 			'deleteDB':		False,
 			'logLoc':		lib_Logging.TestLogFilePath,
 			'recordLog':	False,
 			'recordLevel':	log.DEBUG,
 			'deleteLog':	False,
 			'logAppend':	False,
-			'QuandlCSVDir': lib_QuandlAPI.TestQuandlCSV
+			'QuandlCSVLoc': lib_QuandlAPI.TestQuandlCSV,
 		}
 	elif mode==QA_MODE:
 		return {
@@ -50,7 +50,7 @@ def get_EMF_settings(mode=TEMP_MODE):
 			'recordLevel':	log.INFO,
 			'deleteLog':	False,
 			'logAppend':	True,
-			'QuandlCSVDir': lib_QuandlAPI.QAQuandlCSV
+			'QuandlCSVLoc': lib_QuandlAPI.QAQuandlCSV,
 		}
 	elif mode==PROD_MODE:
 		return {
@@ -62,7 +62,7 @@ def get_EMF_settings(mode=TEMP_MODE):
 			'recordLevel':	log.WARNING,
 			'deleteLog':	False,
 			'logAppend':	True,
-			'QuandlCSVDir': lib_QuandlAPI.ProdQuandlCSV
+			'QuandlCSVLoc': lib_QuandlAPI.ProdQuandlCSV,
 		}
 	else:
 		raise NameError('EMF Run Mode not recognized')

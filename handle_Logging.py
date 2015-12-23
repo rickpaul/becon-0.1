@@ -31,12 +31,12 @@ class EMF_Logging_Handle:
 							datefmt='%m/%d/%Y %I:%M:%S %p',
 							filename=self.__logLocation,
 							filemode=fileMode,
-							level=recordLevel)	
+							level=self.__recordLevel)	
 		else:
 			self.__logLocation = None
 			log.basicConfig(format='%(asctime)s:%(levelname)s:%(message)s', 
 							datefmt='%I:%M:%S %p',
-							level=recordLevel)
+							level=self.__recordLevel)
 		# Declare Progress
 		log.info('Log initialized.')
 		if self.__logLocation is not None:

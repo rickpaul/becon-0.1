@@ -1,27 +1,29 @@
 # TODO: 
 #	move main function into another file
 
-import 	logging as log
-
-import 	lib_QuandlAPI as lib_quandl
-from 	handle_DB 			import EMF_Database_Handle		as dbHandle
-from 	handle_DataSeries 	import EMF_DataSeries_Handle	as dataHandle
-from 	handle_CSV 			import EMF_CSV_Handle 			as csvHandle
-from 	handle_QuandlAPI	import EMF_QuandlAPI_Handle 	as quandlHandle
-
-from	util_DB				import retrieveConnection
-from	util_Logging		import initializeLog
+# EMF 		From...Import
+from 	handle_DB 			import EMF_Database_Handle
+from 	handle_DataSeries 	import EMF_DataSeries_Handle
+from 	handle_CSV 			import EMF_CSV_Handle
+from 	handle_QuandlAPI	import EMF_QuandlAPI_Handle
+from 	handle_Logging		import EMF_Logging_Handle
+from 	util_CreateDB	 	import create_DB
 from	util_EMF			import get_EMF_settings
+from 	lib_EMF		 		import TEMP_MODE
+from 	lib_QuandlAPI		import QuandlCSVColumns, QuandlEditableColumns
+# System 	Import...As
+import logging 				as log
+
 
 class EMF_Quandl_Runner:
-	def __init__(self, mode):
+	def __init__(self, mode=TEMP_MODE):
 		settings = get_EMF_settings(mode)
-		initializeLog(	logFilePath=settings['logDir'], 
-						recordLevel=settings['recordLevel'], 
-						recordLog=settings['recordLog'])
-		self.CSVHandle = csvHandle(settings['QuandlCSVDir'])
-		self.DBHandle = dbHandle(settings['dbDir'])
-		self.dataHandle = dataHandle(self.DBHandle.conn, self.DBHandle.cursor)
+		self.hndl_Log = EMF_Logging_Handle(mode=mode)
+		self.hndl_CSV = EMF_CSV_Handle(	settings['QuandlCSVLoc'], 
+										columnIndexes=QuandlCSVColumns,
+										editableColumns=QuandlEditableColumns)
+		self.hndl_DB = create_DB(mode=mode)
+		self.hndl_Data = EMF_DataSeries_Handle(self.hndl_DB)
 
 	def __download_dataset_singleSeries(self, 	Q_DATABASE_CODE, Q_DATASET_CODE, 
 												Q_COLUMN_NUM, Q_COLUMN_NAME,
@@ -32,14 +34,15 @@ class EMF_Quandl_Runner:
 					Only Download data that's necessary (i.e. after latest insert) (checking for updates)
 					
 		'''
-		qndlHandle = quandlHandle(Q_DATABASE_CODE, Q_DATASET_CODE)
-		qndlHandle.set_extra_parameter('column_index', Q_COLUMN_NUM)
-		qndlHandle.set_extra_parameter('collapse', Q_COLLAPSE_INSTR)
-		qndlHandle.set_extra_parameter('transform', Q_TRANSFORM_INSTR)
-		(dates, values) = qndlHandle.get_data_history()
-		self.dataHandle.set_data_series(name=db_name, ticker=db_ticker, insertIfNot=True)
-		self.dataHandle.write_to_DB(dates, values)
-		self.dataHandle.unset_data_series()
+		hndl_Qndl = EMF_QuandlAPI_Handle(Q_DATABASE_CODE, Q_DATASET_CODE)
+		hndl_Qndl.set_extra_parameter('column_index', Q_COLUMN_NUM)
+		hndl_Qndl.set_extra_parameter('collapse', Q_COLLAPSE_INSTR)
+		hndl_Qndl.set_extra_parameter('transform', Q_TRANSFORM_INSTR)
+		(dates, values, metadata) = hndl_Qndl.get_data()
+		self.hndl_Data.set_data_series(name=db_name, ticker=db_ticker, insertIfNot=True)
+		self.hndl_Data.write_to_DB(dates, values)
+		self.hndl_Data.unset_data_series()
+		return metadata
 
 	def download_CSV_datasets(self):
 		# IMPORTANT: ORDER OF columns MUST MATCH ORDER OF PARAMETERS FOR download_dataset_singleSeries
@@ -51,13 +54,17 @@ class EMF_Quandl_Runner:
 					'Q_TRANSFORM_INSTR', 
 					'db_name', 
 					'db_ticker']
-		indexes = [lib_quandl.QuandlCSVColumns[x] for x in columns]
-		for row in self.CSVHandle:
+		indexes = [QuandlCSVColumns[x] for x in columns]
+		for row in self.hndl_CSV:
 			values = [row[x] for x in indexes]
-			self.__download_dataset_singleSeries(*values)
+			metadata = self.__download_dataset_singleSeries(*values)
+			for (key, val) in metadata.iteritems():
+				self.hndl_CSV.change_current_row(val, columnName=key)
+		self.hndl_CSV.write_to_csv()
 
 def main():
-	QuandlRunner = EMF_Quandl_Runner('TEMP')
+	from lib_EMF import TEST_MODE
+	QuandlRunner = EMF_Quandl_Runner(TEST_MODE)
 	QuandlRunner.download_CSV_datasets()
 
 if __name__ == '__main__':

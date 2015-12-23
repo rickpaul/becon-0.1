@@ -1,11 +1,15 @@
 # TODO:
 #	Implement file versioning system for backups (somehow)
+# 	Move test to other file!
 
-
-import logging as log # Needed?
-
-from shutil import copy2
-import csv
+# EMF 		From...Import
+import 	UnicodeCSV
+# System 	Import...As
+import logging as log
+# System 	From...Import
+from 	os.path 	import isfile
+from 	os 			import remove
+from 	shutil 		import copy2
 
 class EMF_CSV_Handle:
 	def __init__(self, csvFileName, columnIndexes=None, editableColumns=None, hasHeader=True):
@@ -19,7 +23,7 @@ class EMF_CSV_Handle:
 
 	def __read_from_CSV(self, hasHeader):
 		with open(self.csvFileName, 'rU') as csvFile:
-			csvReader = csv.reader(csvFile)
+			csvReader = UnicodeCSV.UnicodeReader(csvFile)
 			if self.hasHeader:
 				self.csvHeader = [next(csvReader)] # Save off header in CSV
 			self.fileContent = [list(row) for row in csvReader]
@@ -50,9 +54,9 @@ class EMF_CSV_Handle:
 				columnIndex = self.columnIndexes[columnName]
 			else:
 				assert columnIndex == self.columnIndexes[columnName] #Necessary Check?
-		# Check if Column Index is Editable
+		# Check if Column Name is Editable
 		if self.editableColumns is not None:
-			if columnIndex not in self.editableColumns:
+			if columnName not in self.editableColumns:
 				return False
 		# Perform Value Replacement
 		currentRow = self.nextRow-1
@@ -74,14 +78,22 @@ class EMF_CSV_Handle:
 			return False
 		# Copy File to Backup
 		if writeAsBackup:
-			copy2(self.csvFileName, self.csvFileName[:-4] + '_bkup.csv')
-		# Write New Content
-		with open(self.csvFileName, 'wb') as csvFile:
-			csvWriter = csv.writer(csvFile)
+			backupFile = self.csvFileName[:-4] + '_bkup.csv'
+			if not isfile(backupFile):
+				copy2(self.csvFileName, backupFile)
+		# Write New Content to Temp File
+		tempFile = self.csvFileName[:-4] + '_temp.csv'
+		with open(tempFile, 'wb') as csvFile:
+			csvWriter = UnicodeCSV.UnicodeWriter(csvFile)
 			if self.hasHeader:
 				csvWriter.writerows(self.csvHeader)
 			csvWriter.writerows(self.fileContent)
-			return True
+		# Copy File to Main
+		copy2(tempFile,self.csvFileName)
+		remove(tempFile)
+		return True
+
+###### TEST BELOW
 
 def test_editable():
 	# Read Test CSV

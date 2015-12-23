@@ -1,17 +1,17 @@
 # TODO:
-#	remove main()
 #	Implement Error Handling (e.g. what to do when get 404)
 #	Add Logging
 #	Implement Parameter Checking (e.g. dates in correct format, order =asc or desc)
 #	How do you know if data is interpolated or forecast?
-
-from	util_EMF 	import dtConvert_YYYY_MM_DDtoEpoch
-
-import 	lib_QuandlAPI as lib_quandl
+# EMF 		From...Import
+from	util_EMF 		import dtConvert_YYYY_MM_DDtoEpoch
+# EMF 		Import...As
+import 	lib_QuandlAPI 	as lib_quandl
+# System 	Import...As
 import 	urllib2
 import 	json
-import	logging as 	log
-import	numpy	as 	np
+import	logging 		as 	log
+import	numpy			as 	np
 
 class EMF_QuandlAPI_Handle:
 	'''
@@ -28,6 +28,7 @@ class EMF_QuandlAPI_Handle:
 			'api': lib_quandl.QuandlAPIKey
 		}
 		self.extraParameters = lib_quandl.URLParameterDefaults
+		self.error = None
 
 	def set_extra_parameter(self, parameter_name, parameter_value):
 		'''
@@ -42,7 +43,7 @@ class EMF_QuandlAPI_Handle:
 		assert parameter_name in lib_quandl.URLParameterFormats
 		self.extraParameters[parameter_name] = parameter_value
 
-	def get_data_history(self, columnName=None, saveHistoryLocal=False):
+	def get_data(self, columnName=None, saveHistoryLocal=False):
 		'''
 		RETURNS:
 					<NONE>
@@ -50,12 +51,21 @@ class EMF_QuandlAPI_Handle:
 					+How do you know if data is interpolated or forecast?
 					-Add Logging
 		-'''
-		url = self.__get_parameterized_URL()
-		queryJSON = self.__retrieve_data(url)
-		(dates, values) = self.__parse_JSON_data(queryJSON, columnName=columnName)
-		if saveHistoryLocal:
-			(self.dates, self.values) = (dates, values)
-		return (dates, values)
+		try:
+			# Get Data
+			url = self.__get_parameterized_URL()
+			queryJSON = self.__retrieve_data(url)
+			# Parse Data
+			metadata = self.__parse_JSON_metadata(queryJSON)
+			(dates, values) = self.__parse_JSON_data_history(queryJSON, columnName=columnName)
+			# Save Local
+			if saveHistoryLocal:
+				(self.dates, self.values, self.metadata) = (dates, values, metadata)
+			# Return
+			metadata['ERROR'] = self.error
+			return (dates, values, metadata)
+		except:
+			return ([],[], {'ERROR':'UNCAUGHT ERROR'})
 
 	def __get_parameterized_URL(self, url=lib_quandl.QuandlURL):
 		tempDict = {}
@@ -78,10 +88,11 @@ class EMF_QuandlAPI_Handle:
 			rawData = response.read()
 			responseCode = response.getcode()
 		except urllib2.HTTPError as e:
-			raise NotImplementedError #Handle Exception
-		return json.loads(rawData)
+			responseCode = response.getcode()
+			self.error = 'HTTP Error: ' + responseCode
+		return json.loads(rawData)['dataset']
 
-	def __parse_JSON_data(self, queryJSON, columnName=None):
+	def __parse_JSON_data_history(self, queryJSON, columnName=None):
 		'''
 		TODOS:
 					++Save to broken download database!
@@ -91,16 +102,16 @@ class EMF_QuandlAPI_Handle:
 					-Add Logging
 		'''
 		# Unwrap Data History
-		dataset = queryJSON['dataset']['data']
+		dataset = queryJSON['data']
 		# Unwrap Columns and Assign Column Index
-		columns = queryJSON['dataset']['column_names']
+		columns = queryJSON['column_names']
 		numCols = len(columns)
 		assert numCols > 0
 		if numCols != 2:
 			if (columnName is None) or (columnName not in columns):
 				log.warning('More than one column detected for data download. Using First Column')
 				columnIndex = 1
-				raise NotImplementedError # SAVE TO BROKEN DOWNLOADS DB
+				self.error = 'Multiple Column Error'
 			else:
 				columnIndex = columns.index(columnName)
 		else:
@@ -120,14 +131,24 @@ class EMF_QuandlAPI_Handle:
 		# Return
 		return (dates, values)
 
-def main():
-	handle = EMF_QuandlAPI_Handle('WIKI','FB')
-	(dates, values) = handle.get_data_history(columnName='Open')
-	handle.set_extra_parameter('column_index', 1)
-	(dates2, values2) = handle.get_data_history()
-	assert np.all(dates==dates2)
-	assert np.all(values==values2)
-	print np.vstack((dates, values))
+	def __parse_JSON_metadata(self, queryJSON):
+		'''
+		TODOS:
+					+Difference between oldest_available_date and start_date?
+					-Move queryJSON keys to lib_QuandlAPI
+					-Add Logging
+		'''
+		metadata = {}
+		# Unwrap MetaData History
+		metadata['Q_EARLIEST_DATE'] = queryJSON['oldest_available_date']
+		metadata['Q_LATEST_DATE'] = queryJSON['newest_available_date']
+		# metadata['Q_EARLIEST_DATE'] = queryJSON['start_date']
+		# metadata['Q_LATEST_DATE'] = queryJSON['end_date']
+		metadata['Q_REFRESHED_AT'] = queryJSON['refreshed_at']
+		metadata['Q_PERIODICITY'] = queryJSON['frequency']
+		metadata['Q_NAME'] = queryJSON['name']
+		metadata['Q_DESCRIPTION'] = queryJSON['description']
+		metadata['NUM_COLUMNS'] = len(queryJSON['column_names'])
+		metadata['NUM_POINTS'] = len(queryJSON['data'])
+		return metadata
 
-if __name__ == '__main__':
-	main()
