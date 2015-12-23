@@ -1,8 +1,8 @@
 # TODO: 
-#	Add transformations for time as well as data
-#	How do we implement controls?
+#	Implement Controls
 #		e.g. logarithms must be above zero
 
+# EMF 		Import...As
 import util_Transformation as util_Trns
 
 

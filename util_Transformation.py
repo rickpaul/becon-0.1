@@ -2,8 +2,12 @@
 TODOS:
 	+ How do you find quantiles numpy?
 '''
-import numpy as np
-from math import log, e
+# EMF 		From...Import
+# EMF 		Import...As
+# System 	Import...As
+import 	numpy 		as 		np
+# System 	From...Import
+from 	math 		import 	log, e
 
 kwargDefaults = {
 	'periodDelay': 1, # 'FirstOrderDifference'
@@ -15,6 +19,16 @@ kwargDefaults = {
 func_round = np.vectorize(round)
 func_abs = np.vectorize(abs)
 func_log = np.vectorize(log)
+
+# DATA VERIFICATIONS
+
+def verify_None(data, kwargs):
+	return True
+
+def verify_Positive(data, kwargs):
+	return np.all(data>0)
+
+# DATA TRANSFORMATIONS
 
 def transform_None(data, kwargs):
 	return data
@@ -56,6 +70,8 @@ def transform_ShrinkOutliers(data, kwargs):
 	'''
 	mean = np.mean(data)
 	raise NotImplementedError
+
+# CATEGORIZATIONS
 
 def categorize_None(data, kwargs):
 	'''
@@ -117,7 +133,7 @@ def categorize_QuantileRange(data, kwargs):
 	numQuartiles = kwargs.get(key, kwargDefaults[key])
 	raise NotImplementedError
 
-# TIME SERIES TRANSFORMATIONS BELOW
+# TIME SERIES TRANSFORMATIONS
 
 def timeSeriesTransform_Trailing(timeSeries, kwargs):
 	key = 'periodDelay'
