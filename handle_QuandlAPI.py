@@ -4,7 +4,7 @@
 #	Implement Parameter Checking (e.g. dates in correct format, order =asc or desc)
 #	How do you know if data is interpolated or forecast?
 # EMF 		From...Import
-from	util_EMF 		import dtConvert_YYYY_MM_DDtoEpoch
+from	util_EMF 		import dt_str_YYYY_MM_DD_to_epoch as YMD_to_epoch
 # EMF 		Import...As
 import 	lib_QuandlAPI 	as lib_quandl
 # System 	Import...As
@@ -122,8 +122,8 @@ class EMF_QuandlAPI_Handle:
 		values = []
 		numRows = len(dataset)
 		for row in dataset:
-			# originalDates.append(dtConvert_YYYY_MM_DDtoEpoch(row[0]))
-			dates.append(dtConvert_YYYY_MM_DDtoEpoch(row[0], endOfMonth=True))
+			# originalDates.append(YMD_to_epoch(row[0]))
+			dates.append(YMD_to_epoch(row[0], endOfMonth=True))
 			values.append(row[columnIndex])
 		# originalDates = np.asarray(originalDates)
 		dates = np.asarray(dates)

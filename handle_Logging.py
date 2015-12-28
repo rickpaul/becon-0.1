@@ -15,7 +15,7 @@ import 	logging 	as log
 
 class EMF_Logging_Handle:
 	'''
-	This mostly exists to handle log deletion. 
+	This class mostly exists to handle log deletion. 
 	'''
 	def __init__(self, mode=TEMP_MODE):
 		# Get Settings

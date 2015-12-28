@@ -104,8 +104,6 @@ WordHistoryColumns = [
 ]
 WordColumnTableLink.update(dict.fromkeys(WordHistoryColumns,'T_WORD_HISTORY'))
 
-
-
 # createDataTransformationsTable = '''
 # CREATE TABLE T_TRANSFORMATIONS
 # (

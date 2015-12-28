@@ -1,5 +1,5 @@
-#TODO: Fix! 
-#	Not Decision Tree Here
+#TODO: DELETE
+#	No Decision Tree Here
 import matplotlib.pyplot as plt
 import matplotlib.patches as ptchs
 

@@ -1,8 +1,6 @@
-# EMF 		From...Import
-from 	handle_WordSeries 		import EMF_WordSeries_Handle as handle_word
-from 	lib_WordSeries	 		import VALUE_COL
 # System 	Import...As
 import numpy as np
+
 class EMF_Model_Handle:
 	def __init__(self,):
 		self.independentVariables = []
@@ -23,9 +21,6 @@ class EMF_Model_Handle:
 		else:
 			return None
 
-	def assertModel(self,):
-		raise NotImplementedError
-
 	def add_dependent_variable(self, wordHandle, wordType):
 		'''
 		TODOS:
@@ -39,11 +34,16 @@ class EMF_Model_Handle:
 		self.independentVariable_Types.append(wordType)
 
 	def run_model(self):
+		'''
+		TODOS:
+				implement sample weights for model fits
+		'''
+
 		assert self._evaluate_run_readiness()
 		indVarArray = None
 		for varHandle in self.independentVariables:
 			if indVarArray is None:
-				indVarArray = varHandle.get_word_series()
+				indVarArray = varHandle.get_word_series(saveHistoryLocal=True)
 			else:
 				indVarArray = np.hstack((indVarArray, varHandle.get_word_series()))
 		depVarArray = None
@@ -53,15 +53,7 @@ class EMF_Model_Handle:
 			else:
 				depVarArray = np.hstack((depVarArray, varHandle.get_word_series()))
 		self.model.fit(depVarArray, indVarArray)
-
-	def determine_accuracy(self):
-		raise NotImplementedError # To be implemented by subclass
-
-	def evaluate_model(self):
-		raise NotImplementedError # To be implemented by subclass
-
-	def save_model(self):
-		raise NotImplementedError # To be implemented by subclass
+		# self.model.fit(depVarArray, indVarArray, sampleWeights)
 
 	# def get_dependent_variables(self):
 	# 	raise NotImplementedError

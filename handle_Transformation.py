@@ -2,7 +2,9 @@
 #	IMPORTANT! Does secondary Transformation for FirstOrderDiff get parameter?
 # 	Create some model of transformation complexity? (i.e. O(n))
 
+# EMF 		Import...As
 import lib_Transformation as lib_Trns
+# System 	From...Import
 from json 	import dumps 	as json_dump
 from random import choice
 
