@@ -3,9 +3,15 @@
 
 # Deprecated Files
 deprecated/*
+_del_*
 
 # Octave Help Files
 octave-workspace
+
+# CSV Files
+*.xls
+*.xlsx
+*.csv
 
 # Compiled files
 *.pyc
