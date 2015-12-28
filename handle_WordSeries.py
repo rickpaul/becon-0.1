@@ -1,12 +1,11 @@
 # TODOS:
 
 # EMF 		From...Import
-from 	handle_DataSeries 		import EMF_DataSeries_Handle as DataHandle
-from 	handle_Transformation 	import EMF_Transformation_Handle as TransformationHandle
 from 	lib_WordSeries	 		import DATE_COL, VALUE_COL, WORD_HISTORY_DTYPE
 from 	lib_DataSeries	 		import DATE_COL as DATA_DATE_COL
 from 	lib_DataSeries	 		import VALUE_COL as DATA_VALUE_COL
-from 	util_EMF				import dtGetNowAsEpoch
+from 	util_EMF				import dt_now_as_epoch
+from 	util_WordSeries			import generate_Word_Series_name
 # EMF 		Import...As
 import lib_DBInstructions as lib_DBInst
 # System 	Import...As
@@ -14,11 +13,10 @@ import logging 	as log
 import numpy 	as np
 
 class EMF_WordSeries_Handle:
-	def __init__(self, dbHandle, dataSeriesTicker, transformationPattern):
+	def __init__(self, dbHandle, dataHandle, transformationHandle):
 		self.hndl_DB = dbHandle
-		self.hndl_Data = DataHandle(dbHandle)
-		self.hndl_Data.set_data_series(ticker=dataSeriesTicker, insertIfNot=False)
-		self.hndl_Trns = TransformationHandle(transformationPattern)
+		self.hndl_Data = dataHandle
+		self.hndl_Trns = transformationHandle
 		self.wordSeriesID = lib_DBInst.retrieve_WordSeriesID(	self.hndl_DB.conn_(), 
 																self.hndl_DB.cursor_(), 
 																self.hndl_Data.seriesID,
@@ -28,7 +26,7 @@ class EMF_WordSeries_Handle:
 		self.stored_dates = None
 
 	def __str__(self):
-		return str(self.hndl_Data) + "|" + str(self.hndl_Trns)
+		return generate_Word_Series_Name(self.hndl_Data.seriesTicker, self.hndl_Trns.transformationName)
 
 	def __get_from_DB(self, column):
 		return lib_DBInst.retrieve_WordSeriesMetaData(self.hndl_DB.cursor_(), column, self.wordSeriesID)
@@ -63,7 +61,7 @@ class EMF_WordSeries_Handle:
 		TODOS:
 		'''
 		assert self.wordSeriesID is not None
-		self.__send_to_DB('dt_history_last_accessed', dtGetNowAsEpoch())
+		self.__send_to_DB('dt_history_last_accessed', dt_now_as_epoch())
 		if self.stored_words is not None:
 			return self.stored_words
 		else:
