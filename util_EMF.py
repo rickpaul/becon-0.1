@@ -10,6 +10,7 @@ import lib_DB
 # System 	Import...As
 import 	logging 			as 		log
 import 	datetime
+import 	pytz
 # System 	From...Import
 from 	calendar 			import 	monthrange
 
@@ -68,48 +69,109 @@ def get_EMF_settings(mode=TEMP_MODE):
 		raise NameError('EMF Run Mode not recognized')
 
 ######################## DATE TIME CODE
-def dtGetDay(epochTime):
-	return datetime.datetime.fromtimestamp(epochTime).day
+DT_EPOCH_ZERO = datetime.datetime.fromtimestamp(0, pytz.UTC) # datetime.datetime(1970,1,1,0)
 
-def dtGetMonth(epochTime):
-	return datetime.datetime.fromtimestamp(epochTime).month
+YEARS = 1
+QUARTERS = 4
+MONTHS = 12
+WEEKS = 52
+DAYS = 365
 
-def dtGetYear(epochTime):
-	return datetime.datetime.fromtimestamp(epochTime).year
+def dt_date_range_generator(startEpoch, endEpoch, periodicity=MONTHS):
+	# Set Variables
+	startDT = dt_epoch_to_datetime(startEpoch)
+	endDT = dt_epoch_to_datetime(endEpoch)
+	if periodicity == MONTHS:
+		currentDT = dt_end_of_month(startDT)
+	else:
+		raise NotImplementedError
+	# Yield Start
+	if not dt_is_end_of_month(startDT):
+		yield startEpoch
+	# Yield Intervening Months
+	while currentDT < endDT:
+		yield dt_datetime_to_epoch(currentDT)
+		if periodicity == MONTHS:
+			currentDT = dt_add_month(currentDT)
+		else:
+			raise NotImplementedError
+	# Yield End
+	yield endEpoch
 
-def dtGetNowAsEpoch():
-	dt = datetime.datetime.now()
-	return (dt-datetime.datetime(1970,1,1)).total_seconds()
+def dt_is_end_of_month(datetime_):
+	year_ = datetime_.year
+	month_ = datetime_.month
+	day_ = monthrange(year_, month_)[1]
+	return (datetime_.day == day_ and 
+			datetime_.hour == 0 and 
+			datetime_.minute == 0 and 
+			datetime_.second == 0)
 
-def dtGetEndOfMonthAsEpoch(year, month):
-	dt = datetime.datetime(year, month, monthrange(year, month)[1])
-	return (dt-datetime.datetime(1970,1,1)).total_seconds()
+def dt_end_of_month(datetime_):
+	year_ = datetime_.year
+	month_ = datetime_.month
+	day_ = monthrange(year_, month_)[1]
+	return datetime.datetime(year_, month_, day_, tzinfo=pytz.UTC)
 
-def dtGetEndOfYearAsEpoch(year):
-	dt = datetime.datetime(year, 12, 31)
-	return (dt-datetime.datetime(1970,1,1)).total_seconds()
+def dt_add_month(datetime_):
+	year_ = datetime_.year + int(datetime_.month==12)
+	month_ = (datetime_.month) % 12 + 1
+	day_ = monthrange(year_, month_)[1]
+	return datetime.datetime(year_, month_, day_, tzinfo=pytz.UTC)
 
-def dtConvert_YYYY_MM_DD_TimetoEpoch(timeString):
-	dt = datetime.datetime.strptime(timeString, '%Y-%m-%d %H:%M:%S-%f')  
-	return (dt-datetime.datetime(1970,1,1)).total_seconds()
+def dt_epoch_to_datetime(epoch_):
+	return datetime.datetime.fromtimestamp(epoch_, pytz.UTC)
 
-def dtConvert_YYYY_MM_DDtoEpoch(timeString, endOfMonth=False):
-	dt = datetime.datetime.strptime(timeString, '%Y-%m-%d')
+def dt_datetime_to_epoch(datetime_):
+	return int((datetime_ - DT_EPOCH_ZERO).total_seconds())
+
+def dt_now_as_epoch():
+	dt = datetime.datetime.now(pytz.UTC)
+	return int(dt_datetime_to_epoch(dt))
+
+def dt_str_YYYY_MM_DD_to_epoch(dateString, endOfMonth=False):
+	dt = datetime.datetime.strptime(dateString, '%Y-%m-%d')
 	if endOfMonth:
-		dt = dt.replace(day = monthrange(dt.year,dt.month)[1])
-	return (dt-datetime.datetime(1970,1,1)).total_seconds()
+		dt = dt_end_of_month(dt)
+	return dt_datetime_to_epoch(dt)
 
-def dtConvert_Mmm_YtoEpoch(timeString, endOfMonth=True):
-	dt = datetime.datetime.strptime(timeString, '%b-%y')
-	if endOfMonth:
-		dt = dt.replace(day = monthrange(dt.year,dt.month)[1])
-	return (dt-datetime.datetime(1970,1,1)).total_seconds()
+def dt_epoch_to_str_Y_M_D(epoch_):
+	return strftime(dt_epoch_to_datetime(epoch_), '%Y-%m-%d', force=True)
 
-def dtConvert_EpochtoY_M_D(epochTime):
-	return strftime(datetime.datetime.fromtimestamp(epochTime), '%Y-%m-%d', force=True)
+def dt_epoch_to_str_Y_M_D_Time(epoch_):
+	return strftime(dt_epoch_to_datetime(epoch_), '%Y-%m-%d %H:%M:%S', force=True)
 
-def dtConvert_EpochtoYMD(epochTime):
-	return strftime(datetime.datetime.fromtimestamp(epochTime), '%Y%m%d', force=True)
+def dt_epoch_to_str_YMD(epoch_):
+	return strftime(dt_epoch_to_datetime(epoch_), '%Y%m%d', force=True)
+
+
+# def dtGetDay(epochTime):
+# 	return dt_epoch_to_datetime(epochTime).day
+
+# def dtGetMonth(epochTime):
+# 	return dt_epoch_to_datetime(epochTime).month
+
+# def dtGetYear(epochTime):
+# 	return dt_epoch_to_datetime(epochTime).year
+
+# def dtConvert_YYYY_MM_DD_TimetoEpoch(timeString):
+# 	dt = datetime.datetime.strptime(timeString, '%Y-%m-%d %H:%M:%S-%f')  
+# 	return dt_datetime_to_epoch(dt)
+
+# def dtConvert_Mmm_YtoEpoch(timeString, endOfMonth=True):
+# 	dt = datetime.datetime.strptime(timeString, '%b-%y')
+# 	if endOfMonth:
+# 		dt = dt.replace(day = monthrange(dt.year,dt.month)[1])
+# 	return dt_datetime_to_epoch(dt)
+
+# def dtGetEndOfMonthAsEpoch(year, month):
+# 	dt = datetime.datetime(year, month, monthrange(year, month)[1])
+# 	return dt_datetime_to_epoch(dt)
+
+# def dtGetEndOfYearAsEpoch(year):
+# 	dt = datetime.datetime(year, 12, 31)
+# 	return dt_datetime_to_epoch(dt)
+
 
 # Taken from StackOverflow
 def strftime(datetime_, format, force=False):
