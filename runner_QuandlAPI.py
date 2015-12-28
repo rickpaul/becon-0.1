@@ -46,7 +46,7 @@ class EMF_Quandl_Runner:
 
 	def download_CSV_datasets(self):
 		# IMPORTANT: ORDER OF columns MUST MATCH ORDER OF PARAMETERS FOR download_dataset_singleSeries
-		columns = [	'Q_DATABASE_CODE', 
+		columns = [	'Q_DATABASE_CODE',
 					'Q_DATASET_CODE', 
 					'Q_COLUMN_NUM', 
 					'Q_COLUMN_NAME', 

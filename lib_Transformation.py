@@ -31,10 +31,12 @@ Categorizations = {
 CategorizationKeys = Categorizations.keys()
 
 TransformationPatterns = {
-	'None': (0, ('None',), 'None'),
-	'RateOfChange': (1, ('FirstOrderDifference',), 'uniformLengthRange'),
-	'RateOfAcceleration': (2, ('FirstOrderDifference', 'FirstOrderDifference'), 'uniformLengthRange'),
-	'Stratification': (3, ('None',), 'uniformLengthRange'),
+	'None': 					(0, ('None',), 'None'),
+	'RateOfChange_Cat': 		(1, ('FirstOrderDifference',), 'uniformLengthRange'),
+	'RateOfAcceleration_Cat': 	(2, ('FirstOrderDifference', 'FirstOrderDifference'), 'uniformLengthRange'),
+	'Stratification': 			(3, ('None',), 'uniformLengthRange'),
+	'RateOfChange': 			(4, ('FirstOrderDifference',), 'Nones'),
+	'RateOfAcceleration': 		(5, ('FirstOrderDifference', 'FirstOrderDifference'), 'None'),
 }
 
 MAX_NUM_TRANSFORMATIONS = 100 	# power of 10 for easy hashing
