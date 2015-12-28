@@ -1,42 +1,37 @@
-#TODO:
-#	Change to use model_runner framework
-#	Change to use test_handle framework
+# TODOS:
+#	This isn't actually a test yet.
 
-import sqlite3 	as sq
-import numpy 	as np
-import logging 	as log
-from os import remove
-from os.path import isfile
-
-
-from util_Logging import initializeLog
-
-from handle_DataSeries import EMF_DataSeries_Handle
-from handle_WordSeries import EMF_WordSeries_Handle
-from util_CreateDB import doOneTimeDBCreation
-from main_CreateDB import fullTableCreationInstructions
+# EMF 		From...Import
+from 	handle_Testing 	import EMF_Testing_Handle
+# EMF 		Import...As
+import 	lib_Model
+# System 	Import...As
+import 	numpy 			as np
 
 
-def createWords(db_connection, db_cursor):
-	wordHandle = EMF_WordSeries_Handle(db_connection, db_cursor)
-	wordHandle.set_data_series('y')
-	wordHandle.setTransformation_FromTemplate('Stratification')
+def save_test_data(hndl_Test):
+	np.random.seed(0)
+	from sklearn.datasets import make_blobs
+	dataLen = 200
+	X, y = make_blobs(n_samples=dataLen, n_features=2, centers=4)
+	dt = np.arange(dataLen)
+	hndl_Test.insert_test_data(dt, X, ['X0', 'X1'])
+	hndl_Test.insert_test_data(dt, y, ['clusterNum'])
+	hndl_Test.create_word_from_data('X0', 'None')
+	hndl_Test.create_word_from_data('X1', 'None')
+	hndl_Test.create_word_from_data('clusterNum', 'None')
 
-
-
-
-
+def run_model(hndl_Test):
+	model = lib_Model.ClassificationDecisionTree()
+	model.add_dependent_variable(hndl_Test.retrieve_word('X0|None'), 'continuous')
+	model.add_dependent_variable(hndl_Test.retrieve_word('X1|None'), 'continuous')
+	model.add_independent_variable(hndl_Test.retrieve_word('clusterNum|None'), 'categorical_bounded')
+	model.run_model()
 
 def main():
-	try:
-		(db_cursor, db_connection) = performInitialSetup(DBFilePath, quietShell=1)
-		insertTestData_2D_Circle(db_connection, db_cursor)
-		createWords(db_connection, db_cursor)
-	except Exception as e:
-		print('ERROR!')
-		print(e)
-	finally:
-		finalize(db_connection)
+	hndl_Test = EMF_Testing_Handle()
+	save_test_data(hndl_Test)
+	run_model(hndl_Test)
 
 if __name__ == '__main__':
 	main()
