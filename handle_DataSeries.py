@@ -1,7 +1,4 @@
 # TODOS:
-#	create way to select random data series
-#	create way to select random data series according to criteria
-#		e.g. min_date, max_date, periodicity, 
 #	we insert but we don't retrieve isInterpolated, isForecast
 #	Find a way to make sure that data history date/times match up (create canonical dates fn)
 #	Do we really want to allow dataSeries unsetting? Should make you delete object
@@ -9,7 +6,7 @@
 #		Implement template class for Handles?
 
 # EMF 		From...Import
-from	util_EMF		import 	dtGetNowAsEpoch, dtConvert_EpochtoYMD
+from	util_EMF		import 	dt_now_as_epoch, dt_epoch_to_str_YMD, dt_date_range_generator
 from 	lib_DataSeries	import 	DATE_COL, VALUE_COL, DATA_HISTORY_DTYPE
 from 	lib_JSON		import 	JSONRepository, DATA_SERIES_TO_JSON
 # EMF 		Import...As
@@ -25,17 +22,26 @@ class EMF_DataSeries_Handle:
 	def __init__(self, dbHandle):
 		self.hndl_DB = dbHandle
 		self.seriesID = None
-		self.dataHistory = None
+		self._dataHistory = None
+		self._metadataCache = {}
 
 	def __str__(self):
 		assert self.seriesID is not None
 		return self.seriesTicker
 
 	def __get_from_DB(self, column):
-		return lib_DBInst.retrieve_DataSeriesMetaData(self.hndl_DB.cursor_(), column, self.seriesID)
+		if column in self._metadataCache:
+			return self._metadataCache[column]
+		value = lib_DBInst.retrieve_DataSeriesMetaData(self.hndl_DB.cursor_(), column, self.seriesID)
+		self._metadataCache[column] = value
+		return value
 
 	def __send_to_DB(self, column, value):
-		return lib_DBInst.update_DataSeriesMetaData(self.hndl_DB.conn_(), self.hndl_DB.cursor_(), column, value, self.seriesID)
+		success = lib_DBInst.update_DataSeriesMetaData(self.hndl_DB.conn_(), self.hndl_DB.cursor_(), column, value, self.seriesID)
+		if success:
+			self._metadataCache[column] = value
+		else:
+			raise NotImplementedError #How 
 
 	def set_data_series(self, name=None, ticker=None, insertIfNot=True):
 		assert self.seriesID is None # Force reset before setting (Or new object)
@@ -52,7 +58,7 @@ class EMF_DataSeries_Handle:
 		return self.seriesID
 
 	def unset_data_series(self):
-		self.dataHistory = None
+		self._dataHistory = None
 		self.seriesID = None
 		self.seriesName = None
 		self.seriesTicker = None
@@ -66,7 +72,7 @@ class EMF_DataSeries_Handle:
 		dataSeries = lib_DBInst.getCompleteDataHistory_DataHistoryTable(self.hndl_DB.cursor_(), self.seriesID)
 		dataSeries = np.asarray(dataSeries, dtype=DATA_HISTORY_DTYPE)
 		if saveHistoryLocal:
-			self.dataHistory = dataSeries
+			self._dataHistory = dataSeries
 		return dataSeries
 
 	def __write_data_point(self, date, value, isInterpolated=False, isForecast=False):
@@ -89,7 +95,7 @@ class EMF_DataSeries_Handle:
 							What are we doing with dates we find?
 		'''
 		assert self.seriesID is not None
-		dataLen = len(dates)
+		dataLen = len(dates)		
 		assert dates.shape == values.shape
 		hasInt = (isInterpolated is not None)
 		hasFor = (isForecast is not None)
@@ -120,40 +126,57 @@ class EMF_DataSeries_Handle:
 		self.__set_last_update()
 		log.info('Successfully/Unsuccessfully wrote %d/%d Historical Data Points for %s', successfulInserts, unsuccessfulInserts, self.seriesTicker)
 		if saveHistoryLocal:
-			self.dataHistory = np.asarray(np.hstack((dates, values)), dtype=DATA_HISTORY_DTYPE)
+			self._dataHistory = np.asarray(np.hstack((dates, values)), dtype=DATA_HISTORY_DTYPE)
 		return (successfulInserts, unsuccessfulInserts)
 
 	def get_num_data_points(self):
 		raise NotImplementedError
 
+	def get_periodicity(self):
+		return self.__typify(int, self.__get_from_DB('int_periodicity'))
+
+	def get_categorical(self):
+		return self.__typify(bool, self.__get_from_DB('bool_data_is_categorical'))
+
 	def get_latest_date(self):
-		self.latestDate = self.__get_from_DB('dt_max_data_date')
-		return self.latestDate
+		return self.__typify(int, self.__get_from_DB('dt_max_data_date'))
 
 	def get_earliest_date(self):
-		self.earliestDate = self.__get_from_DB('dt_min_data_date')
-		return self.earliestDate
+		return self.__typify(int, self.__get_from_DB('dt_min_data_date'))
 
 	def get_last_update(self):
-		self.lastUpdate = self.__get_from_DB('dt_last_updated_history')
-		return self.lastUpdate
+		return self.__typify(int, self.__get_from_DB('dt_last_updated_history'))
+
+	def __typify(self, type_, value_):
+		if value_ is None:
+			return None
+		if type_ == bool:
+			return bool(int(value_))
+		else:
+			return type_(value_)
+
+	def set_periodicity(self, periodicity):
+		self.__send_to_DB('int_periodicity', periodicity)
+
+	def set_categorical(self, categorical):
+		self.__send_to_DB('bool_data_is_categorical', categorical)
 
 	def __set_latest_date(self, maxDate):
-		if self.latestDate is not None and maxDate <= self.latestDate:
-			return False
-		self.latestDate = maxDate
+		'''
+		TODO:
+					Send back True/False based on if new minDate is set
+		'''
 		self.__send_to_DB('dt_max_data_date', maxDate)
-		return True
 
 	def __set_earliest_date(self, minDate):
-		if self.earliestDate is not None and minDate >= self.earliestDate:
-			return False
-		self.earliestDate = minDate
+		'''
+		TODO:
+					Send back True/False based on if new minDate is set
+		'''
 		self.__send_to_DB('dt_min_data_date', minDate)
-		return True
 
 	def __set_last_update(self):
-		self.lastUpdate = dtGetNowAsEpoch()
+		self.lastUpdate = dt_now_as_epoch()
 		self.__send_to_DB('dt_last_updated_history', self.lastUpdate)
 
 	def write_to_JSON(self):
@@ -161,9 +184,9 @@ class EMF_DataSeries_Handle:
 		TODOS:
 					Create JSON Util
 		'''
-		if self.dataHistory is None:
+		if self._dataHistory is None:
 			self.get_data_history(saveHistoryLocal=True)
-		JSON = map(DATA_SERIES_TO_JSON, self.dataHistory)
+		JSON = map(DATA_SERIES_TO_JSON, self._dataHistory)
 		JSONFileName = self.__get_JSON_filename()
 		try:
 			writer = open(JSONFileName, 'wb')
@@ -176,25 +199,21 @@ class EMF_DataSeries_Handle:
 	def __get_JSON_filename(self, simple=True):		
 		fileName = self.seriesTicker
 		if not simple:
-			fileName += ('|' + dtConvert_EpochtoYMD(self.get_earliest_date()))
-			fileName += ('|' + dtConvert_EpochtoYMD(self.get_latest_date()))
-			fileName += ('|' + dtConvert_EpochtoYMD(self.get_last_update()))
+			fileName += ('|' + dt_epoch_to_str_YMD(self.get_earliest_date()))
+			fileName += ('|' + dt_epoch_to_str_YMD(self.get_latest_date()))
+			fileName += ('|' + dt_epoch_to_str_YMD(self.get_last_update()))
 		return (JSONRepository + fileName + '.json')
 
-	# def check_data_fullness(self, earliestDate, latestDate, periodicity=12):
-	# 	'''
-	# 	This method checks if the data is filled in (i.e. if data is monthly since 1990, 
-	# 		every year should have) 12 points at expected times.
-	# 	'''
-	# 	raise NotImplementedError # How to deal with non-months?
-	# 	assert periodicity == 12 or periodicity == 1 or periodicity == 4 or periodicity == 52 or periodicity == 365
+	def check_data_fullness(self, periodicity=12):
+		'''
+		This method checks if the data is filled in (i.e. if data is monthly since 1990, 
+			every year should have) 12 points at expected times.
+		'''
+		generator = dt_date_range_generator(self.get_earliest_date(), self.get_latest_date(), periodicity)
 
-	# 	startDay = dtGetDay(earliestDate)
-	# 	startMonth = dtGetMonth(earliestDate)
-	# 	startYear = dtGetYear(earliestDate)
-	# 	endDay = dtGetDay(earliestDate)
-	# 	endMonth = dtGetMonth(earliestDate)
-	# 	endYear = dtGetYear(earliestDate)
-	# 	lib_DBInst.getCompleteDataHistory_DataHistoryTable(self.hndl_DB.cursor_(), self.seriesID)
+		if periodicity == 12:
+			self.get_data_history()
+		else:
+			raise NotImplementedError
 
 
