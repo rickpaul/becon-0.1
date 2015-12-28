@@ -1,16 +1,75 @@
 # TODO:
 #	Refactor to combine shorter functions
+
 # EMF 		From...Import
-from 	lib_CreateDB 	import DataColumnTableLink, WordColumnTableLink
+from 	lib_CreateDB 	import DataColumnTableLink, WordColumnTableLink, DataColumnTableLink
 # EMF 		Import...As
 import 	util_DB 			as DB_util
 # System 	Import...As
 import 	logging 			as log
 # System 	From...Import
 
+TICKER = 'ticker'
+ID = 'id'
+
+####################################### DATA SERIES + METADATA TABLE
+# DATA SERIES TICKER GET FILTERED
+def retrieve_DataSeries_Filtered(	cursor, 
+									column=ID,
+									minDate=None, maxDate=None, 
+									periodicity=None, categorical=None,
+									limit_=None, order_=False):
+	leftTable = 'T_DATA_SERIES'
+	rightTable = 'T_DATA_SERIES_METADATA'
+	joinCol = 'int_data_series_ID'
+	sT = ['T_DATA_SERIES']
+	if column == ID:
+		sC = ['int_data_series_ID']
+	elif column == TICKER:
+		sC = ['txt_data_ticker']
+	else:
+		raise NameError
+	# Fill In Where Columns
+	wT = []
+	wC = []
+	wV = []
+	wO = []
+	args = [minDate, maxDate, periodicity, categorical]
+	cols = ['dt_min_data_date', 'dt_max_data_date', 'int_periodicity', 'bool_data_is_categorical']
+	ops = ['>=', '<=', '=', '=']
+	for (arg, col, op) in zip(args, cols, ops):
+		if arg is not None:
+			wT.append(DataColumnTableLink[col])
+			wC.append(col)
+			wV.append(arg)
+			wO.append(op)
+	# Implement Ordering and Limits
+	order_ = ([sC], 'ASC') if order_ else None
+	# Generate and Execute Statement
+	statement = DB_util.generateJoinedSelectStatement(	leftTable, rightTable, 
+														joinCol, joinCol, 
+														sC, sT, wC, wV, wT, wO, 
+														order_=order_, limit_=limit_)
+	(success, results) = DB_util.retrieveDBStatement(cursor, statement, expectedColumnCount=1)
+	return results # Don't care about success. If not successful, will fail with error
 
 
-####################################### DATA SERIES TABLE
+# DATA SERIES TICKER GET ALL
+def retrieve_DataSeries_All(cursor, column=ID, limit_=None, order_=False):
+	table = 'T_DATA_SERIES'
+	# Find Select Column
+	if column == ID:
+		sC = ['int_data_series_ID']
+	elif column == TICKER:
+		sC = ['txt_data_ticker']
+	else:
+		raise NameError
+	# Implement Ordering
+	order_ = (sC, 'ASC') if order_ else None
+	# Generate and Execute Statement
+	statement = DB_util.generateSelectStatement(table, selectColumns=sC, order_=order_, limit_=limit_)
+	(success, results) = DB_util.retrieveDBStatement(cursor, statement, expectedColumnCount=1)
+	return results # Don't care about success. If not successful, will fail with error
 
 # DATA SERIES ID RETRIEVAL/INSERTION
 def __get_retrieve_DataSeriesID_Statement(name=None, ticker=None):
@@ -24,7 +83,12 @@ def __get_retrieve_DataSeriesID_Statement(name=None, ticker=None):
 	if name is not None:
 		wC.append('txt_data_name')
 		wV.append(name)
-	return DB_util.generateSelectStatement(	table, whereColumns=wC, whereValues=wV, selectColumns=sC)
+	wO = ['=']*len(wC)
+	return DB_util.generateSelectStatement(	table, 
+											whereColumns=wC, 
+											whereValues=wV, 
+											whereOperators=wO,
+											selectColumns=sC)
 def __get_insert_DataSeriesID_Statement(name=None, ticker=None):
 	table = 'T_DATA_SERIES'
 	columns = ['txt_data_name', 'txt_data_ticker']
@@ -64,13 +128,19 @@ def retrieve_DataSeriesID(conn, cursor, name=None, ticker=None, insertIfNot=Fals
 		else:
 			return None
 
+####################################### DATA SERIES METADATA TABLE
 # DATA SERIES METADATA RETRIEVAL/INSERTION
 def __get_retrieve_DataSeriesMetaData_Statement(seriesID, columnName):
 	table = DataColumnTableLink[columnName]
 	sC = [columnName]
 	wC = ['int_data_series_ID']
 	wV = [seriesID]
-	return DB_util.generateSelectStatement(	table, whereColumns=wC, whereValues=wV, selectColumns=sC)
+	wO = ['=']
+	return DB_util.generateSelectStatement(	table, 
+											whereColumns=wC, 
+											whereValues=wV, 
+											whereOperators=wO,
+											selectColumns=sC)
 def retrieve_DataSeriesMetaData(cursor, columnName, seriesID):
 	'''
 	
@@ -92,7 +162,8 @@ def update_DataSeriesMetaData(conn, cursor, columnName, value, seriesID):
 
 	'''
 	statement = __get_update_DataSeriesMetaData_Statement(seriesID, columnName, value)
-	DB_util.commitDBStatement(conn, cursor, statement)
+	(success, rowID_or_Error) = DB_util.commitDBStatement(conn, cursor, statement)
+	return success
 
 ####################################### DATA HISTORY TABLE
 
@@ -108,14 +179,16 @@ def insertDataPoint_DataHistoryTable(conn, cursor, seriesID, date, value, interp
 
 def __get_completeDataHistory_DataHistoryTable_Statement(seriesID):
 	table = 'T_DATA_HISTORY'
-	whereColumns = ['int_data_series_ID']
-	whereValues = [seriesID]
-	selectColumns = ['dt_date_time','flt_data_value']
+	sC = ['dt_date_time','flt_data_value']
+	wC = ['int_data_series_ID']
+	wV = [seriesID]
+	wO = ['=']
 	return DB_util.generateSelectStatement(	table, 
-												whereColumns=whereColumns, 
-												whereValues=whereValues, 
-												selectColumns=selectColumns,
-												orderBy=(['dt_date_time'], 'ASC'))
+										whereColumns=wC, 
+										whereValues=wV, 
+										whereOperators=wO,
+										selectColumns=sC,
+										order_=(['dt_date_time'], 'ASC'))
 def getCompleteDataHistory_DataHistoryTable(cursor, seriesID):
 	statement = __get_completeDataHistory_DataHistoryTable_Statement(seriesID)
 	(success, results) = DB_util.retrieveDBStatement(cursor, statement, expectedColumnCount=2, expectedCount=None)
@@ -130,7 +203,12 @@ def __get_retrieve_WordSeriesID_Statement(dataSeriesID, transformationHash):
 	sC = ['int_word_series_ID']
 	wC = ['int_data_series_ID', 'int_transformation_hash']
 	wV = [dataSeriesID, transformationHash]
-	return DB_util.generateSelectStatement(	table, whereColumns=wC, whereValues=wV, selectColumns=sC)
+	wO = ['=']*len(wC)
+	return DB_util.generateSelectStatement(	table, 
+											whereColumns=wC, 
+											whereValues=wV, 
+											whereOperators=wO,
+											selectColumns=sC)
 
 def __get_insert_WordSeriesID_Statement(dataSeriesID, transformationHash):
 	table = 'T_WORD_SERIES'
@@ -171,7 +249,12 @@ def __get_retrieve_WordSeriesMetaData_Statement(seriesID, columnName):
 	sC = [columnName]
 	wC = ['int_word_series_ID']
 	wV = [seriesID]
-	return DB_util.generateSelectStatement(	table, whereColumns=wC, whereValues=wV, selectColumns=sC)
+	wO = ['=']
+	return DB_util.generateSelectStatement(	table, 
+											whereColumns=wC, 
+											whereValues=wV, 
+											whereOperators=wO,
+											selectColumns=sC)
 def retrieve_WordSeriesMetaData(cursor, columnName, seriesID):
 	'''
 	
@@ -209,14 +292,16 @@ def insertWordPoint_WordHistoryTable(conn, cursor, seriesID, date, value):
 # WORD HISTORY RETRIEVAL
 def __get_completeWordHistory_WordHistoryTable_Statement(seriesID):
 	table = 'T_WORD_HISTORY'
-	whereColumns = ['int_word_master_id']
-	whereValues = [seriesID]
-	selectColumns = ['dt_date_time','flt_word_value']
+	wC = ['int_word_master_id']
+	wV = [seriesID]
+	wO = ['=']*len(wC)
+	sC = ['dt_date_time','flt_word_value']
 	return DB_util.generateSelectStatement(	table, 
-												whereColumns=whereColumns, 
-												whereValues=whereValues, 
-												selectColumns=selectColumns,
-												orderBy=(['dt_date_time'], 'ASC'))
+											whereColumns=wC, 
+											whereValues=wV, 
+											whereOperators=wO,
+											selectColumns=sC,
+											order_=(['dt_date_time'], 'ASC'))
 def getCompleteWordHistory_WordHistoryTable(cursor, seriesID):
 	statement = __get_completeWordHistory_WordHistoryTable_Statement(seriesID)
 	(success, results) = DB_util.retrieveDBStatement(cursor, statement, expectedColumnCount=2, expectedCount=None)

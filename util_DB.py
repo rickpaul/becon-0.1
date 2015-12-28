@@ -1,9 +1,20 @@
-import sqlite3 as sq
-import logging as log
-from string import join
-from numpy import int64, float64
+# EMF 		From...Import
+from 	handle_DB		import EMF_Database_Handle
+from 	lib_EMF		 	import TEMP_MODE
+from 	util_EMF		import get_EMF_settings
+# System 	Import...As
+import 	sqlite3 		as sq
+import 	logging 		as log
+# System 	From...Import
+from 	string 			import join
+from 	numpy 			import int64, float64
 
 SQL_NULL = 'NULL' # Sqlite null
+
+def get_DB_Handle(mode=TEMP_MODE):
+	settings = get_EMF_settings(mode)
+	dbLocation = settings['dbLoc']
+	return EMF_Database_Handle(dbLocation, deleteDB=False)
 
 ########################################Generic Query Construction Code / Helper Code
 def stringify(someValue):
@@ -24,7 +35,7 @@ def stringify(someValue):
 def generateInsertStatement(table, columns, values):
 	columnsString = ' ( ' + join(columns,', ') + ' ) '
 	valuesString = ' ( ' + join([stringify(v) for v in values],', ') + ' ) '
-	return ('insert into ' + table + columnsString + 'values' + valuesString + ';')
+	return 'insert into {0} {1} values {2};'.format(table, columnsString, valuesString)
 
 ########################################Generic Query Construction Code / Update Code
 def generateUpdateStatement(table, setColumns, setValues, whereColumns, whereValues):
@@ -32,53 +43,40 @@ def generateUpdateStatement(table, setColumns, setValues, whereColumns, whereVal
 	whereStatements = [(a + '=' + stringify(b)) for (a,b) in zip(whereColumns,whereValues)]
 	setString = join(setStatements,' , ')
 	whereString = join(whereStatements,' and ')
-	return ('update ' + table + ' set ' + setString + ' where ' + whereString + ';')
+	return 'update {0} set {1} where {2};'.format(table, setString, whereString)
 
 ########################################Generic Query Construction Code / Select Code
-def generateSelectStatement(table, 
-							selectColumns=None, 
-							selectCount=False, 
-							whereColumns=None, whereValues=None, 
-							lessThanColumns=None, lessThanValues=None,
-							moreThanColumns=None, moreThanValues=None,
-							orderBy=None, limit=None):
+def generateSelectStatement(table_, 
+							selectColumns=None, selectCount=False, 
+							whereColumns=None, whereValues=None, whereOperators=None,
+							order_=None, limit_=None):
 	if selectCount:
-		columnsString = ' count(*) '
+		select_ = ' count(*) '
 	elif selectColumns is None:
-		columnsString = ' * '
+		select_ = ' * '
 	else:
-		columnsString = ' ' + join(selectColumns,', ') + ' '
-	if whereColumns is not None or lessThanColumns is not None or moreThanColumns is not None:
-		whereStatements = []
-		if whereColumns is not None:
-			for (a,b) in zip(whereColumns,whereValues):
-				if type(b) is not list:
-					whereStatements.append(a + '=' + stringify(b))
-				else:
-					tempList = [(a + '=' + stringify(c)) for c in b]
-					temp = '('
-					temp += join(tempList,' or ')
-					temp += ')'
-					whereStatements.append(temp)
-		if lessThanColumns is not None:
-			for (a,b) in zip(lessThanColumns,lessThanValues):
-				whereStatements.append(a + '<=' + stringify(b))
-		if moreThanColumns is not None:
-			for (a,b) in zip(moreThanColumns,moreThanValues):
-				whereStatements.append(a + '>=' + stringify(b))		
-		whereString = ' where ' + join(whereStatements,' and ')
+		select_ = ' ' + join(selectColumns,', ') + ' '
+	if whereColumns is not None:
+		where_ = join([(c+op+stringify(v)) for (c, op, v) in zip(whereColumns, whereOperators, whereValues)], ' and ')
 	else:
-		whereString = ''
-	if orderBy is not None:
-		orderByString = ' order by ' + join(orderBy[0],', ') + ' ' + orderBy[1] + ' '
-	else:
-		orderByString = ''		
-	if limit is not None:
-		limitString = ' limit ' + str(limit)
-	else:
-		limitString = ''
+		where_ = ''
+	order_ = '' if order_ is None else ('order by ' + join(order_[0],', ') + ' ' + order_[1])
+	limit_ = '' if limit_ is None else ('limit ' + str(limit_))
+	return 'select {0} from {1} where {2} {3} {4};'.format(select_, table_, where_, order_, limit_)
 
-	return ('select ' + columnsString + ' from ' + table + whereString + orderByString + limitString + ';')
+def generateJoinedSelectStatement(	leftTable, rightTable,
+									leftJoinCol, rightJoinCol,
+									selectColumns, selectTables,
+									whereColumns, whereValues, 
+									whereTables, whereOperators,
+									order_=None, limit_=None):
+	select_ = join([(t+'.'+c) for (t, c) in zip(selectTables, selectColumns)], ', ')
+	where_ = join([(t+'.'+c+op+stringify(v)) for (t, c, op, v) in zip(whereTables, whereColumns, whereOperators, whereValues)], ' and ')
+	join_ = '{0}.{1}={2}.{3}'.format(leftTable, leftJoinCol, rightTable, rightJoinCol)
+	order_ = '' if order_ is None else ('order by ' + join(order_[0],', ') + ' ' + order_[1])
+	limit_ = '' if limit_ is None else ('limit ' + str(limit_))
+	return 'select {0} from {1} inner join {2} on {3} where {4} {5};'.format(select_, leftTable, rightTable, join_, where_, order_, limit_)
+
 
 def retrieveDBStatement(cursor, statement, expectedColumnCount=1, expectedCount=None):
 	'''
