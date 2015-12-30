@@ -1,6 +1,7 @@
 # TODO:
 #	can we make kwargs functions? 
 #		(suppose we want to get 2% of data set size for min_samples_split)
+#	VERIFY THAT DEC TREE CAN ACCEPT CATEGORICAL VARIABLES!
 
 from template_Model import EMF_Model_Template
 from handle_Model import EMF_Model_Handle
@@ -30,12 +31,12 @@ EMF_ClassificationDecisionTree_Info = {
 	'supervised': True,
 	'computational_cost_construction': lambda numSamples, numFeatures: (numSamples*log(numSamples)*numFeatures),
 	'computational_cost_query': lambda numSamples, numFeatures: (log(numSamples)),
-	'allowed_dependent_variable_types': [
+	'allowed_depVar_types': [
 		'categorical_unbounded', 
 		'categorical_bounded', 
 		'continuous'
 	],
-	'allowed_independent_variable_types': [
+	'allowed_indVar_types': [
 		'categorical_unbounded',
 		'categorical_bounded'
 	],
@@ -52,25 +53,16 @@ class EMF_ClassificationDecisionTree(EMF_Model_Handle, EMF_Model_Template):
 		from sklearn.tree import DecisionTreeClassifier
 		self.model = DecisionTreeClassifier(**self.kwargs)
 
-	def determine_accuracy(self):
-		raise NotImplementedError
-
-	def save_model(self):
-		raise NotImplementedError
-
-	def evaluate_model(self):
-		raise NotImplementedError
-
 EMF_RegressionDecisionTree_Info = {
 	'supervised': True,
 	# 'computational_cost_construction': lambda numSamples, numFeatures: (numSamples*log(numSamples)*numFeatures),
 	# 'computational_cost_query': lambda numSamples, numFeatures: (log(numSamples)),
-	'allowed_dependent_variable_types': [
+	'allowed_depVar_types': [
 		'categorical_unbounded', 
 		'categorical_bounded',
 		'continuous'
 	],
-	'allowed_independent_variable_types': [
+	'allowed_indVar_types': [
 		'continuous',
 	],
 	'kwargs': {
@@ -89,17 +81,6 @@ class EMF_RegressionDecisionTree(EMF_Model_Handle, EMF_Model_Template):
 		super(EMF_RegressionDecisionTree, self).__init__()
 		from sklearn.tree import DecisionTreeRegresson
 		self.model = DecisionTreeRegresson(**self.kwargs)
-
-	def determine_accuracy(self):
-		'''
-		Gives R^2 of test set
-		
-		'''
-		raise NotImplementedError
-		return self.model.score(test_IndVars, test_DepVars, sample_weights)
-
-	def feature_importances(self):
-		raise NotImplementedError
 
 # OrdinaryLeastSquares = {
 # 	'supervised': True,
