@@ -106,11 +106,7 @@ def retrieve_DataSeriesID(conn, cursor, name=None, ticker=None, insertIfNot=Fals
 	statement = __get_retrieve_DataSeriesID_Statement(name=name, ticker=ticker)
 	(success, results) = DB_util.retrieveDBStatement(cursor, statement, expectedColumnCount=1, expectedCount=1)
 	if success:
-		if (type(results) == int):
-			return results
-		else:
-			log.error('Multiple Series ID Found for %s, %s', ticker, name)
-			raise Exception('Data Series table has duplicate entries!')
+		return results
 	else:
 		if insertIfNot:
 			assert name is not None
@@ -223,11 +219,7 @@ def retrieve_WordSeriesID(conn, cursor, dataSeriesID, transformationHash, insert
 	statement = __get_retrieve_WordSeriesID_Statement(dataSeriesID, transformationHash)
 	(success, results) = DB_util.retrieveDBStatement(cursor, statement, expectedColumnCount=1, expectedCount=1)
 	if success:
-		if (len(results) == 1):
-			return int(results)
-		else:
-			log.error('Multiple Word Series ID Found for %s, %s', dataSeriesID, transformationHash)
-			raise Exception('Word Series table has duplicate entries!')
+		return results
 	else:
 		if insertIfNot:
 			log.debug('Word Series ID Not Found for %s, %s... Creating.', dataSeriesID, transformationHash)
