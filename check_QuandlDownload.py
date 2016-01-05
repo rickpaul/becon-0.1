@@ -11,17 +11,16 @@ import 	numpy 				as 	np
 
 def check_Quandl_Download():
 	hndl_DB = get_DB_Handle(TEST_MODE)
-	hndl_Data = EMF_DataSeries_Handle(hndl_DB)
 	allIDs = retrieve_DataSeries_All(hndl_DB.cursor_(), column=ID)
 	allTickers = retrieve_DataSeries_All(hndl_DB.cursor_(), column=TICKER)
 	print 'Retrieved {0} IDs:'.format(len(allIDs))
 	for (t, i) in zip(allTickers, allIDs):
 		print '({0} : {1})'.format(i,t)
-	for t in allTickers:
-		hndl_Data.set_data_series(ticker=t)
+		hndl_Data = EMF_DataSeries_Handle(hndl_DB, ticker=t)
+		assert i == hndl_Data.seriesID
 		generator = dt_date_range_generator(hndl_Data.get_earliest_date(), hndl_Data.get_latest_date(), periodicity=12)
 		genDates = np.array([dt_epoch_to_str_Y_M_D_Time(dt) for dt in generator])
-		QndDates = np.array([dt_epoch_to_str_Y_M_D_Time(dt) for dt in hndl_Data.get_data_history()[DATE_COL]])
+		QndDates = np.array([dt_epoch_to_str_Y_M_D_Time(dt) for dt in hndl_Data.get_series_dates()])
 		try:
 			# print np.vstack((genDates, QndDates)).T
 			genLen = len(genDates)
@@ -30,7 +29,6 @@ def check_Quandl_Download():
 			assert np.all(genDates == QndDates)
 		except:
 			print t + ' failed.' + hndl_Data.
-		hndl_Data.unset_data_series()
 
 
 def main():

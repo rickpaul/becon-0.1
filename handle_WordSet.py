@@ -1,109 +1,171 @@
+# TODO:
+#	Clean Up (make play nicer with lib_Model templates, for example)
+
 # EMF 		From...Import
 from 	handle_DataSeries		import EMF_DataSeries_Handle
 from 	handle_Transformation	import EMF_Transformation_Handle
 from 	handle_WordSeries		import EMF_WordSeries_Handle
-from 	lib_DBInstructions		import TICKER, retrieve_DataSeries_Filtered
-from 	lib_Runner_Model		import WORD_COUNT_GEOMETRIC_PARAM
-from 	lib_Transformation 		import TransformationPatterns
+from 	lib_DBInstructions		import TICKER, retrieve_DataSeries_Filtered, retrieve_DataSeries_All
+from 	lib_Runner_Model		import WORD_COUNT_GEOMETRIC_PARAM, MIN_WORD_COUNT
+# from 	util_EMF 				import YEARS, QUARTERS, MONTHS, WEEKS, DAYS
 from 	util_WordSeries			import generate_Word_Series_name
 # EMF 		Import...As
 # System 	Import...As
+import 	pandas 					as pd
+import 	logging 				as log
 # System 	From...Import
 from 	numpy.random 			import geometric
 from 	random 					import choice
 
 class EMF_WordSet_Handle():
-	def __init__(self, dbHandle):
+	'''
+	TODO:
+				Make it so data is put in panda DataFrame, so we can just pull out data and know it's time-aligned
+	'''
+	def __init__(self, dbHandle, template=None):
 		self.hndl_DB = dbHandle
-		self.depWordCache = {}
-		# self.periodicity = None
-		self.indTrnsHandle = None
-		self.indDataHandle = None
-		self.indWordHandle = None
-		self.dependentDataTickers = None
-		self.dependentTransformations = {'None':None}
+		self.predWordCache = {}
 
-	def set_data_series_criteria(self,	periodicity=12, 
-										atLeastEarly=None, 
-										atLeastLate=None,
-										ignoreTickers=[]):
-		'''
-			actually adding a list
-		'''
-		self.dependentDataTickers = retrieve_DataSeries_Filtered(	self.hndl_DB.cursor_(), 
-																	column=TICKER,
-																	minDate=atLeastEarly, 
-																	maxDate=atLeastLate, 
-																	periodicity=periodicity, 
-																	categorical=None)
-		if self.indWordHandle is not None:
-			self.remove_dependent_data_series(self.indDataHandle.seriesTicker)
-		for ticker in ignoreTickers:
-			self.remove_dependent_data_series(ticker)
+		self.respWord = None
+		self.respDataTicker = None
+		self.respTrnsPatterns = None
+		self.respTrnsKwargs = {}
 
-	def remove_dependent_data_series(self, ticker):
+		self.predWords = None
+		self.predDataTickers = retrieve_DataSeries_All(self.hndl_DB.cursor_(), column=TICKER)
+		self.predTrnsPatterns = None
+		self.predTrnsKwargs = {}
+
+	def __remove_pred_data_series(self, ticker):
 		try: 
-			idx = self.dependentDataTickers.index(ticker)
-			del(self.dependentDataTickers[idx])
+			idx = self.predDataTickers.index(ticker)
+			del(self.predDataTickers[idx])
 		except ValueError:
-			pass
+			pass # Value not found
+		except AttributeError:
+			pass # self.predDataTickers is None
 
-	def set_transformation_criteria(self, 	timeChange=None,
-											categorization=None):
-		'''
-		'''
-		raise NotImplementedError
+	def set_resp_data_ticker(self, ticker, responseNotPredict=False):
+		self.respDataTicker = ticker
+		if responseNotPredict:
+			self.__remove_pred_data_series(ticker)
 
-	def register_dependent_transformations(self, transList=[], includeNone=True):
-		if includeNone:
-			self.dependentTransformations = {'None':None}	
-		else:
-			self.dependentTransformations = {}
-		for transformation in transList:
-			assert transformation in TransformationPatterns
-			self.dependentTransformations[transformation] = None
+	def set_resp_trns_ptrns(self, trnsPtrns):
+		self.respTrnsPatterns = trnsPtrns
 
-	def set_independent_data_series(self, dataHandle):
-		self.indDataHandle = dataHandle
-		self.remove_dependent_data_series(self.indDataHandle.seriesTicker)
+	def set_resp_trns_kwargs(self, trnsKwargs):
+		self.respTrnsKwargs = trnsKwargs
 
-	def set_independent_transformation(self, transformation='None'):
-		assert transformation in TransformationPatterns
-		self.indTrnsHandle = EMF_Transformation_Handle(transformation)
+	def set_pred_trns_ptrns(self, trnsPtrns):
+		self.predTrnsPatterns = trnsPtrns
 
-	def get_independent_word_handle(self):
-		if self.indWordHandle is None:
-			self.indWordHandle = EMF_WordSeries_Handle(self.hndl_DB, self.indDataHandle, self.indTrnsHandle)
-		return self.indWordHandle
+	def set_pred_trns_kwargs(self, trnsKwargs):
+		self.predTrnsKwargs = trnsKwargs
 
-	def get_dependent_word_handles_complete_set(self):
-		pass
+	def get_response_word_handle_random(self):
+		dataHndl = EMF_DataSeries_Handle(self.hndl_DB, ticker=self.respDataTicker)
+		trnsPtrn = choice(self.respTrnsPatterns)
+		trnsHndl = EMF_Transformation_Handle(trnsPtrn)
+		for (key, valList) in self.respTrnsKwargs.iteritems():
+			val = choice(valList)
+			trnsHndl.set_extra_parameter(key, val)
+		self.respWord = EMF_WordSeries_Handle(self.hndl_DB, dataHndl, trnsHndl)
+		self.minDate = None
+		self.maxDate = None
+		return self.respWord
 
-	def get_dependent_word_handles_random_subset(self, numWords=None):
+	def get_response_word_handle_current(self):
+		return self.respWord
+
+	def get_predictor_word_handles_random_subset(self, numWords=None):
 		if numWords is None:
-			numWords = geometric(WORD_COUNT_GEOMETRIC_PARAM)
+			numWords = geometric(WORD_COUNT_GEOMETRIC_PARAM) + MIN_WORD_COUNT
+		log.info('WORDSET: Choosing {0} words'.format(numWords))
 		count = 0
 		chosen = {}
 		while (len(chosen) < numWords) and (count < numWords*10):
-			dataTicker = choice(self.dependentDataTickers)
-			dataHandle = EMF_DataSeries_Handle(self.hndl_DB)
-			dataHandle.set_data_series(ticker=dataTicker)
-			trnsPattern = choice(self.dependentTransformations.keys())
-			trnsHandle = EMF_Transformation_Handle(trnsPattern)
-			wordName = generate_Word_Series_name(dataHandle, trnsHandle)
-			if wordName in self.depWordCache:
-				chosen[wordName] = self.depWordCache[wordName]
-			else:
-				chosen[wordName] = EMF_WordSeries_Handle(self.hndl_DB, dataHandle, trnsHandle)
-				self.depWordCache[wordName] = chosen[wordName]
-			count += 1 # Because I'm paranoid about infinite loops
+			count += 1 # Avoid Infinite Loops
+			ticker = choice(self.predDataTickers)
+			dataHndl = EMF_DataSeries_Handle(self.hndl_DB, ticker=ticker)
+			trnsPtrn = choice(self.predTrnsPatterns)
+			trnsHndl = EMF_Transformation_Handle(trnsPtrn)
+			for (key, valList) in self.predTrnsKwargs.iteritems():
+				val = choice(valList)
+				trnsHndl.set_extra_parameter(key, val)
+			wordName = generate_Word_Series_name(dataHndl, trnsHndl)
+			wordHndl = EMF_WordSeries_Handle(self.hndl_DB, dataHndl, trnsHndl)
+			if wordName not in self.predWordCache:
+				self.predWordCache[wordName] = wordHndl
+			chosen[wordName] = wordHndl
+		log.info('WORDSET: Chose {0} words'.format(chosen.keys()))
+		self.predWords = chosen
+		self.minDate = None
+		self.maxDate = None
 		return chosen.values()
 
-	# def __get_word(self, dataHandle, trnsHandle):
-	# 	wordName = generate_Word_Series_name(dataHandle, trnsHandle)
-	# 	if wordName in self.depWordCache:
-	# 		return self.depWordCache[wordName]
+
+	def get_word_date_range(self):
+		minDate = self.respWord.get_earliest_word_date()
+		log.debug('WORDSET: Response Word {0} minDate is {1}'.format(self.respWord, minDate))
+		maxDate = self.respWord.get_latest_word_date()
+		log.debug('WORDSET: Response Word {0} maxDate is {1}'.format(self.respWord, maxDate))
+		for (wordName, word) in self.predWords.iteritems():
+			challenger = word.get_earliest_word_date()
+			minDate = max(challenger, minDate)
+			log.debug('WORDSET: Predictor Word {0} minDate is {1}'.format(word, challenger))
+			challenger = word.get_latest_word_date()
+			maxDate = min(challenger, maxDate)
+			log.debug('WORDSET: Predictor Word {0} maxDate is {1}'.format(word, challenger))
+		self.minDate = minDate
+		self.maxDate = maxDate
+		return (minDate, maxDate)
+
+	# def get_word_date_range(self):
+	# 	minDate = self.respWord.get_earliest_word_date()
+	# 	maxDate = self.respWord.get_latest_word_date()
+	# 	for word in self.predWords.values():
+	# 		minDate = max(word.get_earliest_word_date(), minDate)
+	# 		maxDate = min(word.get_earliest_word_date(), maxDate)
+	# 	self.minDate = minDate
+	# 	self.maxDate = maxDate
+	# 	return (minDate, maxDate)
+
+
+	def set_predictor_data_criteria(self,	periodicity=None, 
+											earliestDate=None, 
+											latestDate=None,
+											categorical=None,
+											ignoreTickers=[]):
+		'''
+		TODO:
+					Relax earliestDate/latestDate requirement (can get info from incomplete data sets)
+		'''
+		self.predDataTickers = retrieve_DataSeries_Filtered(	self.hndl_DB.cursor_(), 
+																column=TICKER,
+																minDate=earliestDate, 
+																maxDate=latestDate, 
+																periodicity=periodicity, 
+																categorical=categorical)
+		if self.respDataTicker is not None:
+			self.__remove_pred_data_series(self.respDataTicker)
+		for ticker in ignoreTickers:
+			self.__remove_pred_data_series(ticker)
+
+	# def set_response_word_handle(self, wordHandle):
+	# 	'''
+	# 	TODO:
+	# 				DEPRECATE THIS
+	# 	'''
+	# 	self.respWord = wordHandle
+
+	# def get_predictor_word_handles_complete_set(self):
+	# 	raise NotImplementedError
+
+	# def __get_word(self, dataHndl, trnsHndl):
+	# 	wordName = generate_Word_Series_name(dataHndl, trnsHndl)
+	# 	if wordName in self.predWordCache:
+	# 		return self.predWordCache[wordName]
 	# 	else:
-	# 		wordHandle = EMF_WordSeries_Handle(self.hndl_DB, dataHandle, trnsHandle)
-	# 		self.depWordCache[wordName] = wordHandle
+	# 		wordHandle = EMF_WordSeries_Handle(self.hndl_DB, dataHndl, trnsHndl)
+	# 		self.predWordCache[wordName] = wordHandle
 	# 		return wordHandle

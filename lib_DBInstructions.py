@@ -173,7 +173,7 @@ def insertDataPoint_DataHistoryTable(conn, cursor, seriesID, date, value, interp
 	(success, err) = DB_util.commitDBStatement(conn, cursor, statement, failSilently=True)
 	return success
 
-def __get_completeDataHistory_DataHistoryTable_Statement(seriesID):
+def __get_completeDataHistory_DataHistoryTable_Statement(seriesID, selectCount=False):
 	table = 'T_DATA_HISTORY'
 	sC = ['dt_date_time','flt_data_value']
 	wC = ['int_data_series_ID']
@@ -183,22 +183,24 @@ def __get_completeDataHistory_DataHistoryTable_Statement(seriesID):
 										whereColumns=wC, 
 										whereValues=wV, 
 										whereOperators=wO,
+										selectCount=selectCount,
 										selectColumns=sC,
 										order_=(['dt_date_time'], 'ASC'))
-def getCompleteDataHistory_DataHistoryTable(cursor, seriesID):
-	statement = __get_completeDataHistory_DataHistoryTable_Statement(seriesID)
-	(success, results) = DB_util.retrieveDBStatement(cursor, statement, expectedColumnCount=2, expectedCount=None)
+def getCompleteDataHistory_DataHistoryTable(cursor, seriesID, selectCount=False):
+	statement = __get_completeDataHistory_DataHistoryTable_Statement(seriesID, selectCount=selectCount)
+	expectedCount = 1 if selectCount else None
+	(success, results) = DB_util.retrieveDBStatement(cursor, statement, expectedColumnCount=2, expectedCount=expectedCount)
 	return results # Don't care about success. If not successful, will fail with error
 
 
 ####################################### WORD SERIES TABLE
 
 # WORD SERIES ID RETRIEVAL/INSERTION
-def __get_retrieve_WordSeriesID_Statement(dataSeriesID, transformationHash):
+def __get_retrieve_WordSeriesID_Statement(seriesName):
 	table = 'T_WORD_SERIES'
 	sC = ['int_word_series_ID']
-	wC = ['int_data_series_ID', 'int_transformation_hash']
-	wV = [dataSeriesID, transformationHash]
+	wC = ['int_word_series_name']
+	wV = [seriesName]
 	wO = ['=']*len(wC)
 	return DB_util.generateSelectStatement(	table, 
 											whereColumns=wC, 
@@ -206,29 +208,29 @@ def __get_retrieve_WordSeriesID_Statement(dataSeriesID, transformationHash):
 											whereOperators=wO,
 											selectColumns=sC)
 
-def __get_insert_WordSeriesID_Statement(dataSeriesID, transformationHash):
+def __get_insert_WordSeriesID_Statement(seriesName):
 	table = 'T_WORD_SERIES'
-	columns = ['int_data_series_ID', 'int_transformation_hash']
-	values = [dataSeriesID, transformationHash]
+	columns = ['int_word_series_name']
+	values = [seriesName]
 	return DB_util.generateInsertStatement(table, columns, values)
 
-def retrieve_WordSeriesID(conn, cursor, dataSeriesID, transformationHash, insertIfNot=False):
+def retrieve_WordSeriesID(conn, cursor, seriesName, insertIfNot=False):
 	'''
 	
 	'''
-	statement = __get_retrieve_WordSeriesID_Statement(dataSeriesID, transformationHash)
+	statement = __get_retrieve_WordSeriesID_Statement(seriesName)
 	(success, results) = DB_util.retrieveDBStatement(cursor, statement, expectedColumnCount=1, expectedCount=1)
 	if success:
 		return results
 	else:
 		if insertIfNot:
-			log.debug('Word Series ID Not Found for %s, %s... Creating.', dataSeriesID, transformationHash)
-			statement = __get_insert_WordSeriesID_Statement(dataSeriesID, transformationHash)
+			log.debug('Word Series ID Not Found for %s... Creating.', seriesName)
+			statement = __get_insert_WordSeriesID_Statement(seriesName)
 			(success, rowID_or_Error) = DB_util.commitDBStatement(conn, cursor, statement)
 			if success:
 				return rowID_or_Error # a row ID
 			else:
-				log.error('Series ID Not Created for %s, %s. Error:\n%s', dataSeriesID, transformationHash, rowID_or_Error)
+				log.error('Series ID Not Created for %s. Error:\n%s', seriesName, rowID_or_Error)
 				raise Exception('Word Series ID Failed to be Created')
 		else:
 			return None
@@ -299,4 +301,16 @@ def getCompleteWordHistory_WordHistoryTable(cursor, seriesID):
 	(success, results) = DB_util.retrieveDBStatement(cursor, statement, expectedColumnCount=2, expectedCount=None)
 	return results # Don't care about success. If not successful, will fail with error
 
+####################################### WORD STATS TABLE
+
+# WORD STAT INSERTION
+def __get_insertStat_WordStatsTable_Statement(indSeriesID, depSeriesID, depFeatureImportance):
+	table = 'T_WORD_STATISTICS'
+	columns = ['int_word_ind_var_id', 'int_word_dep_var_id', 'adj_dep_feature_importance']
+	values = [indSeriesID, depSeriesID, depFeatureImportance]
+	return DB_util.generateInsertStatement(table, columns, values)
+def insertStat_WordStatsTable(conn, cursor, indSeriesID, depSeriesID, depFeatureImportance):
+	statement = __get_insertStat_WordStatsTable_Statement(indSeriesID, depSeriesID, depFeatureImportance)
+	(success, err) = DB_util.commitDBStatement(conn, cursor, statement, failSilently=True)
+	return success
 

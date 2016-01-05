@@ -17,26 +17,20 @@ kwargDefaults = {
 	'n_jobs':				-1, # Use All Available Cores
 }
 
-
-# BCM = {
-# 	'supervised': False,
-# 	'dependent_variables': ['categorical'],
-# 	'kwargs': [],
-# }
-
 #Empirical good default values are max_features=n_features for regression problems, and max_features=sqrt(n_features) for classification tasks 
 # Good results are often achieved when setting max_depth=None in combination with min_samples_split=1 
 # The relative rank (i.e. depth) of a feature used as a decision node in a tree can be used to assess the relative importance of that feature with respect to the predictability of the target variable.
 EMF_ClassificationDecisionTree_Info = {
+	'model_short_name': 'ClassTree',
 	'supervised': True,
 	'computational_cost_construction': lambda numSamples, numFeatures: (numSamples*log(numSamples)*numFeatures),
 	'computational_cost_query': lambda numSamples, numFeatures: (log(numSamples)),
-	'allowed_depVar_types': [
+	'allowed_predVar_types': [
 		'categorical_unbounded', 
 		'categorical_bounded', 
 		'continuous'
 	],
-	'allowed_indVar_types': [
+	'allowed_respVar_types': [
 		'categorical_unbounded',
 		'categorical_bounded'
 	],
@@ -44,6 +38,7 @@ EMF_ClassificationDecisionTree_Info = {
 		'max_depth':			3,
 		# 'min_samples_split':	10,
 		# 'max_leaf_nodes':		20,
+		'min_samples_leaf':		20,
 	},
 }
 class EMF_ClassificationDecisionTree(EMF_Model_Handle, EMF_Model_Template):
@@ -54,20 +49,21 @@ class EMF_ClassificationDecisionTree(EMF_Model_Handle, EMF_Model_Template):
 		self.model = DecisionTreeClassifier(**self.kwargs)
 
 EMF_RegressionDecisionTree_Info = {
+	'model_short_name': 'RegrTree',
 	'supervised': True,
 	# 'computational_cost_construction': lambda numSamples, numFeatures: (numSamples*log(numSamples)*numFeatures),
 	# 'computational_cost_query': lambda numSamples, numFeatures: (log(numSamples)),
-	'allowed_depVar_types': [
+	'allowed_predVar_types': [
 		'categorical_unbounded', 
 		'categorical_bounded',
 		'continuous'
 	],
-	'allowed_indVar_types': [
+	'allowed_respVar_types': [
 		'continuous',
 	],
 	'kwargs': {
-		'max_depth':			3,
-		# 'min_samples_split':	10,
+		'max_depth':				3,
+		# 'min_samples_split':		10,
 		# 'min_samples_leaf':		20,
 		'min_weight_fraction_leaf': .01,
 	},
@@ -79,18 +75,8 @@ class EMF_RegressionDecisionTree(EMF_Model_Handle, EMF_Model_Template):
 	def __init__(self):
 		self.__dict__ = EMF_RegressionDecisionTree_Info
 		super(EMF_RegressionDecisionTree, self).__init__()
-		from sklearn.tree import DecisionTreeRegresson
-		self.model = DecisionTreeRegresson(**self.kwargs)
-
-# OrdinaryLeastSquares = {
-# 	'supervised': True,
-# 	'dependent_variables': [
-# 		'continuous'
-# 	],
-# 	'independent_variables': [
-# 		'continuous'
-# 	],
-# }
+		from sklearn.tree import DecisionTreeRegressor
+		self.model = DecisionTreeRegressor(**self.kwargs)
 
 AvailableModels = {
 	'BCM': None,
@@ -99,5 +85,5 @@ AvailableModels = {
 	'RandomForest':	None,
 	'ExtraTrees':	None,
 	'Bayesian': None,
-	'Regression': None,
+	'LinearRegression': None,
 }

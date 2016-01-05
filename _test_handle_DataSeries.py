@@ -18,35 +18,29 @@ import numpy as np
 def testDataSeriesHandle(hndl_DB):
 	dates = np.reshape(np.arange(200),(200,))
 	data = np.random.randint(100,size=(200,))/2.0
-	dataHandle = EMF_DataSeries_Handle(hndl_DB)
 	name = 'test1'
 	ticker = 'test1'
-	dataHandle.set_data_series(name=name, ticker=ticker)	
-	assert dataHandle.seriesName == name
-	assert dataHandle.seriesTicker == ticker
-	dataHandle.write_to_DB(dates, data)
-	dataSeries = dataHandle.get_data_history()
-	assert np.all(dataSeries[DATE_COL] == dates)
-	assert np.all(dataSeries[VALUE_COL] == data)
+	dataHandle = EMF_DataSeries_Handle(hndl_DB, name=name, ticker=ticker, insertIfNot=True)
+	dataHandle.save_series_to_db(dates, data)
+	assert np.all(dataHandle.get_series_dates() == dates)
+	assert np.all(dataHandle.get_series_values() == data)
 	assert dataHandle.get_earliest_date()==0
 	assert dataHandle.get_latest_date()==199
-	dataHandle.unset_data_series()	
-	assert dataHandle.seriesName == None
-	assert dataHandle.seriesTicker == None
-
-def testWriteToJSON(hndl_DB):
-	dataHandle = EMF_DataSeries_Handle(hndl_DB)
-	name = 'test1'
-	ticker = 'test1'
-	dataHandle.set_data_series(name=name, ticker=ticker)	
-	dataHandle.write_to_JSON()
+	assert dataHandle.seriesName == name
+	assert dataHandle.seriesTicker == ticker
+	
+# def testWriteToJSON(hndl_DB):
+# 	name = 'test1'
+# 	ticker = 'test1'
+# 	dataHandle = EMF_DataSeries_Handle(hndl_DB, name=name, ticker=ticker, insertIfNot=True)
+# 	dataHandle.write_to_JSON()
 
 def main():
 	try:
 		np.random.seed(10)
 		hndl_DB = create_DB(mode=TEMP_MODE)
 		testDataSeriesHandle(hndl_DB)
-		testWriteToJSON(hndl_DB)
+		# testWriteToJSON(hndl_DB)
 	except Exception, e:
 		raise
 	else:

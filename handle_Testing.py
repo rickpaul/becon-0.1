@@ -11,30 +11,39 @@ import logging 	as log
 
 class EMF_Testing_Handle:
 	def __init__(self, mode=TEMP_MODE):
-		self.hndl_DB = create_DB(mode=mode)
 		self.hndl_Log = EMF_Logging_Handle(mode=mode)
+		self.hndl_DB = create_DB(mode=mode)
 		self.wordHandles = {}
 
 	def __del__(self):
 		del self.hndl_DB
 		del self.hndl_Log
 
-	def insert_test_data(self, dates, dataSet, dataTickers, periodicity=1, categorical=None):
-		hndl_Data = EMF_DataSeries_Handle(self.hndl_DB)
-		for (idx, ticker) in enumerate(dataTickers):
+	def insert_test_data(self, dates, values, tickers, periodicity=1, categorical=None):
+		for (i, t) in enumerate(tickers):
 			try:
-				values = dataSet[:,idx]
+				values = values[:,i]
 			except IndexError:
-				values = dataSet
-			hndl_Data.set_data_series(name=ticker, ticker=ticker, insertIfNot=True)
+				values = values
+			hndl_Data = EMF_DataSeries_Handle(self.hndl_DB, name=t, ticker=t, insertIfNot=True)
 			if categorical is not None:
-				hndl_Data.set_categorical(categorical)	
+				hndl_Data.set_categorical(categorical[i])	
 			hndl_Data.set_periodicity(periodicity)
-			hndl_Data.write_to_DB(dates, values)
-			hndl_Data.unset_data_series()
+			hndl_Data.save_series_to_db(dates, values)
 
-	def retrieve_test_word(self, dataTicker, transPattern):
-		hndl_Data = EMF_DataSeries_Handle(self.hndl_DB)
-		hndl_Data.set_data_series(ticker=dataTicker)
+	def retrieve_test_word(self, ticker, transPattern):
+		'''
+		This function doesn't really need to exist but it makes things easier
+		'''
+		hndl_Data = self.retrieve_test_data(ticker)
 		hndl_Trns = EMF_Transformation_Handle(transPattern)
-		return EMF_WordSeries_Handle(self.hndl_DB, hndl_Data, hndl_Trns)		
+		return EMF_WordSeries_Handle(self.hndl_DB, hndl_Data, hndl_Trns)
+
+	def retrieve_test_data(self, ticker):
+		'''
+		This function doesn't really need to exist but it makes things easier
+		'''
+		hndl_Data = EMF_DataSeries_Handle(self.hndl_DB, ticker=ticker)
+		return hndl_Data
+
+

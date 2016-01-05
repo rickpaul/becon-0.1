@@ -71,18 +71,19 @@ createWordSeriesTable = '''
 CREATE TABLE T_WORD_SERIES
 (
 	int_word_series_ID INTEGER UNIQUE NOT NULL PRIMARY KEY,
+	int_word_series_name TEXT,
 	int_data_series_ID INTEGER,
 	int_transformation_hash INTEGER,
-	bool_word_is_stored INTEGER,
-	txt_word_desc INTEGER,
+	bool_word_is_stored INTEGER DEFAULT 0,
 	dt_history_last_accessed INTEGER,
-	UNIQUE (int_data_series_ID, int_transformation_hash),
+	UNIQUE (int_word_series_name),
 	FOREIGN KEY (int_data_series_ID) REFERENCES T_DATA_SERIES (int_data_series_ID)
 );
 '''
 creationInstructions['T_WORD_SERIES'] = createWordSeriesTable
 WordSeriesColumns = [
-'txt_word_desc',
+'int_data_series_ID',
+'int_transformation_hash',
 'bool_word_is_stored',
 'dt_history_last_accessed',
 ]
@@ -104,56 +105,22 @@ WordHistoryColumns = [
 ]
 WordColumnTableLink.update(dict.fromkeys(WordHistoryColumns,'T_WORD_HISTORY'))
 
-# createDataTransformationsTable = '''
-# CREATE TABLE T_TRANSFORMATIONS
-# (
-# 	int_transformation_id INTEGER UNIQUE NOT NULL PRIMARY KEY,
-# 	txt_transformation_name TEXT,
-# 	txt_transformation_ticker TEXT UNIQUE,
-# 	bool_is_categorical INTEGER /* whether the resultant transformation creates categories or real values */
-# );
-# '''
-# creationInstructions['T_TRANSFORMATIONS'] = createDataTransformationsTable
-# UniqueColumns = [
-# 'txt_transformation_name',
-# 'txt_transformation_ticker',
-# 'bool_is_categorical'
-# ]
-# TransColumnTableLink.update(dict.fromkeys(UniqueColumns,'T_TRANSFORMATIONS'))
+createWordStatsTable = '''
+CREATE TABLE T_WORD_STATISTICS
+(
+	int_word_ind_var_id INTEGER,
+	int_word_dep_var_id INTEGER,
+	adj_dep_feature_importance REAL,
+	FOREIGN KEY (int_word_ind_var_id) REFERENCES T_WORD_SERIES (int_word_master_id)
+	FOREIGN KEY (int_word_dep_var_id) REFERENCES T_WORD_SERIES (int_word_master_id)
+);
+'''
+creationInstructions['T_WORD_STATISTICS'] = createWordStatsTable
+WordStatsColumns = [
+# None: No metaword
+]
+WordColumnTableLink.update(dict.fromkeys(WordStatsColumns,'T_WORD_STATISTICS'))
 
-
-# createDataCategorizationsTable = '''
-# CREATE TABLE T_CATEGORIZATIONS
-# (
-# 	int_transformation_id INTEGER UNIQUE NOT NULL PRIMARY KEY,
-# 	txt_transformation_name TEXT,
-# 	txt_transformation_ticker TEXT UNIQUE,
-# 	bool_is_categorical INTEGER /* whether the resultant transformation creates categories or real values */
-# );
-# '''
-# creationInstructions['T_CAT_TRANSFORMATIONS'] = createDataCategorizationsTable
-# UniqueColumns = [
-# 'txt_transformation_name',
-# 'txt_transformation_ticker',
-# 'bool_is_categorical'
-# ]
-# TransColumnTableLink.update(dict.fromkeys(UniqueColumns,'T_TRANSFORMATIONS'))
-
-# createWordStatsTable = '''
-# CREATE TABLE T_WORD_SERIES
-# (
-# 	int_word_series_ID INTEGER UNIQUE NOT NULL PRIMARY KEY,
-# 	int_data_series_ID INTEGER,
-# 	int_transformation_hash INTEGER,
-# 	bool_word_is_stored INTEGER,
-# 	bool_word_is_response INTEGER,
-# 	flt_average_effectiveness REAL, 
-# 	flt_information_content? REAL, 
-# 	UNIQUE (int_data_series_ID, int_transformation_id),
-# 	FOREIGN KEY (int_data_series_ID) REFERENCES T_DATA_SERIES (int_data_series_ID),
-# 	FOREIGN KEY (int_transformation_id) REFERENCES T_TRANSFORMATIONS (int_transformation_id)
-# );
-# '''
 
 # createWordEffectivenessTable = '''
 # CREATE TABLE  T_WORD_EFFECTIVENESS

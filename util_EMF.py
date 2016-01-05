@@ -13,6 +13,7 @@ import 	datetime
 import 	pytz
 # System 	From...Import
 from 	calendar 			import 	monthrange
+from 	math 				import 	floor
 
 
 ######################## DIRECTORY CODE
@@ -24,7 +25,7 @@ def get_EMF_settings(mode=TEMP_MODE):
 			'deleteDB':		True,
 			'logLoc':		lib_Logging.TempLogFilePath,
 			'recordLog':	False,
-			'recordLevel':	log.DEBUG,
+			'recordLevel':	log.INFO,
 			'deleteLog':	True,
 			'logAppend':	True,
 			'QuandlCSVLoc': lib_QuandlAPI.TempQuandlCSV,
@@ -71,11 +72,11 @@ def get_EMF_settings(mode=TEMP_MODE):
 ######################## DATE TIME CODE
 DT_EPOCH_ZERO = datetime.datetime.fromtimestamp(0, pytz.UTC) # datetime.datetime(1970,1,1,0)
 
-YEARS = 1
-QUARTERS = 4
-MONTHS = 12
-WEEKS = 52
-DAYS = 365
+DAYS = 24*60*60
+WEEKS = 7*DAYS
+MONTHS = 4*WEEKS
+QUARTERS = 3*MONTHS
+YEARS = 4*QUARTERS
 
 def dt_date_range_generator(startEpoch, endEpoch, periodicity=MONTHS):
 	# Set Variables
@@ -92,7 +93,7 @@ def dt_date_range_generator(startEpoch, endEpoch, periodicity=MONTHS):
 	while currentDT < endDT:
 		yield dt_datetime_to_epoch(currentDT)
 		if periodicity == MONTHS:
-			currentDT = dt_add_month(currentDT)
+			currentDT = dt_add_months(currentDT, 1)
 		else:
 			raise NotImplementedError
 	# Yield End
@@ -113,9 +114,17 @@ def dt_end_of_month(datetime_):
 	day_ = monthrange(year_, month_)[1]
 	return datetime.datetime(year_, month_, day_, tzinfo=pytz.UTC)
 
-def dt_add_month(datetime_):
-	year_ = datetime_.year + int(datetime_.month==12)
-	month_ = (datetime_.month) % 12 + 1
+def dt_subtract_months(datetime_, months):
+	month_ = int((datetime_.month) - (months % 12))
+	year_ = int(datetime_.year - floor(months/12.0) - int(month_<0))
+	month_ = int((month_) % 12 + 1)
+	day_ = monthrange(year_, month_)[1]
+	return datetime.datetime(year_, month_, day_, tzinfo=pytz.UTC)
+
+def dt_add_months(datetime_, months):
+	month_ = int((datetime_.month) + (months % 12))
+	year_ = int(datetime_.year + floor(months/12.0) + int(month_>=12))
+	month_ = int((month_) % 12 + 1)
 	day_ = monthrange(year_, month_)[1]
 	return datetime.datetime(year_, month_, day_, tzinfo=pytz.UTC)
 
@@ -129,10 +138,14 @@ def dt_now_as_epoch():
 	dt = datetime.datetime.now(pytz.UTC)
 	return int(dt_datetime_to_epoch(dt))
 
-def dt_str_YYYY_MM_DD_to_epoch(dateString, endOfMonth=False):
+def dt_str_YYYY_MM_DD_to_datetime(dateString, endOfMonth=False):
 	dt = datetime.datetime.strptime(dateString, '%Y-%m-%d')
 	if endOfMonth:
 		dt = dt_end_of_month(dt)
+	return dt
+
+def dt_str_YYYY_MM_DD_to_epoch(dateString, endOfMonth=False):
+	dt = dt_str_YYYY_MM_DD_to_datetime(dateString)
 	return dt_datetime_to_epoch(dt)
 
 def dt_epoch_to_str_Y_M_D(epoch_):
@@ -245,3 +258,18 @@ class Specifier(str):
 			else:
 				return m.group(0) # leave unchanged
 		return self._regex.sub(repl, format)
+
+
+def main():
+	print 'ADD'
+	dt = dt_str_YYYY_MM_DD_to_datetime('2015-01-20',endOfMonth=True)
+	for i in xrange(30):
+		print dt_add_months(dt, i)
+	print 'SUBTRACT'
+	dt = dt_str_YYYY_MM_DD_to_datetime('2015-01-20',endOfMonth=True)
+	for i in xrange(30):
+		print dt_subtract_months(dt, i)
+
+
+if __name__ == '__main__':
+	main()

@@ -4,11 +4,15 @@ class EMF_Model_Template:
 	__metaclass__ = ABCMeta
 
 	@abstractmethod
-	def determine_accuracy(self):
+	def run_model(self):
 		pass
 
 	@abstractmethod
-	def run_model(self):
+	def determine_accuracy(self, test_predVars, test_respVars, sample_weights=None):
+		pass
+
+	@abstractmethod
+	def feature_importances(self):
 		pass
 
 	@abstractmethod

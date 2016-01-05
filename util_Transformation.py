@@ -3,14 +3,20 @@ TODOS:
 	+ How do you find quantiles numpy?
 '''
 # EMF 		From...Import
+from 	util_EMF 	import YEARS, QUARTERS, MONTHS, WEEKS, DAYS
+from 	util_EMF 	import dt_add_months, dt_subtract_months
+from 	util_EMF 	import dt_epoch_to_datetime, dt_datetime_to_epoch
 # EMF 		Import...As
 # System 	Import...As
-import 	numpy 		as 		np
+import 	numpy 		as np
+import 	logging 	as log
 # System 	From...Import
-from 	math 		import 	log, e
+from 	math 		import log as log_
+from 	math 		import e
+
 
 kwargDefaults = {
-	'periodDelay': 1, # 'FirstOrderDifference'
+	'PeriodDiff': 1,
 	'numQuartiles': 10, # 'uniformCountRange': 
 	'numRanges': 10, # 'uniformLengthRange': 
 	'base': e, # 'Logarithm'
@@ -18,7 +24,7 @@ kwargDefaults = {
 
 func_round = np.vectorize(round)
 func_abs = np.vectorize(abs)
-func_log = np.vectorize(log)
+func_log = np.vectorize(log_)
 
 # DATA VERIFICATIONS
 
@@ -33,10 +39,25 @@ def verify_Positive(data, kwargs):
 def transform_None(data, kwargs):
 	return data
 
-def transform_FirstOrderDifference(data, kwargs):
-	key = 'periodDelay'
-	periodDelay = kwargs.get(key, kwargDefaults[key])
-	return data[periodDelay:] - data[:-periodDelay]
+def transform_FOD_BackwardLooking(data, kwargs):
+	key = 'PeriodDiff'
+	periodDelta = kwargs.get(key, kwargDefaults[key])
+	return data[periodDelta:] - data[:-periodDelta]
+
+def transform_FOD_ForwardLooking(data, kwargs):
+	key = 'PeriodDiff'
+	periodDelta = kwargs.get(key, kwargDefaults[key])
+	return data[:-periodDelta] - data[periodDelta:]
+
+def transform_Level_Backwards(data, kwargs):
+	key = 'PeriodDiff'
+	periodDelta = kwargs.get(key, kwargDefaults[key])
+	return data[:-periodDelta]	
+
+def transform_Level_Forwards(data, kwargs):
+	key = 'PeriodDiff'
+	periodDelta = kwargs.get(key, kwargDefaults[key])
+	return data[periodDelta:]
 
 def transform_NormalDistributionZScore(data, kwargs):
 	mean = np.mean(data)
@@ -49,7 +70,7 @@ def transform_Logarithm(data, kwargs):
 	'''
 	key = 'base'
 	base = kwargs.get(key, kwargDefaults[key])
-	return func_log(data)/log(base)
+	return func_log(data)/log_(base)
 
 def transform_AbsoluteValue(data, kwargs):
 	'''
@@ -133,12 +154,150 @@ def categorize_QuantileRange(data, kwargs):
 	numQuartiles = kwargs.get(key, kwargDefaults[key])
 	raise NotImplementedError
 
+def categorize_MoreThanAmount(data, kwargs):
+	raise NotImplementedError
+
+def categorize_LessThanAmount(data, kwargs):
+	raise NotImplementedError
+
 # TIME SERIES TRANSFORMATIONS
 
-def timeSeriesTransform_Trailing(timeSeries, kwargs):
-	key = 'periodDelay'
-	periodDelay = kwargs.get(key, kwargDefaults[key])
-	return timeSeries[periodDelay:]
+def timeSeriesTransform_TruncatePast(timeSeries, kwargs):
+	key = 'PeriodDiff'
+	periodDelta = kwargs.get(key, kwargDefaults[key])
+	return timeSeries[periodDelta:]
+
+def timeSeriesTransform_TruncateFuture(timeSeries, kwargs):
+	key = 'PeriodDiff'
+	periodDelta = kwargs.get(key, kwargDefaults[key])
+	return timeSeries[:-periodDelta]
 
 def timeSeriesTransform_None(timeSeries, kwargs):
 	return timeSeries
+
+def timePointTransform_EarliestDate(date, periodicity, fn, kwargs):
+	if fn == timeSeriesTransform_TruncatePast:
+		key = 'PeriodDiff'
+		periodDelta = kwargs.get(key, kwargDefaults[key])
+		dt_ = dt_epoch_to_datetime(date)
+		if periodicity == MONTHS:
+			dt_ = dt_subtract_months(dt_, periodDelta)
+			return dt_datetime_to_epoch(dt_)
+		elif periodicity == YEARS:
+			dt_ = dt_subtract_months(dt_, periodDelta*12)
+			return dt_datetime_to_epoch(dt_)
+		elif periodicity == QUARTERS:
+			dt_ = dt_subtract_months(dt_, periodDelta*3)
+			return dt_datetime_to_epoch(dt_)
+		elif periodicity == DAYS or periodicity == WEEKS:
+			raise NotImplementedError
+		else:
+			log.warning('Periodicity not recognized.')
+			return date+periodicity*periodDelta
+	else:
+		return date
+
+def timePointTransform_LatestDate(date, periodicity, fn, kwargs):
+	if fn == timeSeriesTransform_TruncateFuture:
+		key = 'PeriodDiff'
+		periodDelta = kwargs.get(key, kwargDefaults[key])
+		dt_ = dt_epoch_to_datetime(date)
+		if periodicity == MONTHS:
+			dt_ = dt_subtract_months(dt_, periodDelta)
+			return dt_datetime_to_epoch(dt_)
+		elif periodicity == YEARS:
+			dt_ = dt_subtract_months(dt_, periodDelta*12)
+			return dt_datetime_to_epoch(dt_)
+		elif periodicity == QUARTERS:
+			dt_ = dt_subtract_months(dt_, periodDelta*3)
+			return dt_datetime_to_epoch(dt_)
+		elif periodicity == DAYS or periodicity == WEEKS:
+			raise NotImplementedError
+		else:
+			log.warning('Periodicity not recognized.')
+			return date-periodicity*periodDelta
+	else:
+		return date
+
+
+# TRANSFORMATION PATTERNS NAMES
+
+def transformStr_None(kwargs):
+	return 'raw'
+
+def transformStr_Cat(kwargs):
+	key = 'numRanges'
+	numCats = kwargs.get(key, kwargDefaults[key])	
+	return 'raw->Cat.{0}'.format(numCats)
+
+def transformStr_NormRd(kwargs):
+	return 'raw->NormRd'
+
+def transformStr_PastDiff(kwargs):
+	key = 'PeriodDiff'
+	periodDelta = kwargs.get(key, kwargDefaults[key])
+	return 'PastDiff.{0}'.format(periodDelta)
+
+def transformStr_PastDiffCat(kwargs):
+	key = 'PeriodDiff'
+	periodDelta = kwargs.get(key, kwargDefaults[key])
+	key = 'numRanges'
+	numCats = kwargs.get(key, kwargDefaults[key])
+	return 'PastDiff.{0}->Cat.{1}'.format(periodDelta, numCats)
+
+def transformStr_PastDiffNormRd(kwargs):
+	key = 'PeriodDiff'
+	periodDelta = kwargs.get(key, kwargDefaults[key])
+	return 'PastDiff.{0}->NormRd'.format(periodDelta)
+
+def transformStr_PastLvl(kwargs):
+	key = 'PeriodDiff'
+	periodDelta = kwargs.get(key, kwargDefaults[key])
+	return 'PastLvl.{0}'.format(periodDelta)
+
+def transformStr_PastLvlCat(kwargs):
+	key = 'PeriodDiff'
+	periodDelta = kwargs.get(key, kwargDefaults[key])
+	key = 'numRanges'
+	numCats = kwargs.get(key, kwargDefaults[key])
+	return 'PastLvl.{0}->Cat.{1}'.format(periodDelta, numCats)
+
+def transformStr_PastLvlNormRd(kwargs):
+	key = 'PeriodDiff'
+	periodDelta = kwargs.get(key, kwargDefaults[key])
+	return 'PastLvl.{0}->NormRd'.format(periodDelta)
+
+def transformStr_FutrLvl(kwargs):
+	key = 'PeriodDiff'
+	periodDelta = kwargs.get(key, kwargDefaults[key])
+	return 'FutrLvl.{0}'.format(periodDelta)
+
+def transformStr_FutrLvlCat(kwargs):
+	key = 'PeriodDiff'
+	periodDelta = kwargs.get(key, kwargDefaults[key])
+	key = 'numRanges'
+	numCats = kwargs.get(key, kwargDefaults[key])
+	return 'FutrLvl.{0}->Cat.{1}'.format(periodDelta, numCats)
+
+def transformStr_FutrLvlNormRd(kwargs):
+	key = 'PeriodDiff'
+	periodDelta = kwargs.get(key, kwargDefaults[key])
+	return 'FutrLvl.{0}->NormRd'.format(periodDelta)
+
+def transformStr_FutrDiff(kwargs):
+	key = 'PeriodDiff'
+	periodDelta = kwargs.get(key, kwargDefaults[key])
+	return 'FutrDiff.{0}'.format(periodDelta)
+
+def transformStr_FutrDiffCat(kwargs):
+	key = 'PeriodDiff'
+	periodDelta = kwargs.get(key, kwargDefaults[key])
+	key = 'numRanges'
+	numCats = kwargs.get(key, kwargDefaults[key])
+	return 'FutrDiff.{0}->Cat.{1}'.format(periodDelta, numCats)
+
+def transformStr_FutrDiffNormRd(kwargs):
+	key = 'PeriodDiff'
+	periodDelta = kwargs.get(key, kwargDefaults[key])
+	return 'FutrDiff.{0}->NormRd'.format(periodDelta)
+

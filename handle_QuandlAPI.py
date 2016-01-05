@@ -96,6 +96,7 @@ class EMF_QuandlAPI_Handle:
 		'''
 		TODOS:
 					++Save to broken download database!
+					++WE HAVE NO CHECK FOR PERIODICITY!!!
 					++What to do with None Values in matrix
 					+Implement Error Handling (e.g. what to do when JSON read fails)
 					-Move queryJSON keys to lib_QuandlAPI

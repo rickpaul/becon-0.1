@@ -51,15 +51,15 @@ def generateSelectStatement(table_,
 							whereColumns=None, whereValues=None, whereOperators=None,
 							order_=None, limit_=None):
 	if selectCount:
-		select_ = ' count(*) '
+		select_ = 'count(*)'
 	elif selectColumns is None:
-		select_ = ' * '
+		select_ = '*'
 	else:
-		select_ = ' ' + join(selectColumns,', ') + ' '
+		select_ = join(selectColumns,', ')
 	if whereColumns is not None:
 		where_ = join([(c+op+stringify(v)) for (c, op, v) in zip(whereColumns, whereOperators, whereValues)], ' and ')
 	else:
-		where_ = ''
+		where_ = '1=1'
 	order_ = '' if order_ is None else ('order by ' + join(order_[0],', ') + ' ' + order_[1])
 	limit_ = '' if limit_ is None else ('limit ' + str(limit_))
 	return 'select {0} from {1} where {2} {3} {4};'.format(select_, table_, where_, order_, limit_)
@@ -99,7 +99,6 @@ def retrieveDBStatement(cursor, statement, expectedColumnCount=1, expectedCount=
 	try:
 		cursor.execute(statement)
 		results = cursor.fetchall()
-		log.debug('%s Succeeded.')
 	except Exception as e:
 		log.debug('%s Failed!', statement)
 		log.error('%s', e)
@@ -146,7 +145,6 @@ def commitDBStatement(conn, cursor, statement, failSilently=False):
 		cursor.execute(statement)
 		conn.commit()
 		seriesID = cursor.lastrowid
-		log.debug('Succeeded.')
 		return (True, seriesID)
 	except Exception as e:
 		log.debug('%s Failed!', statement)

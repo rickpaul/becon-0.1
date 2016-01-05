@@ -2,8 +2,7 @@
 #	we insert but we don't retrieve isInterpolated, isForecast
 #	Find a way to make sure that data history date/times match up (create canonical dates fn)
 #	Do we really want to allow dataSeries unsetting? Should make you delete object
-#	Refactor [e.g. unset_data_series --> unset]
-#		Implement template class for Handles?
+#	Implement template class for Handles
 
 # EMF 		From...Import
 from	util_EMF		import 	dt_now_as_epoch, dt_epoch_to_str_YMD, dt_date_range_generator
@@ -19,14 +18,13 @@ from 	sys 			import 	maxint
 from 	json 			import 	dumps 	as json_dump
 
 class EMF_DataSeries_Handle:
-	def __init__(self, dbHandle):
+	def __init__(self, dbHandle, name=None, ticker=None, insertIfNot=False):
 		self.hndl_DB = dbHandle
-		self.seriesID = None
-		self._dataHistory = None
+		self.stored_series = None
 		self._metadataCache = {}
+		self.seriesID = self.__set_data_series(name, ticker, insertIfNot)
 
 	def __str__(self):
-		assert self.seriesID is not None
 		return self.seriesTicker
 
 	def __get_from_DB(self, column):
@@ -43,8 +41,11 @@ class EMF_DataSeries_Handle:
 		else:
 			raise NotImplementedError #How 
 
-	def set_data_series(self, name=None, ticker=None, insertIfNot=True):
-		assert self.seriesID is None # Force reset before setting (Or new object)
+	def __set_data_series(self, name, ticker, insertIfNot):
+		'''
+		TODOS: 
+					Move up the insertIfNot functionality out of this fn
+		'''
 		self.seriesID = lib_DBInst.retrieve_DataSeriesID(	self.hndl_DB.conn_(), 
 															self.hndl_DB.cursor_(),
 															name=name,
@@ -57,25 +58,35 @@ class EMF_DataSeries_Handle:
 		self.seriesTicker = ticker
 		return self.seriesID
 
-	def unset_data_series(self):
-		self._dataHistory = None
-		self.seriesID = None
-		self.seriesName = None
-		self.seriesTicker = None
+	def __get_series(self, regenerate=False):
+		# If Stored, Return
+		if (self.stored_series is not None) and (not regenerate):
+			return self.stored_series
+		# If not Stored, Get Data from DB
+		else:
+			dataSeries = lib_DBInst.getCompleteDataHistory_DataHistoryTable(self.hndl_DB.cursor_(), self.seriesID)
+			dataSeries = np.asarray(dataSeries, dtype=DATA_HISTORY_DTYPE)
+			self.set_num_points(len(dataSeries))
+			return dataSeries
 
-	def get_data_history(self, saveHistoryLocal=True):
+	def get_series_values(self):
 		'''
 		TODOS:
 					We have no way to retrieve whether is interpolated or is forecast
 		'''
-		assert self.seriesID is not None
-		dataSeries = lib_DBInst.getCompleteDataHistory_DataHistoryTable(self.hndl_DB.cursor_(), self.seriesID)
-		dataSeries = np.asarray(dataSeries, dtype=DATA_HISTORY_DTYPE)
-		if saveHistoryLocal:
-			self._dataHistory = dataSeries
-		return dataSeries
+		return self.__get_series()[VALUE_COL]
 
-	def __write_data_point(self, date, value, isInterpolated=False, isForecast=False):
+	def get_series_dates(self):
+		'''
+		TODOS:
+					We have no way to retrieve whether is interpolated or is forecast
+		'''
+		return self.__get_series()[DATE_COL]
+
+	def save_series_local(self, regenerate=True):
+		self.stored_series = self.__get_series(regenerate=regenerate)
+
+	def __save_value_to_db(self, date, value, isInterpolated=False, isForecast=False):
 		'''
 		CONSIDER:
 					Is it appropriate to cast values here? I think so....
@@ -87,15 +98,14 @@ class EMF_DataSeries_Handle:
 															interpolated=int(isInterpolated),
 															forecast=int(isForecast))
 
-	def write_to_DB(self, dates, values, isInterpolated=None, isForecast=None, saveHistoryLocal=True):
+	def save_series_to_db(self, dates, values, isInterpolated=None, isForecast=None):
 		'''
 		TODOS: 
 					Figure out what format dates, values, should come in [numpy array vs int] (to avoid weird casting errors)
 					Store Data on successful inserts, maxDateEncountered, etc.
 							What are we doing with dates we find?
 		'''
-		assert self.seriesID is not None
-		dataLen = len(dates)		
+		len_ = len(dates)		
 		assert dates.shape == values.shape
 		hasInt = (isInterpolated is not None)
 		hasFor = (isForecast is not None)
@@ -109,11 +119,11 @@ class EMF_DataSeries_Handle:
 		if minDate is None: minDate = maxint
 		maxDate = self.get_latest_date()
 		if minDate is None: minDate = -maxint-1
-		for i in range(dataLen):
+		for i in xrange(len_):
 			isInt = hasInt and isInterpolated[i]
 			isFor = hasFor and isForecast[i]
 			date = dates[i]
-			success = self.__write_data_point(date, values[i], isInt, isFor)
+			success = self.__save_value_to_db(date, values[i], isInt, isFor)
 			if not success:
 				log.warning('Failed to Write Historical Data Point at %s for %s [value = %f]', self.seriesTicker, dates[i], values[i])
 				unsuccessfulInserts += 1
@@ -121,16 +131,29 @@ class EMF_DataSeries_Handle:
 				minDate = min(date, minDate) 
 				maxDate = max(date, maxDate)
 				successfulInserts +=1
+		self.__reset_num_points()
 		self.__set_latest_date(maxDate)
 		self.__set_earliest_date(minDate)
 		self.__set_last_update()
 		log.info('Successfully/Unsuccessfully wrote %d/%d Historical Data Points for %s', successfulInserts, unsuccessfulInserts, self.seriesTicker)
-		if saveHistoryLocal:
-			self._dataHistory = np.asarray(np.hstack((dates, values)), dtype=DATA_HISTORY_DTYPE)
 		return (successfulInserts, unsuccessfulInserts)
 
-	def get_num_data_points(self):
-		raise NotImplementedError
+	def get_num_points(self):
+		if 'num_data_points' in self._metadataCache:
+			return self._metadataCache['num_data_points']
+		else:
+			numPoints = lib_DBInst.getCompleteDataHistory_DataHistoryTable(self.hndl_DB.cursor_(), self.seriesID, selectCount=True)
+			self.set_num_points(numPoints)
+			return numPoints
+			
+	def set_num_points(self, numPoints):
+		self._metadataCache['num_data_points'] = numPoints
+
+	def __reset_num_points(self):
+		try:
+			del self._metadataCache['num_data_points']
+		except KeyError:
+			pass
 
 	def get_periodicity(self):
 		return self.__typify(int, self.__get_from_DB('int_periodicity'))
@@ -147,6 +170,24 @@ class EMF_DataSeries_Handle:
 	def get_last_update(self):
 		return self.__typify(int, self.__get_from_DB('dt_last_updated_history'))
 
+	def set_periodicity(self, periodicity):
+		self.__send_to_DB('int_periodicity', periodicity)
+
+	def set_categorical(self, categorical):
+		self.__send_to_DB('bool_data_is_categorical', categorical)
+
+
+
+	def __set_latest_date(self, maxDate):
+		self.__send_to_DB('dt_max_data_date', maxDate)
+
+	def __set_earliest_date(self, minDate):
+		self.__send_to_DB('dt_min_data_date', minDate)
+
+	def __set_last_update(self):
+		self.lastUpdate = dt_now_as_epoch()
+		self.__send_to_DB('dt_last_updated_history', self.lastUpdate)
+
 	def __typify(self, type_, value_):
 		if value_ is None:
 			return None
@@ -155,38 +196,12 @@ class EMF_DataSeries_Handle:
 		else:
 			return type_(value_)
 
-	def set_periodicity(self, periodicity):
-		self.__send_to_DB('int_periodicity', periodicity)
-
-	def set_categorical(self, categorical):
-		self.__send_to_DB('bool_data_is_categorical', categorical)
-
-	def __set_latest_date(self, maxDate):
-		'''
-		TODO:
-					Send back True/False based on if new minDate is set
-		'''
-		self.__send_to_DB('dt_max_data_date', maxDate)
-
-	def __set_earliest_date(self, minDate):
-		'''
-		TODO:
-					Send back True/False based on if new minDate is set
-		'''
-		self.__send_to_DB('dt_min_data_date', minDate)
-
-	def __set_last_update(self):
-		self.lastUpdate = dt_now_as_epoch()
-		self.__send_to_DB('dt_last_updated_history', self.lastUpdate)
-
 	def write_to_JSON(self):
 		'''
 		TODOS:
 					Create JSON Util
 		'''
-		if self._dataHistory is None:
-			self.get_data_history(saveHistoryLocal=True)
-		JSON = map(DATA_SERIES_TO_JSON, self._dataHistory)
+		JSON = map(DATA_SERIES_TO_JSON, self.__get_series())
 		JSONFileName = self.__get_JSON_filename()
 		try:
 			writer = open(JSONFileName, 'wb')
@@ -212,8 +227,6 @@ class EMF_DataSeries_Handle:
 		generator = dt_date_range_generator(self.get_earliest_date(), self.get_latest_date(), periodicity)
 
 		if periodicity == 12:
-			self.get_data_history()
-		else:
 			raise NotImplementedError
 
 

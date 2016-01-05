@@ -23,7 +23,7 @@ class EMF_Quandl_Runner:
 										columnIndexes=QuandlCSVColumns,
 										editableColumns=QuandlEditableColumns)
 		self.hndl_DB = create_DB(mode=mode)
-		self.hndl_Data = EMF_DataSeries_Handle(self.hndl_DB)
+		
 
 	def __download_dataset_singleSeries(self, 	Q_DATABASE_CODE, Q_DATASET_CODE, 
 												Q_COLUMN_NUM, Q_COLUMN_NAME,
@@ -39,9 +39,8 @@ class EMF_Quandl_Runner:
 		hndl_Qndl.set_extra_parameter('collapse', Q_COLLAPSE_INSTR)
 		hndl_Qndl.set_extra_parameter('transform', Q_TRANSFORM_INSTR)
 		(dates, values, metadata) = hndl_Qndl.get_data()
-		self.hndl_Data.set_data_series(name=db_name, ticker=db_ticker, insertIfNot=True)
-		self.hndl_Data.write_to_DB(dates, values)
-		self.hndl_Data.unset_data_series()
+		hndl_Data = EMF_DataSeries_Handle(self.hndl_DB, name=db_name, ticker=db_ticker, insertIfNot=True)
+		hndl_Data.save_series_to_db(dates, values)
 		return metadata
 
 	def download_CSV_datasets(self):
