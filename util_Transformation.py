@@ -14,7 +14,6 @@ import 	logging 	as log
 from 	math 		import log as log_
 from 	math 		import e
 
-
 kwargDefaults = {
 	'PeriodDiff': 1,
 	'numQuartiles': 10, # 'uniformCountRange': 
@@ -47,12 +46,12 @@ def transform_FOD_BackwardLooking(data, kwargs):
 def transform_FOD_ForwardLooking(data, kwargs):
 	key = 'PeriodDiff'
 	periodDelta = kwargs.get(key, kwargDefaults[key])
-	return data[:-periodDelta] - data[periodDelta:]
+	return data[periodDelta:] - data[:-periodDelta]
 
 def transform_Level_Backwards(data, kwargs):
 	key = 'PeriodDiff'
 	periodDelta = kwargs.get(key, kwargDefaults[key])
-	return data[:-periodDelta]	
+	return data[:-periodDelta]
 
 def transform_Level_Forwards(data, kwargs):
 	key = 'PeriodDiff'
@@ -91,6 +90,12 @@ def transform_ShrinkOutliers(data, kwargs):
 	'''
 	mean = np.mean(data)
 	raise NotImplementedError
+
+def transform_AddSeries(baseSeries, addSeries, kwargs):
+	return (baseSeries + addSeries)
+
+def transform_SubtractSeries(baseSeries, subSeries, kwargs):
+	return (baseSeries - subSeries)
 
 # CATEGORIZATIONS
 
@@ -172,6 +177,16 @@ def timeSeriesTransform_TruncateFuture(timeSeries, kwargs):
 	periodDelta = kwargs.get(key, kwargDefaults[key])
 	return timeSeries[:-periodDelta]
 
+def timeSeriesTransform_ShiftFuture(timeSeries, kwargs):
+	key = 'PeriodDiff'
+	periodDelta = kwargs.get(key, kwargDefaults[key])
+	return timeSeries + periodDelta
+
+def timeSeriesTransform_ShiftPast(timeSeries, kwargs):
+	key = 'PeriodDiff'
+	periodDelta = kwargs.get(key, kwargDefaults[key])
+	return timeSeries - periodDelta
+
 def timeSeriesTransform_None(timeSeries, kwargs):
 	return timeSeries
 
@@ -192,7 +207,6 @@ def timePointTransform_EarliestDate(date, periodicity, fn, kwargs):
 		elif periodicity == DAYS or periodicity == WEEKS:
 			raise NotImplementedError
 		else:
-			log.warning('Periodicity not recognized.')
 			return date+periodicity*periodDelta
 	else:
 		return date
@@ -214,7 +228,6 @@ def timePointTransform_LatestDate(date, periodicity, fn, kwargs):
 		elif periodicity == DAYS or periodicity == WEEKS:
 			raise NotImplementedError
 		else:
-			log.warning('Periodicity not recognized.')
 			return date-periodicity*periodDelta
 	else:
 		return date

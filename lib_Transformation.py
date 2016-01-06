@@ -18,7 +18,6 @@ Transformations = {
 }
 TransformationKeys = Transformations.keys()
 
-
 # Template is (dataCategorization, isBounded)
 Categorizations = {
 	'None': 				(util_Trns.categorize_None,					False),
@@ -100,6 +99,22 @@ TransformationNames = {
 	# 'Futr_Acc_Cat': 			(20, ('Logarithm', 'FOD_Future'), 'uniformLengthRange'),
 	# 'Futr_Acc_NormRd':			(21, ('Logarithm', 'FOD_Future','NormDistLocation'), 'Int_Round'),
 }
+
+TransformationReversals = {
+	util_Trns.transform_None: util_Trns.transform_None,
+	util_Trns.transform_Level_Backwards: util_Trns.transform_None,
+	util_Trns.transform_Level_Forwards: util_Trns.transform_None,
+	util_Trns.transform_FOD_BackwardLooking: util_Trns.transform_SubtractSeries,
+	util_Trns.transform_FOD_ForwardLooking: util_Trns.transform_AddSeries,
+}
+
+TimeTransformationReversals = {
+	util_Trns.timeSeriesTransform_None: util_Trns.transform_None,
+	util_Trns.timeSeriesTransform_TruncatePast: util_Trns.timeSeriesTransform_ShiftPast,
+	util_Trns.timeSeriesTransform_TruncateFuture: util_Trns.timeSeriesTransform_ShiftFuture,
+
+}
+
 
 # HASHING CONSTANTS
 # MAX_NUM_TRANSFORMATIONS = 100 	# power of 10 for easy hashing
