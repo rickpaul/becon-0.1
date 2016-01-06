@@ -2,15 +2,16 @@
 
 # EMF 		From...Import
 from 	lib_WordSeries	 		import DATE_COL, VALUE_COL, WORD_HISTORY_DTYPE
+from 	template_SerialHandle 	import EMF_Serial_Handle
 from 	util_EMF				import dt_now_as_epoch
 from 	util_WordSeries			import generate_Word_Series_name
 # EMF 		Import...As
-import lib_DBInstructions as lib_DBInst
+import 	lib_DBInstructions 		as lib_DBInst
 # System 	Import...As
-import logging 	as log
-import numpy 	as np
+import 	logging 				as log
+import 	numpy 					as np
 
-class EMF_WordSeries_Handle:
+class EMF_WordSeries_Handle(EMF_Serial_Handle):
 	def __init__(self, dbHandle, dataHandle, transformationHandle):
 		self.hndl_DB = dbHandle
 		self.hndl_Data = dataHandle

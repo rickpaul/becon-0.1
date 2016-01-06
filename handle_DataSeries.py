@@ -5,9 +5,10 @@
 #	Implement template class for Handles
 
 # EMF 		From...Import
-from	util_EMF		import 	dt_now_as_epoch, dt_epoch_to_str_YMD, dt_date_range_generator
 from 	lib_DataSeries	import 	DATE_COL, VALUE_COL, DATA_HISTORY_DTYPE
 from 	lib_JSON		import 	JSONRepository, DATA_SERIES_TO_JSON
+from 	template_SerialHandle 	import EMF_Serial_Handle
+from	util_EMF		import 	dt_now_as_epoch, dt_epoch_to_str_YMD, dt_date_range_generator
 # EMF 		Import...As
 import 	lib_DBInstructions 	as 	lib_DBInst
 # System 	Import...As
@@ -17,7 +18,7 @@ import 	numpy 				as 	np
 from 	sys 			import 	maxint
 from 	json 			import 	dumps 	as json_dump
 
-class EMF_DataSeries_Handle:
+class EMF_DataSeries_Handle(EMF_Serial_Handle):
 	def __init__(self, dbHandle, name=None, ticker=None, insertIfNot=False):
 		self.hndl_DB = dbHandle
 		self.stored_series = None

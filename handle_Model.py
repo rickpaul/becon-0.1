@@ -1,14 +1,15 @@
 # EMF 		Import...As
-import 	util_Testing 	as utl_Tst
+from 	template_SerialHandle 	import EMF_Serial_Handle
+# import 	util_Testing 	as utl_Tst
 # System 	Import...As
-import 	numpy 			as np
-import 	logging 		as log
+import 	numpy 					as np
+import 	logging 				as log
 # System 	From...Import
-from 	string 			import join
+from 	string 					import join
 
 
 
-class EMF_Model_Handle:
+class EMF_Model_Handle(EMF_Serial_Handle):
 	def __init__(self,):
 		self.respVar_Hndls = []
 		self.respVar_Types = []
@@ -38,8 +39,6 @@ class EMF_Model_Handle:
 			return None
 
 	def add_predictor_variable(self, wordHandle):
-		'''
-		'''
 		self.predVar_Hndls.append(wordHandle)
 		self.predVar_Types.append(wordHandle.get_model_categorization())
 
@@ -60,17 +59,11 @@ class EMF_Model_Handle:
 					change from returning bool to raising value error
 		'''
 		if not len(self.respVar_Hndls): return False
-		# for hndl_Word in self.respVar_Hndls[1:]:
-		# 	if not hndl_Word.check_word_alignment(self.respVar_Hndls[0]):
-		# 		return False
 		if not len(self.predVar_Hndls): return False
 		for type_ in self.respVar_Types:
 			if type_ not in self.allowed_respVar_types: return False
 		for type_ in self.predVar_Types:
 			if type_ not in self.allowed_predVar_types: return False
-		# for hndl_Word in self.predVar_Hndls:
-		# 	if not hndl_Word.check_word_alignment(self.respVar_Hndls[0]):
-		# 		return False
 		return True
 
 	def run_model(self):
@@ -144,12 +137,12 @@ class EMF_Model_Handle:
 		'''
 		raise NotImplementedError
 
-	def save_model_pickle(self):
-		dictObj = {
-		'predictions': self.predictions,
-		'total_score': self.total_score,
-		}
-		raise NotImplementedError
+	# def save_model_pickle(self):
+	# 	dictObj = {
+	# 	'predictions': self.predictions,
+	# 	'total_score': self.total_score,
+	# 	}
+	# 	raise NotImplementedError
 
 	def evaluate_model(self):
 		'''
