@@ -2,12 +2,12 @@
 #	move main function into another file
 
 # EMF 		From...Import
-from 	handle_DB 			import EMF_Database_Handle
+from 	handle_DB		 	import EMF_Database_Handle
 from 	handle_DataSeries 	import EMF_DataSeries_Handle
 from 	handle_CSV 			import EMF_CSV_Handle
 from 	handle_QuandlAPI	import EMF_QuandlAPI_Handle
 from 	handle_Logging		import EMF_Logging_Handle
-from 	util_CreateDB	 	import create_DB
+# from 	util_CreateDB	 	import create_DB
 from	util_EMF			import get_EMF_settings
 from 	lib_EMF		 		import TEMP_MODE
 from 	lib_QuandlAPI		import QuandlCSVColumns, QuandlEditableColumns
@@ -22,7 +22,7 @@ class EMF_Quandl_Runner:
 		self.hndl_CSV = EMF_CSV_Handle(	settings['QuandlCSVLoc'], 
 										columnIndexes=QuandlCSVColumns,
 										editableColumns=QuandlEditableColumns)
-		self.hndl_DB = create_DB(mode=mode)
+		self.hndl_DB = EMF_Database_Handle(settings['dbLoc'])
 		
 
 	def __download_dataset_singleSeries(self, 	Q_DATABASE_CODE, Q_DATASET_CODE, 

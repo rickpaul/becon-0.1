@@ -3,9 +3,11 @@
 #		(suppose we want to get 2% of data set size for min_samples_split)
 #	VERIFY THAT DEC TREE CAN ACCEPT CATEGORICAL VARIABLES!
 
-from template_Model import EMF_Model_Template
-from handle_Model import EMF_Model_Handle
-from math import log
+# EMF 		From...Import
+from template_Model 	import EMF_Model_Template
+from handle_Model 		import EMF_Model_Handle
+# System 	From...Import
+from math 				import log
 
 kwargDefaults = {
 	'max_depth':			3,
