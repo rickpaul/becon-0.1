@@ -1,6 +1,6 @@
 # EMF 		Import...As
+from 	lib_Runner_Model		import TRAINING, PREDICTION
 from 	template_SerialHandle 	import EMF_Serial_Handle
-# import 	util_Testing 	as utl_Tst
 # System 	Import...As
 import 	numpy 					as np
 import 	logging 				as log
@@ -10,18 +10,14 @@ from 	string 					import join
 
 
 class EMF_Model_Handle(EMF_Serial_Handle):
-	def __init__(self,):
-		self.respVar_Hndls = []
-		self.respVar_Types = []
-		self.predVar_Hndls = []
-		self.predVar_Types = []
-		self.sampleWeights = None
-		self.predictions = None
+	def __init__(self, hndl_WordSet):
+		self.hndl_WordSet = hndl_WordSet
 
 	def __str__(self):
-		predVars = [str(hndl) for hndl in self.predVar_Hndls]
+		return self.model_short_name
+		predVars = [str(hndl) for hndl in [self.hndl_WordSet.respWord]]
 		predVars = join(predVars, '|')
-		respVars = [str(hndl) for hndl in self.respVar_Hndls]
+		respVars = [str(hndl) for hndl in self.hndl_WordSet.predWords]
 		respVars = join(respVars, '|')
 		return '[{0}][{1}][{2}]'.format(self.model_short_name, predVars, respVars)
 
@@ -38,75 +34,45 @@ class EMF_Model_Handle(EMF_Serial_Handle):
 		else:
 			return None
 
-	def add_predictor_variable(self, wordHandle):
-		self.predVar_Hndls.append(wordHandle)
-		self.predVar_Types.append(wordHandle.get_model_categorization())
-
-	def clear_predictor_variable(self):
-		self.predVar_Hndls = []
-		self.predVar_Types = []
-
-	def add_response_variable(self, wordHandle):
-		self.respVar_Hndls.append(wordHandle)
-		self.respVar_Types.append(wordHandle.get_model_categorization())
-
-	def set_valid_dates(self, validDates):
-		(self.minDate, self.maxDate) = validDates
-
 	def _evaluate_run_readiness(self):
 		'''
 		TODOS:
 					change from returning bool to raising value error
 		'''
-		if not len(self.respVar_Hndls): return False
-		if not len(self.predVar_Hndls): return False
-		for type_ in self.respVar_Types:
+		if not self.hndl_WordSet.predictor_words_are_set(): return False
+		if not self.hndl_WordSet.response_word_is_set(): return False
+		for type_ in [self.hndl_WordSet.get_response_word_type()]:
 			if type_ not in self.allowed_respVar_types: return False
-		for type_ in self.predVar_Types:
+		for type_ in self.hndl_WordSet.get_predictor_word_types():
 			if type_ not in self.allowed_predVar_types: return False
 		return True
 
-	def run_model(self):
+	def train_model(self):
 		'''
 		IMPLEMENTATION OF MODEL TEMPLATE
 		Runs the model
 		TODOS:
 				implement sample weights for model fits
-				make fit in-sample/test out-of-sample. exposing self to bias.
+				make fit in-sample/test out-of-sample. Curr. exposing self to bias.
 				change way we assert run readiness
 		'''
 		# Make Sure We're Ready (Don't Love This)
 		assert self._evaluate_run_readiness()
-		# Create Response Variable Array
-		respVarArray = None
-		for varHandle in self.respVar_Hndls:
-			# Store history locally for later efficiency
-			varHandle.save_series_local()
-			# Add history to arary
-			if respVarArray is None:
-				respVarArray = varHandle.get_series_values_filtered(self.minDate, self.maxDate)
-			else:
-				respVarArray = np.hstack((respVarArray, varHandle.get_series_values_filtered(self.minDate, self.maxDate)))
-		# Create Predictor Variable Array
-		predVarArray = None
-		for varHandle in self.predVar_Hndls:
-			if predVarArray is None:
-				predVarArray = varHandle.get_series_values_filtered(self.minDate, self.maxDate)
-			else:
-				predVarArray = np.hstack((predVarArray, varHandle.get_series_values_filtered(self.minDate, self.maxDate)))
+		(predVarArray, respVarArray) = self.hndl_WordSet.get_word_arrays(mode=TRAINING, bootstrap=True)
 		# Run Model
-		if self.sampleWeights is not None:
-			self.model.fit(predVarArray, respVarArray, self.sampleWeights)
+		if self.hndl_WordSet.sampleWeights is not None:
+			self.model.fit(predVarArray, respVarArray, self.hndl_WordSet.sampleWeights)
 		else:
 			self.model.fit(predVarArray, respVarArray)
 		# Save Scores
-		self.total_score = self.determine_accuracy(predVarArray, respVarArray)
-		self.adjusted_score = self.feature_importances()*self.total_score
-		self.predictions = self.model.predict(predVarArray).reshape((len(respVarArray),1))
-		log.info('MODEL: %s',str(self))
-		log.info('MODEL: score: {0}, dates: ({1},{2}), features: {3}'.format(self.total_score, self.minDate, self.maxDate, self.adjusted_score))
-		# utl_Tst.plot_data_series(self, self.respVar_Hndls[0])
-		return (self.total_score, self.predictions, self.adjusted_score)
+		self.train_score = self.determine_accuracy(predVarArray, respVarArray)
+		self.adjusted_feat_scores = self.feature_importances()*self.train_score
+
+	def test_model(self):
+		(predVarArray, respVarArray) = self.hndl_WordSet.get_word_arrays(mode=TRAINING, bootstrap=True)
+		self.test_score = self.determine_accuracy(predVarArray, respVarArray)
+		self.adjusted_feat_scores = self.feature_importances()*self.test_score
+		return self.test_score
 
 	def determine_accuracy(self, test_predVars, test_respVars, sample_weights=None):
 		'''
@@ -119,10 +85,15 @@ class EMF_Model_Handle(EMF_Serial_Handle):
 			return self.model.score(test_predVars, test_respVars)
 
 	def get_series_values(self):
-		return self.predictions
+		predictions = self.model.predict(self.hndl_WordSet.get_word_arrays(mode=PREDICTION)[0])
+		predictions = predictions.reshape((len(predictions), 1))
+		return self.hndl_WordSet.get_predicted_values(predictions=predictions)
 
 	def get_series_dates(self):
-		return self.respVar_Hndls[0].get_series_dates_filtered(self.minDate, self.maxDate)
+		return self.hndl_WordSet.get_predicted_dates()
+
+	def feature_names(self):
+		return self.hndl_WordSet.features
 
 	def feature_importances(self):
 		'''

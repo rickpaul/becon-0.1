@@ -101,9 +101,9 @@ TransformationNames = {
 }
 
 TransformationReversals = {
-	util_Trns.transform_None: util_Trns.transform_None,
-	util_Trns.transform_Level_Backwards: util_Trns.transform_None,
-	util_Trns.transform_Level_Forwards: util_Trns.transform_None,
+	util_Trns.transform_None: util_Trns.transform_usePredictions,
+	util_Trns.transform_Level_Backwards: util_Trns.transform_usePredictions,
+	util_Trns.transform_Level_Forwards: util_Trns.transform_usePredictions,
 	util_Trns.transform_FOD_BackwardLooking: util_Trns.transform_SubtractSeries,
 	util_Trns.transform_FOD_ForwardLooking: util_Trns.transform_AddSeries,
 }

@@ -4,6 +4,7 @@
 from 	lib_WordSeries	 		import DATE_COL, VALUE_COL, WORD_HISTORY_DTYPE
 from 	template_SerialHandle 	import EMF_Serial_Handle
 from 	util_EMF				import dt_now_as_epoch
+from 	util_EMF 				import dt_epoch_to_str_Y_M_D_Time # Logging/Testing
 from 	util_WordSeries			import generate_Word_Series_name
 # EMF 		Import...As
 import 	lib_DBInstructions 		as lib_DBInst
@@ -35,8 +36,6 @@ class EMF_WordSeries_Handle(EMF_Serial_Handle):
 		return lib_DBInst.update_WordSeriesMetaData(self.hndl_DB.conn_(), self.hndl_DB.cursor_(), column, value, self.wordSeriesID)
 
 	def __generate_words(self):
-		data = self.hndl_Data.save_series_local()
-		# len_ = self.hndl_Trns.transform_data_length(self.hndl_Data.get_num_points())
 		values = self.hndl_Trns.transform_data(self.hndl_Data.get_series_values())
 		len_ = len(values)
 		values = np.reshape(values, (len_, 1))
@@ -68,12 +67,19 @@ class EMF_WordSeries_Handle(EMF_Serial_Handle):
 
 	def get_series_values_filtered(self, minDte, maxDte):
 		(values, dates) = self.__get_series()
-		filter_ = np.logical_and(dates>minDte, dates<maxDte)
-		return np.reshape(values[filter_], (sum(filter_), 1))
+		filter_ = np.logical_and(dates>=minDte, dates<=maxDte)
+		strMin = dt_epoch_to_str_Y_M_D_Time(minDte) # Testing/Logging
+		strMax = dt_epoch_to_str_Y_M_D_Time(maxDte) # Testing/Logging
+		len_ = sum(filter_) # Testing/Logging
+		log.info('{3}\t: Found {0} words from {1} to {2}'.format(len_, strMin, strMax, self))
+		strMin = dt_epoch_to_str_Y_M_D_Time(dates[filter_][0]) # TEST: DELETE
+		strMax = dt_epoch_to_str_Y_M_D_Time(dates[filter_][-1]) # TEST: DELETE
+		log.info('{3}\t: Found {0} words from {1} to {2}'.format(len_, strMin, strMax, self))
+		return np.reshape(values[filter_], (len_, 1))
 
 	def get_series_dates_filtered(self, minDte, maxDte):
 		(values, dates) = self.__get_series()
-		filter_ = np.logical_and(dates>minDte, dates<maxDte)
+		filter_ = np.logical_and(dates>=minDte, dates<=maxDte)
 		return np.reshape(dates[filter_], (sum(filter_), 1))
 
 	def get_series_values(self):
@@ -90,6 +96,12 @@ class EMF_WordSeries_Handle(EMF_Serial_Handle):
 		else:
 			(values, dates) = self.__get_series()
 			return dates
+
+	def get_series_dates_original(self, minDte, maxDte):
+		return self.hndl_Data.get_series_dates_filtered(minDte, maxDte)
+
+	def get_series_values_original(self, minDte, maxDte):
+		return self.hndl_Data.get_series_values_filtered(minDte, maxDte)
 
 	def save_series_local(self, regenerate=False):
 		(self.stored_values, self.stored_dates) = self.__get_series(regenerate=regenerate)

@@ -1,8 +1,7 @@
 # TODOS:
 #	we insert but we don't retrieve isInterpolated, isForecast
 #	Find a way to make sure that data history date/times match up (create canonical dates fn)
-#	Do we really want to allow dataSeries unsetting? Should make you delete object
-#	Implement template class for Handles
+#	Implement json handle
 
 # EMF 		From...Import
 from 	lib_DataSeries	import 	DATE_COL, VALUE_COL, DATA_HISTORY_DTYPE
@@ -69,6 +68,16 @@ class EMF_DataSeries_Handle(EMF_Serial_Handle):
 			dataSeries = np.asarray(dataSeries, dtype=DATA_HISTORY_DTYPE)
 			self.set_num_points(len(dataSeries))
 			return dataSeries
+
+	def get_series_values_filtered(self, minDte, maxDte):
+		series = self.__get_series()
+		filter_ = np.logical_and(series[DATE_COL]>=minDte, series[DATE_COL]<=maxDte)
+		return np.reshape(series[filter_][VALUE_COL], (sum(filter_), 1))
+
+	def get_series_dates_filtered(self, minDte, maxDte):
+		series = self.__get_series()
+		filter_ = np.logical_and(series[DATE_COL]>=minDte, series[DATE_COL]<=maxDte)
+		return np.reshape(series[filter_][DATE_COL], (sum(filter_), 1))
 
 	def get_series_values(self):
 		'''
@@ -157,7 +166,7 @@ class EMF_DataSeries_Handle(EMF_Serial_Handle):
 			pass
 
 	def get_periodicity(self):
-		return self.__typify(int, self.__get_from_DB('int_periodicity'))
+		return self.__typify(int, self.__get_from_DB('code_local_periodicity'))
 
 	def get_categorical(self):
 		return self.__typify(bool, self.__get_from_DB('bool_data_is_categorical'))

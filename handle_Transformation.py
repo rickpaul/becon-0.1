@@ -1,5 +1,4 @@
 # TODO:
-#	IMPORTANT! Does secondary Transformation for FirstOrderDiff get parameter?
 # 	Create some model of transformation complexity? (i.e. O(n))
 
 # EMF 		Import...As
@@ -7,6 +6,7 @@ import lib_Transformation 	as lib_Trns
 import util_Transformation 	as util_Trns
 
 # System 	From...Import
+from copy 	import copy
 from json 	import dumps 	as json_dump
 from random import choice
 
@@ -23,7 +23,10 @@ class EMF_Transformation_Handle:
 		self.__set_categorization(categorization)
 		self.trnsName = trnsPtrn
 		self.trnsCode = trnsCode
-		self.trnsKwargs = trnsKwargs
+		# For some reason trnsKwargs was all pointing to same dict instance,
+		# so different declarations of trns_Hndl were having inadvertent trnsKwargs
+		# changes. Copy fixed it.
+		self.trnsKwargs = copy(trnsKwargs) 
 
 	def __str__(self):
 		return lib_Trns.TransformationNames[self.trnsName](self.trnsKwargs)
