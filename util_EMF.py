@@ -1,5 +1,6 @@
 # TODO: 
 #	rename in underscore style
+# 	move date test to new file
 
 # EMF 		From...Import
 from lib_EMF		 		import 	TEMP_MODE, TEST_MODE, QA_MODE, PROD_MODE
@@ -11,6 +12,7 @@ import lib_DB
 import 	logging 			as 		log
 import 	datetime
 import 	pytz
+import 	re
 # System 	From...Import
 from 	calendar 			import 	monthrange
 from 	math 				import 	floor
@@ -26,7 +28,7 @@ def get_EMF_settings(mode=TEMP_MODE):
 			'logLoc':		lib_Logging.TempLogFilePath,
 			'recordLog':	False,
 			'recordLevel':	log.INFO,
-			'deleteLog':	True,
+			'deleteLog':	None,
 			'logAppend':	True,
 			'QuandlCSVLoc': lib_QuandlAPI.TempQuandlCSV,
 		}
@@ -38,7 +40,7 @@ def get_EMF_settings(mode=TEMP_MODE):
 			'logLoc':		lib_Logging.TestLogFilePath,
 			'recordLog':	False,
 			'recordLevel':	log.DEBUG,
-			'deleteLog':	False,
+			'deleteLog':	None,
 			'logAppend':	False,
 			'QuandlCSVLoc': lib_QuandlAPI.TestQuandlCSV,
 		}
@@ -78,26 +80,35 @@ MONTHS = 4*WEEKS
 QUARTERS = 3*MONTHS
 YEARS = 4*QUARTERS
 
-def dt_date_range_generator(startEpoch, endEpoch, periodicity=MONTHS):
+def dt_date_range_generator(startTime, endTime, periodicity=MONTHS, isEpoch=True):
 	# Set Variables
-	startDT = dt_epoch_to_datetime(startEpoch)
-	endDT = dt_epoch_to_datetime(endEpoch)
-	if periodicity == MONTHS:
-		currentDT = dt_end_of_month(startDT)
+	if isEpoch:
+		startDT = dt_epoch_to_datetime(startTime)
+		endDT = dt_epoch_to_datetime(endTime)
 	else:
-		raise NotImplementedError
+		startDT = startTime
+		endDT = endTime
+	currentDT = dt_end_of_month(startDT)
+	# if periodicity == MONTHS:
+	# 	currentDT = dt_end_of_month(startDT)
+	# else:
+	# 	raise NotImplementedError
 	# Yield Start
 	if not dt_is_end_of_month(startDT):
-		yield startEpoch
+		yield dt_datetime_to_epoch(startDT)
 	# Yield Intervening Months
 	while currentDT < endDT:
 		yield dt_datetime_to_epoch(currentDT)
 		if periodicity == MONTHS:
 			currentDT = dt_add_months(currentDT, 1)
+		elif periodicity == QUARTERS:
+			currentDT = dt_add_months(currentDT, 3)
+		elif periodicity == YEARS:
+			currentDT = dt_add_months(currentDT, 12)
 		else:
 			raise NotImplementedError
 	# Yield End
-	yield endEpoch
+	yield dt_datetime_to_epoch(endDT)
 
 def dt_is_end_of_month(datetime_):
 	year_ = datetime_.year
@@ -108,6 +119,10 @@ def dt_is_end_of_month(datetime_):
 			datetime_.minute == 0 and 
 			datetime_.second == 0)
 
+def str_YYYY_MM_DD_is_end_of_month(str_):
+	dt = dt_str_YYYY_MM_DD_to_datetime(str_)
+	return dt_is_end_of_month(dt)
+
 def dt_end_of_month(datetime_):
 	year_ = datetime_.year
 	month_ = datetime_.month
@@ -116,15 +131,15 @@ def dt_end_of_month(datetime_):
 
 def dt_subtract_months(datetime_, months):
 	month_ = int((datetime_.month) - (months % 12))
-	year_ = int(datetime_.year - floor(months/12.0) - int(month_<0))
-	month_ = int((month_) % 12 + 1)
+	year_ = int(datetime_.year - floor(months/12.0) - int(month_<=0))
+	month_ = int((month_) % 12 + 12*(month_==0)) #sloppy
 	day_ = monthrange(year_, month_)[1]
 	return datetime.datetime(year_, month_, day_, tzinfo=pytz.UTC)
 
 def dt_add_months(datetime_, months):
 	month_ = int((datetime_.month) + (months % 12))
-	year_ = int(datetime_.year + floor(months/12.0) + int(month_>=12))
-	month_ = int((month_) % 12 + 1)
+	year_ = int(datetime_.year + floor(months/12.0) + int(month_>12))
+	month_ = int((month_) % 12 + 12*(month_==12)) #sloppy
 	day_ = monthrange(year_, month_)[1]
 	return datetime.datetime(year_, month_, day_, tzinfo=pytz.UTC)
 
@@ -140,6 +155,7 @@ def dt_now_as_epoch():
 
 def dt_str_YYYY_MM_DD_to_datetime(dateString, endOfMonth=False):
 	dt = datetime.datetime.strptime(dateString, '%Y-%m-%d')
+	dt = dt.replace(tzinfo=pytz.UTC)
 	if endOfMonth:
 		dt = dt_end_of_month(dt)
 	return dt
@@ -261,6 +277,12 @@ class Specifier(str):
 
 
 def main():
+	print 'ADD'
+	dt1 = dt_str_YYYY_MM_DD_to_datetime('2015-03-20',endOfMonth=True)
+	dt2 = dt_add_months(dt1, 30)
+	g = dt_date_range_generator(dt1, dt2, periodicity=QUARTERS, isEpoch=False)
+	for i in g:
+		print dt_epoch_to_datetime(i)
 	print 'ADD'
 	dt = dt_str_YYYY_MM_DD_to_datetime('2015-01-20',endOfMonth=True)
 	for i in xrange(30):
