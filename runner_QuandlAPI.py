@@ -1,5 +1,6 @@
 # TODO: 
 #	move main function into another file
+# 	perform more checks on data downloaded
 
 # EMF 		From...Import
 from 	handle_DB		 	import EMF_Database_Handle
@@ -7,10 +8,10 @@ from 	handle_DataSeries 	import EMF_DataSeries_Handle
 from 	handle_CSV 			import EMF_CSV_Handle
 from 	handle_QuandlAPI	import EMF_QuandlAPI_Handle
 from 	handle_Logging		import EMF_Logging_Handle
-# from 	util_CreateDB	 	import create_DB
-from	util_EMF			import get_EMF_settings
 from 	lib_EMF		 		import TEMP_MODE
 from 	lib_QuandlAPI		import QuandlCSVColumns, QuandlEditableColumns
+from 	lib_QuandlAPI		import START_DATE
+from	util_EMF			import get_EMF_settings
 # System 	Import...As
 import logging 				as log
 
@@ -34,11 +35,21 @@ class EMF_Quandl_Runner:
 					Only Download data that's necessary (i.e. after latest insert) (checking for updates)
 					
 		'''
+		log.info('Downloading {0}[{1}]'.format(db_name, db_ticker))
 		hndl_Qndl = EMF_QuandlAPI_Handle(Q_DATABASE_CODE, Q_DATASET_CODE)
+		hndl_Qndl.set_extra_parameter('start_date', START_DATE) # Limit incoming data to start in 1960
 		hndl_Qndl.set_extra_parameter('column_index', Q_COLUMN_NUM)
 		hndl_Qndl.set_extra_parameter('collapse', Q_COLLAPSE_INSTR)
 		hndl_Qndl.set_extra_parameter('transform', Q_TRANSFORM_INSTR)
 		(dates, values, metadata) = hndl_Qndl.get_data()
+		log.info('Found {0} points from {1} to {2} ({3} periodicity).'
+					.format(metadata['NUM_POINTS'],
+							metadata['Q_EARLIEST_DATE'],
+							metadata['Q_LATEST_DATE'],
+							metadata['Q_PERIODICITY']))
+		log.info('Found {0} for {1}[{2}]'.format(metadata['Q_NAME'], db_name, db_ticker))
+		if metadata['NUM_COLUMNS'] != 2 and Q_COLUMN_NUM == 1:
+			log.warning('Found more than one column. Ensure you have right column).')
 		hndl_Data = EMF_DataSeries_Handle(self.hndl_DB, name=db_name, ticker=db_ticker, insertIfNot=True)
 		hndl_Data.save_series_to_db(dates, values)
 		return metadata

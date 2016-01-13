@@ -1,7 +1,5 @@
-'''
-TODOS:
-	+ How do you find quantiles numpy?
-'''
+# TODO:
+#	Make transformations return metadata
 # EMF 		From...Import
 from 	util_EMF 	import YEARS, QUARTERS, MONTHS, WEEKS, DAYS
 from 	util_EMF 	import dt_add_months, dt_subtract_months
@@ -19,6 +17,8 @@ kwargDefaults = {
 	'numQuartiles': 10, # 'uniformCountRange': 
 	'numRanges': 10, # 'uniformLengthRange': 
 	'base': e, # 'Logarithm'
+	'value': 1,
+	'power': 1.5, # power >= 1!
 }
 
 func_round = np.vectorize(round)
@@ -37,6 +37,9 @@ def verify_Positive(data, kwargs):
 
 def transform_None(data, kwargs):
 	return data
+
+def transform_usePredictions(data, predictions, kwargs):
+	return predictions
 
 def transform_FOD_BackwardLooking(data, kwargs):
 	key = 'PeriodDiff'
@@ -79,23 +82,66 @@ def transform_AbsoluteValue(data, kwargs):
 
 def transform_GrowOutliers(data, kwargs):
 	'''
-	does a hyperbolic transformation on data centered around median
+	does a power (power >= 1!) transformation on the data (data >= 1!)
+	TODO:
+			Re-implement to tanh
 	'''
-	mean = np.mean(data)
-	raise NotImplementedError
+	key = 'power'
+	power = kwargs.get(key, kwargDefaults[key])
+	sgn_d = np.sign(data)
+	return np.power(data,power)*sgn_d
 
 def transform_ShrinkOutliers(data, kwargs):
 	'''
-	does an inverse hyperbolic transformation on data centered around median
+	does an inverse power (power >= 1!) transformation on the data (data >= 1!)
+	TODO:
+			Re-implement to tanh
 	'''
-	mean = np.mean(data)
-	raise NotImplementedError
+	key = 'power'
+	power = kwargs.get(key, kwargDefaults[key])
+	sgn_d = np.sign(data)
+	return np.power(data,1/power)*sgn_d
 
 def transform_AddSeries(baseSeries, addSeries, kwargs):
-	return (baseSeries + addSeries)
+	return baseSeries + addSeries
 
 def transform_SubtractSeries(baseSeries, subSeries, kwargs):
-	return (baseSeries - subSeries)
+	return baseSeries - subSeries
+
+def transform_TimeToValue(data, kwargs):
+	key = 'value'
+	value = kwargs.get(key, kwargDefaults[key])
+	out = np.ones(data.shape)*-1
+	len_ = len(data)
+	counter = 0
+	for i in xrange(len_):
+		if data[i]==value:
+			for j in xrange(1,counter+1):
+				out[i-j] = j
+			out[i] = 0
+			counter = 0
+		else:
+			counter += 1
+	return out
+
+def transform_TimeSinceValue(data, kwargs):
+	key = 'value'
+	value = kwargs.get(key, kwargDefaults[key])
+	out = np.ones(data.shape)*-1
+	len_ = len(data)
+	record = False
+	counter = 0
+	for i in xrange(len_):
+		if data[i]==value:
+			out[i] = 0
+			counter = 0
+			record = 1
+		else:
+			if record:
+				out[i] = counter+1
+			counter += 1
+	return out
+
 
 # CATEGORIZATIONS
 
@@ -166,6 +212,15 @@ def categorize_LessThanAmount(data, kwargs):
 	raise NotImplementedError
 
 # TIME SERIES TRANSFORMATIONS
+def timeSeriesTransform_TruncateUntilValue(timeSeries, dataSeries, kwargs):
+	'''
+	TODO:
+				Modify time series transformations to take data *and* times
+	'''
+	raise NotImplementedError
+	key = 'value'
+	value = kwargs.get(key, kwargDefaults[key])
+
 
 def timeSeriesTransform_TruncatePast(timeSeries, kwargs):
 	key = 'PeriodDiff'
@@ -190,19 +245,21 @@ def timeSeriesTransform_ShiftPast(timeSeries, kwargs):
 def timeSeriesTransform_None(timeSeries, kwargs):
 	return timeSeries
 
+# TIME POINT TRANSFORMATIONS
+
 def timePointTransform_EarliestDate(date, periodicity, fn, kwargs):
 	if fn == timeSeriesTransform_TruncatePast:
 		key = 'PeriodDiff'
 		periodDelta = kwargs.get(key, kwargDefaults[key])
 		dt_ = dt_epoch_to_datetime(date)
 		if periodicity == MONTHS:
-			dt_ = dt_subtract_months(dt_, periodDelta)
+			dt_ = dt_add_months(dt_, periodDelta)
 			return dt_datetime_to_epoch(dt_)
 		elif periodicity == YEARS:
-			dt_ = dt_subtract_months(dt_, periodDelta*12)
+			dt_ = dt_add_months(dt_, periodDelta*12)
 			return dt_datetime_to_epoch(dt_)
 		elif periodicity == QUARTERS:
-			dt_ = dt_subtract_months(dt_, periodDelta*3)
+			dt_ = dt_add_months(dt_, periodDelta*3)
 			return dt_datetime_to_epoch(dt_)
 		elif periodicity == DAYS or periodicity == WEEKS:
 			raise NotImplementedError
@@ -314,3 +371,18 @@ def transformStr_FutrDiffNormRd(kwargs):
 	periodDelta = kwargs.get(key, kwargDefaults[key])
 	return 'FutrDiff.{0}->NormRd'.format(periodDelta)
 
+
+# if __name__ == '__main__':
+# 	len_ = 11
+# 	x = np.random.randint(9, size=(len_))+1
+# 	d = np.zeros((x[0],1))
+# 	for i in xrange(1,len_):
+# 	    if i%2==0:
+# 	        d = np.vstack((d,np.zeros((x[i],1))))
+# 	    else:
+# 	        d = np.vstack((d,np.ones((x[i],1))))
+
+# 	d = d.ravel()
+# 	len_ = len(d)
+# 	print np.hstack((transform_TimeSinceValue(d, {'value': 1}).reshape(len_,1),
+# 					d.reshape(len_,1)))
