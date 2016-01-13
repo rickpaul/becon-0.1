@@ -5,13 +5,14 @@
 from 	handle_DataSeries		import EMF_DataSeries_Handle
 from 	handle_Model 			import EMF_Model_Handle
 from 	handle_Results	 		import EMF_Results_Handle
-# from 	handle_Transformation	import EMF_Transformation_Handle
 from 	handle_WordSeries 		import EMF_WordSeries_Handle
 from 	handle_WordSet 			import EMF_WordSet_Handle
 from 	lib_DBInstructions		import insertStat_WordStatsTable
 from 	lib_Model 				import AvailableModels
 from 	lib_Runner_Model		import MIN_BATCH_SIZE, MAX_BATCH_SIZE, MODEL_RETENTION_THRESHHOLD
 from 	lib_Runner_Model 		import PredictorTransformationKeys, ResponseTransformationKeys
+# EMF 		Import...As
+import 	util_Testing 			as utl_Tst
 # System 	From...Import
 from 	random 					import choice, randint
 # System 	Import...As
@@ -55,49 +56,46 @@ class EMF_Model_Runner():
 			self.hndl_WordSet.set_pred_trns_kwargs(template['predictorKwargs'])
 
 		# Set Predictor Variable(s) in WordSet
-		if len(template['dataSeriesCriteria']):
+		if 'dataSeriesCriteria' in template and len(template['dataSeriesCriteria']):
 			self.hndl_WordSet.set_predictor_data_criteria(**template['dataSeriesCriteria'])
 		# Set Models
 		for model in template['models']:
 			self.models.append(AvailableModels[model])
 
-	def run_model_batch(self):
-		# Choose Model at random
-		hndl_Model = choice(self.models)()
-		resp_Word = self.hndl_WordSet.get_response_word_handle_random()
-		hndl_Model.add_response_variable(resp_Word)
+	def train_model_batch(self):
+		# Choose Model at Random
+		hndl_Model = choice(self.models)(self.hndl_WordSet)
+		# Choose Response Word at Random
+		self.hndl_WordSet.select_response_word_handle_random()
 		# Run Batches
 		for i in xrange(randint(MIN_BATCH_SIZE, MAX_BATCH_SIZE)):
 			# Generate Words
-			pred_Words = self.hndl_WordSet.get_predictor_word_handles_random_subset()
-			validDates = self.hndl_WordSet.get_word_date_range()
-			self.__iterate(hndl_Model, pred_Words, resp_Word, validDates)
+			self.hndl_WordSet.select_predictor_word_handles_random()
+			# Run Model
+			hndl_Model.train_model()
+			log.info(hndl_Model.train_score) #TEST: Delete
+			log.info(hndl_Model.feature_importances()) #TEST: Delete
+			predictions = hndl_Model.get_series_values() #TEST: Delete
+			dates = hndl_Model.get_series_dates() #TEST: Delete
+			# self.__save_model_results(hndl_Model)
+			utl_Tst.plot_data_series(self.hndl_WordSet.get_response_word_raw(), hndl_Model)  #TEST: Delete
+			# Prepare WordSet for Next Run (Not Really Nec. Safety First?)
+			self.hndl_WordSet.clear_pred_word_handles()
 
-	def __iterate(self, model, pred_Words, resp_Word, validDates):
-		for hndl_Word in pred_Words:
-			model.add_predictor_variable(hndl_Word)
-		model.set_valid_dates(validDates)
-		# Run Model
-		(score, predictions, varScores) = model.run_model()
-		# Put stats in db (if score meets threshhold)
-		respID = self.hndl_WordSet.get_response_word_handle_current().wordSeriesID
-		conn = self.hndl_DB.conn_()
-		cursor = self.hndl_DB.cursor_()
-		for (hndl_Word, imp) in zip(pred_Words, varScores):
-			predID = hndl_Word.wordSeriesID
-			insertStat_WordStatsTable(conn, cursor, respID, predID, imp)
-		# Put Predictions in Array (if score meets threshhold)
+	def __save_model_results(self, hndl_Model):
+		score = hndl_Model.test_model()
 		if score >= MODEL_RETENTION_THRESHHOLD:
 			log.info('Model accepted with score {0}'.format(score))
-			# self.hndl_Res.add_model(model)
+			self.hndl_Res.add_model(hndl_Model)
 		else:
 			log.info('Model rejected with score {0}'.format(score))
-		# Prepare Model for Next Run
-		model.clear_predictor_variable()
-
-	def __assess_model(self):
-		raise NotImplementedError
+		# Put stats in db
+		respID = self.hndl_WordSet.get_response_word_handle().wordSeriesID
+		conn = self.hndl_DB.conn_()
+		cursor = self.hndl_DB.cursor_()
+		for (hndl_Word, score) in zip(self.hndl_WordSet.predWords, varScores):
+			predID = hndl_Word.wordSeriesID
+			insertStat_WordStatsTable(conn, cursor, respID, predID, score)
 		# if bad model, register dataSeries and transformations as not-helpful
-
 		# if good model, register dataSeries and transformations as helpful 
 		# if good model, store feature-importances

@@ -17,7 +17,6 @@ PRIORITY 2:
 
 PRIORITY 3:
 	+ Define program in packages
-	+ Change all <for i in range()> to <for i in xrange()>
 	+ Implement cython where appropriate
 		+ datatree impurity calculations
 		+ most BCM calculations
@@ -28,8 +27,6 @@ PRIORITY 3:
 		+ Log Channeling (i.e. separate db debugging)
 
 PRIORITY 4:
-	+ Create Logging Handle to deal with automatic deletion, etc. (from Testing Handle)
-	+ Remove 'Succeeded' Logging from update/select db statements
 
 INDIVIDUAL FILES:
 

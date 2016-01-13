@@ -1,5 +1,8 @@
+
+from 	util_EMF 			import DAYS, WEEKS, MONTHS, QUARTERS, YEARS
 # EMF 		Import...As
-import 	lib_Transformation 		as lib_Trns
+import 	lib_Transformation 	as lib_Trns
+
 
 
 # When creating random transformations,
@@ -11,7 +14,10 @@ MIN_BATCH_SIZE = 4
 MAX_BATCH_SIZE = 4
 
 MODEL_RETENTION_THRESHHOLD = 0.3
+BOOTSTRAP_MULTIPLIER = 1
 
+TRAINING = 927610 # Random
+PREDICTION = 176920 # Random
 
 PredictorTransformationKeys = lib_Trns.PredictorTransformationKeys
 PredictorTransformationKeys = [x for x in PredictorTransformationKeys if not x.endswith(lib_Trns.PATTERN_SUFFIX_NORM_STRAT)]
@@ -27,9 +33,8 @@ try:
 except ValueError:
 	pass # Value not found
 
-
 TestModelTemplate = {
-	'responseTicker' : ['y'],
+	'responseTicker' : ['US_TimeUntilRec'],
 	# 'responseTrns' : ['RateOfChange'],
 	'responseKwargs': {
 		'PeriodDiff': [1,3,6,9,12],
@@ -42,7 +47,7 @@ TestModelTemplate = {
 	'dataSeriesCriteria' : {
 		# 'interpolatePredictorData' : False,
 		# 'matchResponsePeriodicity' : True,
-		# 'periodicity' : 1,
+		'periodicity' : MONTHS,
 		# 'categorical' : False
 	}
 }

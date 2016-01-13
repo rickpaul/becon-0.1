@@ -44,9 +44,9 @@ EMF_ClassificationDecisionTree_Info = {
 	},
 }
 class EMF_ClassificationDecisionTree(EMF_Model_Handle, EMF_Model_Template):
-	def __init__(self):
+	def __init__(self, hndl_WordSet):
 		self.__dict__ = EMF_ClassificationDecisionTree_Info
-		super(EMF_ClassificationDecisionTree, self).__init__()
+		super(EMF_ClassificationDecisionTree, self).__init__(hndl_WordSet)
 		from sklearn.tree import DecisionTreeClassifier
 		self.model = DecisionTreeClassifier(**self.kwargs)
 
@@ -74,9 +74,9 @@ class EMF_RegressionDecisionTree(EMF_Model_Handle, EMF_Model_Template):
 	'''
 	http://scikit-learn.org/stable/modules/generated/sklearn.tree.DecisionTreeRegressor.html
 	'''
-	def __init__(self):
+	def __init__(self, hndl_WordSet):
 		self.__dict__ = EMF_RegressionDecisionTree_Info
-		super(EMF_RegressionDecisionTree, self).__init__()
+		super(EMF_RegressionDecisionTree, self).__init__(hndl_WordSet)
 		from sklearn.tree import DecisionTreeRegressor
 		self.model = DecisionTreeRegressor(**self.kwargs)
 

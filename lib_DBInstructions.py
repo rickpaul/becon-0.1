@@ -9,8 +9,8 @@ import 	util_DB 			as DB_util
 import 	logging 			as log
 # System 	From...Import
 
-TICKER = 'ticker'
-ID = 'id'
+TICKER = 861256 # Random
+ID = 427699 # Random
 
 ####################################### DATA SERIES + METADATA TABLE
 # DATA SERIES TICKER GET FILTERED
@@ -35,7 +35,7 @@ def retrieve_DataSeries_Filtered(	cursor,
 	wV = []
 	wO = []
 	args = [minDate, maxDate, periodicity, categorical]
-	cols = ['dt_min_data_date', 'dt_max_data_date', 'int_periodicity', 'bool_data_is_categorical']
+	cols = ['dt_min_data_date', 'dt_max_data_date', 'code_local_periodicity', 'bool_data_is_categorical']
 	ops = ['>=', '<=', '=', '=']
 	for (arg, col, op) in zip(args, cols, ops):
 		if arg is not None:

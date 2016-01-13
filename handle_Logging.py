@@ -1,6 +1,5 @@
 # TODO: 
-#	Turn into Singleton!
-#	Implement Options, Log channeling
+#	Implement Log channeling
 
 
 # EMF 		From...Import

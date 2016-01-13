@@ -4,7 +4,7 @@ class EMF_Model_Template:
 	__metaclass__ = ABCMeta
 
 	@abstractmethod
-	def run_model(self):
+	def train_model(self):
 		pass
 
 	@abstractmethod
