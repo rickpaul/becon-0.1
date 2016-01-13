@@ -3,8 +3,8 @@ from handle_DataSeries	 	import EMF_DataSeries_Handle
 from handle_Logging		 	import EMF_Logging_Handle
 from handle_Transformation	import EMF_Transformation_Handle
 from handle_WordSeries		import EMF_WordSeries_Handle
-from lib_EMF		 		import TEMP_MODE
-from util_CreateDB	 		import create_DB
+from lib_EMF		 		import TEMP_MODE, TEST_MODE
+from util_CreateDB	 		import create_or_connect_DB
 # EMF 		Import...As
 # System 	Import...As
 import logging 	as log
@@ -12,7 +12,10 @@ import logging 	as log
 class EMF_Testing_Handle:
 	def __init__(self, mode=TEMP_MODE):
 		self.hndl_Log = EMF_Logging_Handle(mode=mode)
-		self.hndl_DB = create_DB(mode=mode)
+		if mode != TEMP_MODE and mode != TEST_MODE:
+			log.ERROR('Attempting a test on a non-test Database')
+			return
+		self.hndl_DB = create_or_connect_DB(mode=mode)
 		self.wordHandles = {}
 
 	def __del__(self):

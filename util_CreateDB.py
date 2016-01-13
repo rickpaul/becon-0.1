@@ -62,7 +62,8 @@ def __create_table(conn, cursor, tableName, instruction, force=False):
 			__drop_table(conn, cursor, tableName)
 		else:
 			log.error('Table %s already exists', tableName)
-			raise Exception('Table {0} Creation Failed'.format(tableName))
+			log.error('Databases already exist. If overwriting was your intent, use -mode-TEMP flag to force creation.')
+			return 
 	log.info("Table %s created.", tableName)
 	(success, error) = commitDBStatement(conn, cursor, instruction)
 
@@ -77,9 +78,6 @@ def create_DB(mode=TEMP_MODE, manualOverride=False):
 	
 	RETURNS:
 				DB Location
-
-	CONSIDER:
-				Should it return a db_handle?
 	'''
 	# Get Settings
 	settings = get_EMF_settings(mode)
@@ -93,8 +91,10 @@ def create_DB(mode=TEMP_MODE, manualOverride=False):
 		tableCreationInstructions = createDB_lib.creationInstructions
 	# Create DB if necessary
 	if __db_exists(dbLocation):
+		dbExists = True
 		log.info('DB {0} found.'.format(dbLocation))
 	else:
+		dbExists = False
 		__create_DB_directory(dbLocation)
 		log.info('DB {0} not found. Will be created.'.format(dbLocation))
 	# Hook To DB
@@ -104,13 +104,21 @@ def create_DB(mode=TEMP_MODE, manualOverride=False):
 		log.info('Performing {0} table creation'.format('manual' if manualOverride else 'full'))
 		for (tableName, instruction) in tableCreationInstructions.iteritems():
 			__create_table(hndl_DB.conn_(), hndl_DB.cursor_(), tableName, instruction, force=force)
-	except sq.OperationalError as e:
-		log.error('Database Creation Failed.')
-		if 'already exists' in str(e):
-			log.error('Databases already exist. If overwriting was your intent, use -mode-TEMP flag to force creation.')
-		else:
-			raise e
 	except:
 		log.error('Database Creation Failed.')
 		raise
 	return hndl_DB
+
+def connect_DB(mode=TEMP_MODE):
+	settings = get_EMF_settings(mode)
+	dbLocation = settings['dbLoc']
+	return EMF_Database_Handle(dbLocation)	
+
+def create_or_connect_DB(mode=TEMP_MODE, manualOverride=False):
+	# Get Settings
+	settings = get_EMF_settings(mode)
+	dbLocation = settings['dbLoc']
+	if __db_exists(dbLocation):
+		return EMF_Database_Handle(dbLocation) # Don't allow deletion here
+	else:
+		return create_DB(mode=mode, manualOverride=manualOverride)
