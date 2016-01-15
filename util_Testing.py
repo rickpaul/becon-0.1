@@ -91,19 +91,6 @@ def create_test_data_correlated_returns(n=500, numDims=5, includeResponse=True):
 	categorical = [False]*w
 	return {'dt': dt, 'data': data, 'names': names, 'categorical': categorical,  'responseIdx': responseIdx}
 
-def create_monthly_date_range(n=500, startEpoch=0, asString=False):
-	dt = []
-	if asString:
-		outputFn = lambda d: strftime(d, '%Y-%m-%d')
-	else: #asEpoch
-		outputFn = dt_datetime_to_epoch
-	currentDT = dt_end_of_month(dt_epoch_to_datetime(startEpoch))
-	dt.append(outputFn(currentDT))
-	for i in xrange(1,n):
-		currentDT = dt_add_months(currentDT, 1)
-		dt.append(outputFn(currentDT))
-	return dt
-
 def save_test_data_fn(hndl_Test, fn, **kwargs):
 	return save_test_data(hndl_Test, **fn(**kwargs))
 
