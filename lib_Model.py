@@ -40,7 +40,7 @@ EMF_ClassificationDecisionTree_Info = {
 		'max_depth':			3,
 		# 'min_samples_split':	10,
 		# 'max_leaf_nodes':		20,
-		'min_samples_leaf':		20,
+		'min_samples_leaf':		2,
 	},
 }
 class EMF_ClassificationDecisionTree(EMF_Model_Handle, EMF_Model_Template):

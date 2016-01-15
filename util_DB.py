@@ -17,19 +17,27 @@ def get_DB_Handle(mode=TEMP_MODE):
 	return EMF_Database_Handle(dbLocation, deleteDB=False)
 
 ########################################Generic Query Construction Code / Helper Code
-def stringify(someValue):
-	if type(someValue) == bool:
-		return str(int(someValue))
-	elif type(someValue) == int or type(someValue) == float:
-		return str(someValue)
-	elif type(someValue) == int64 or type(someValue) == float64:
-		return str(someValue)
-	elif someValue is None:
+def stringify(value_):
+	if type(value_) == bool:
+		return str(int(value_))
+	elif type(value_) == int or type(value_) == float:
+		return str(value_)
+	elif type(value_) == int64 or type(value_) == float64:
+		return str(value_)
+	elif value_ is None:
 		return SQL_NULL
-	elif (someValue == SQL_NULL) or (someValue[0] is '"') or (someValue[0] is "'"):
-		return someValue
+	elif (value_ == SQL_NULL) or (value_[0] is '"') or (value_[0] is "'"):
+		return value_
 	else:
-		return '"' + someValue + '"'
+		return '"' + value_ + '"'
+
+def typify(type_, value_):
+	if value_ is None:
+		return None
+	if type_ == bool:
+		return bool(int(value_))
+	else:
+		return type_(value_)
 
 ########################################Generic Query Construction Code / Insert Code
 def generateInsertStatement(table, columns, values):

@@ -4,18 +4,19 @@
 #	Implement json handle
 
 # EMF 		From...Import
-from 	lib_DataSeries	import 	DATE_COL, VALUE_COL, DATA_HISTORY_DTYPE
-from 	lib_JSON		import 	JSONRepository, DATA_SERIES_TO_JSON
+from 	lib_DataSeries			import DATE_COL, VALUE_COL, DATA_HISTORY_DTYPE
+from 	lib_JSON				import JSONRepository, DATA_SERIES_TO_JSON
 from 	template_SerialHandle 	import EMF_Serial_Handle
-from	util_EMF		import 	dt_now_as_epoch, dt_epoch_to_str_YMD, dt_date_range_generator
+from 	util_DB					import typify
+from	util_EMF				import dt_now_as_epoch, dt_epoch_to_str_YMD, dt_date_range_generator
 # EMF 		Import...As
-import 	lib_DBInstructions 	as 	lib_DBInst
+import 	lib_DBInstructions 		as lib_DBInst
 # System 	Import...As
-import 	logging 			as 	log
-import 	numpy 				as 	np
+import 	logging 				as log
+import 	numpy 					as np
 # System 	From...Import
-from 	sys 			import 	maxint
-from 	json 			import 	dumps 	as json_dump
+from 	sys 					import maxint
+from 	json 					import dumps as json_dump
 
 class EMF_DataSeries_Handle(EMF_Serial_Handle):
 	def __init__(self, dbHandle, name=None, ticker=None, insertIfNot=False):
@@ -69,14 +70,14 @@ class EMF_DataSeries_Handle(EMF_Serial_Handle):
 			self.set_num_points(len(dataSeries))
 			return dataSeries
 
-	def get_series_values_filtered(self, minDte, maxDte):
+	def get_series_values_filtered(self, min_, max_):
 		series = self.__get_series()
-		filter_ = np.logical_and(series[DATE_COL]>=minDte, series[DATE_COL]<=maxDte)
+		filter_ = np.logical_and(series[DATE_COL]>=min_, series[DATE_COL]<=max_)
 		return np.reshape(series[filter_][VALUE_COL], (sum(filter_), 1))
 
-	def get_series_dates_filtered(self, minDte, maxDte):
+	def get_series_dates_filtered(self, min_, max_):
 		series = self.__get_series()
-		filter_ = np.logical_and(series[DATE_COL]>=minDte, series[DATE_COL]<=maxDte)
+		filter_ = np.logical_and(series[DATE_COL]>=min_, series[DATE_COL]<=max_)
 		return np.reshape(series[filter_][DATE_COL], (sum(filter_), 1))
 
 	def get_series_values(self):
@@ -96,7 +97,7 @@ class EMF_DataSeries_Handle(EMF_Serial_Handle):
 	def save_series_local(self, regenerate=True):
 		self.stored_series = self.__get_series(regenerate=regenerate)
 
-	def __save_value_to_db(self, date, value, isInterpolated=False, isForecast=False):
+	def __save_value_db(self, date, value, isInterpolated=False, isForecast=False):
 		'''
 		CONSIDER:
 					Is it appropriate to cast values here? I think so....
@@ -108,7 +109,7 @@ class EMF_DataSeries_Handle(EMF_Serial_Handle):
 															interpolated=int(isInterpolated),
 															forecast=int(isForecast))
 
-	def save_series_to_db(self, dates, values, isInterpolated=None, isForecast=None):
+	def save_series_db(self, dates, values, isInterpolated=None, isForecast=None):
 		'''
 		TODOS: 
 					Figure out what format dates, values, should come in [numpy array vs int] (to avoid weird casting errors)
@@ -133,7 +134,7 @@ class EMF_DataSeries_Handle(EMF_Serial_Handle):
 			isInt = hasInt and isInterpolated[i]
 			isFor = hasFor and isForecast[i]
 			date = dates[i]
-			success = self.__save_value_to_db(date, values[i], isInt, isFor)
+			success = self.__save_value_db(date, values[i], isInt, isFor)
 			if not success:
 				log.warning('Failed to Write Historical Data Point at %s for %s [value = %f]', self.seriesTicker, dates[i], values[i])
 				unsuccessfulInserts += 1
@@ -166,27 +167,25 @@ class EMF_DataSeries_Handle(EMF_Serial_Handle):
 			pass
 
 	def get_periodicity(self):
-		return self.__typify(int, self.__get_from_DB('code_local_periodicity'))
+		return typify(int, self.__get_from_DB('code_local_periodicity'))
 
 	def get_categorical(self):
-		return self.__typify(bool, self.__get_from_DB('bool_data_is_categorical'))
+		return typify(bool, self.__get_from_DB('bool_data_is_categorical'))
 
 	def get_latest_date(self):
-		return self.__typify(int, self.__get_from_DB('dt_max_data_date'))
+		return typify(int, self.__get_from_DB('dt_max_data_date'))
 
 	def get_earliest_date(self):
-		return self.__typify(int, self.__get_from_DB('dt_min_data_date'))
+		return typify(int, self.__get_from_DB('dt_min_data_date'))
 
 	def get_last_update(self):
-		return self.__typify(int, self.__get_from_DB('dt_last_updated_history'))
+		return typify(int, self.__get_from_DB('dt_last_updated_history'))
 
 	def set_periodicity(self, periodicity):
 		self.__send_to_DB('int_periodicity', periodicity)
 
 	def set_categorical(self, categorical):
 		self.__send_to_DB('bool_data_is_categorical', categorical)
-
-
 
 	def __set_latest_date(self, maxDate):
 		self.__send_to_DB('dt_max_data_date', maxDate)
@@ -198,14 +197,6 @@ class EMF_DataSeries_Handle(EMF_Serial_Handle):
 		self.lastUpdate = dt_now_as_epoch()
 		self.__send_to_DB('dt_last_updated_history', self.lastUpdate)
 
-	def __typify(self, type_, value_):
-		if value_ is None:
-			return None
-		if type_ == bool:
-			return bool(int(value_))
-		else:
-			return type_(value_)
-
 	def write_to_JSON(self):
 		'''
 		TODOS:
@@ -214,8 +205,8 @@ class EMF_DataSeries_Handle(EMF_Serial_Handle):
 		JSON = map(DATA_SERIES_TO_JSON, self.__get_series())
 		JSONFileName = self.__get_JSON_filename()
 		try:
-			writer = open(JSONFileName, 'wb')
-			writer.write(json_dump(JSON))
+			with open(JSONFileName, 'wb') as writer:
+				writer.write(json_dump(JSON))
 		except:
 			raise
 		finally:
@@ -229,14 +220,12 @@ class EMF_DataSeries_Handle(EMF_Serial_Handle):
 			fileName += ('|' + dt_epoch_to_str_YMD(self.get_last_update()))
 		return (JSONRepository + fileName + '.json')
 
-	def check_data_fullness(self, periodicity=12):
-		'''
-		This method checks if the data is filled in (i.e. if data is monthly since 1990, 
-			every year should have) 12 points at expected times.
-		'''
-		generator = dt_date_range_generator(self.get_earliest_date(), self.get_latest_date(), periodicity)
+	# def check_data_fullness(self, periodicity=12):
+	# 	'''
+	# 	This method checks if the data is filled in (i.e. if data is monthly since 1990, 
+	# 		every year should have) 12 points at expected times.
+	# 	'''
+	# 	generator = dt_date_range_generator(self.get_earliest_date(), self.get_latest_date(), periodicity)
 
-		if periodicity == 12:
-			raise NotImplementedError
-
-
+	# 	if periodicity == 12:
+	# 		raise NotImplementedError

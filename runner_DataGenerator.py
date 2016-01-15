@@ -27,7 +27,7 @@ class EMF_DataGenerator_Runner:
 		count = self.find_time_to_recession_limits(trns_Data)
 		trns_Data = trns_Data[:-count]
 		trns_Dates = dates[:-count]
-		hndl_Data_Wrte.save_series_to_db(trns_Dates, trns_Data)
+		hndl_Data_Wrte.save_series_db(trns_Dates, trns_Data)
 
 		# Insert Time Since
 
@@ -40,7 +40,7 @@ class EMF_DataGenerator_Runner:
 		count = self.find_time_since_recession_limits(trns_Data)
 		trns_Data = trns_Data[count:]
 		trns_Dates = dates[count:]
-		hndl_Data_Wrte.save_series_to_db(trns_Dates, trns_Data)		
+		hndl_Data_Wrte.save_series_db(trns_Dates, trns_Data)		
 
 	def find_time_since_recession_limits(self, data):
 		count = 0

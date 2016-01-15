@@ -3,6 +3,7 @@ from lib_DB 		import DBRepository
 from lib_Logging 	import LogRepository
 from lib_QuandlAPI 	import CSVRepository
 from lib_JSON		import JSONRepository
+from lib_Pickle		import PickleRepository
 from lib_EMF		import TEMP_MODE, TEST_MODE, QA_MODE, PROD_MODE
 from util_CreateDB	import create_DB
 from util_EMF 		import get_EMF_settings
@@ -19,7 +20,9 @@ AllDirectories = [
 	DBRepository, 
 	LogRepository, 
 	CSVRepository, 
-	JSONRepository
+	JSONRepository,
+	PickleRepository,
+	WebRepository,
 ]
 
 AllDatabases = [

@@ -235,12 +235,20 @@ def timeSeriesTransform_TruncateFuture(timeSeries, kwargs):
 def timeSeriesTransform_ShiftFuture(timeSeries, kwargs):
 	key = 'PeriodDiff'
 	periodDelta = kwargs.get(key, kwargDefaults[key])
-	return timeSeries + periodDelta
+	# HACKED! FIX!
+	out = timeSeries
+	for i in xrange(len(timeSeries)):
+		out[i] = dt_datetime_to_epoch(dt_add_months(dt_epoch_to_datetime(timeSeries[i]), periodDelta))
+	return out
 
 def timeSeriesTransform_ShiftPast(timeSeries, kwargs):
 	key = 'PeriodDiff'
 	periodDelta = kwargs.get(key, kwargDefaults[key])
-	return timeSeries - periodDelta
+	# HACKED! FIX! Assuming monthly, for one.
+	out = timeSeries
+	for i in xrange(len(timeSeries)):
+		out[i] = dt_datetime_to_epoch(dt_subtract_months(dt_epoch_to_datetime(timeSeries[i]), periodDelta))
+	return out
 
 def timeSeriesTransform_None(timeSeries, kwargs):
 	return timeSeries

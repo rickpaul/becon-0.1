@@ -27,7 +27,6 @@ class EMF_WordSet_Handle():
 	'''
 	def __init__(self, dbHandle, template=None):
 		self.hndl_DB = dbHandle
-		self.predWordCache = {}
 		self.sampleWeights = None
 
 		self.respWord = None
@@ -116,6 +115,8 @@ class EMF_WordSet_Handle():
 			numWords = geometric(WORD_COUNT_GEOMETRIC_PARAM) + MIN_WORD_COUNT
 		log.info('WORDSET: Choosing {0} words'.format(numWords))
 		count = 0
+		min_date = self.respWord.get_min_date_transformed() # Sloppy. reqs that respWord is set
+		max_date = self.respWord.get_max_date_transformed() # Sloppy. reqs that respWord is set
 		chosen = {}
 		while (len(chosen) < numWords) and (count < numWords*10):
 			count += 1 # Avoid Infinite Loops
@@ -126,10 +127,16 @@ class EMF_WordSet_Handle():
 			for (key, valList) in self.predTrnsKwargs.iteritems():
 				val = choice(valList)
 				trnsHndl.set_extra_parameter(key, val)
-			wordName = generate_Word_Series_name(dataHndl, trnsHndl)
 			wordHndl = EMF_WordSeries_Handle(self.hndl_DB, dataHndl, trnsHndl)
-			# if wordName not in self.predWordCache:
-				# self.predWordCache[wordName] = wordHndl
+			min_challenger = wordHndl.get_min_date_transformed()
+			if min_challenger >= max_date:
+				continue
+			max_challenger = wordHndl.get_max_date_transformed()
+			if max_challenger <= min_date:
+				continue
+			min_date = max(min_date, min_challenger)
+			max_date = min(max_date, max_challenger)
+			wordName = str(wordHndl)
 			chosen[wordName] = wordHndl
 			log.info('WORDSET: Chose {0} response word'.format(self.respWord)) # TEST: Delete
 		log.info('WORDSET: Chose {0} words'.format(chosen.keys()))
@@ -137,65 +144,70 @@ class EMF_WordSet_Handle():
 		self.features = chosen.keys()
 
 	def get_predicted_values(self, predictions):
-		rawValues = self.respWord.get_series_values_original(*self.__get_date_limits(mode=PREDICTION))
+		rawValues = self.respWord.get_values_basis_filtered(*self.get_date_limits(mode=PREDICTION))
 		return self.respWord.hndl_Trns.reverse_transform_data(rawValues, predictions)
 
 	def get_predicted_dates(self):
-		rawValues = self.respWord.get_series_dates_original(*self.__get_date_limits(mode=PREDICTION))
+		# rawValues = self.respWord.get_dates_basis_filtered(*self.get_date_limits(mode=PREDICTION))
+		rawValues = self.predWords[0].get_dates_basis_filtered(*self.get_date_limits(mode=PREDICTION))
+
 		return self.respWord.hndl_Trns.reverse_transform_time(rawValues)
 
-	def __get_date_limits(self, mode=TRAINING):
+
+	def log_self(self):
+		'''
+		for testing
+		'''
+		from util_EMF import dt_epoch_to_str_Y_M_D
+		limits = map(dt_epoch_to_str_Y_M_D, self.get_date_limits(mode=TRAINING))
+		log.info('WORDSET : training word limits: {0} to {1}'.format(*limits))
+		limits = map(dt_epoch_to_str_Y_M_D, self.get_date_limits(mode=PREDICTION))
+		log.info('WORDSET : training word limits: {0} to {1}'.format(*limits))
+
+
+	def get_date_limits(self, mode=TRAINING):
 		'''
 		TODO:
 				Just put the stuff in array and run min/max
 		'''
 		if mode==TRAINING:
-			minDate = self.respWord.get_earliest_word_date()
-			maxDate = self.respWord.get_latest_word_date()
+			min_ = self.respWord.get_min_date_transformed()
+			max_ = self.respWord.get_max_date_transformed()
 			array_ = self.predWords
 		elif mode==PREDICTION:
-			minDate = self.predWords[0].get_earliest_word_date()
-			maxDate = self.predWords[0].get_latest_word_date()
+			min_ = self.predWords[0].get_min_date_transformed()
+			max_ = self.predWords[0].get_max_date_transformed()
 			array_ = self.predWords[1:]
 		else:
 			raise NameError('mode not recognized.')		
 		for word in array_:
-			challenger = word.get_earliest_word_date()
-			minDate = max(challenger, minDate)
-			challenger = word.get_latest_word_date()
-			maxDate = min(challenger, maxDate)
-		return (minDate, maxDate)
-
-	# def get_date_array(self, mode=TRAINING):
-	# 	if mode==TRAINING:
-	# 		array_ = self.predWords + [self.respWord]
-	# 	elif mode==PREDICTION:
-	# 		array_ = self.predWords
-	# 	else:
-	# 		raise NameError('mode not recognized.')
-	# 	return reduce(np.intersect1d, tuple(array_))
+			challenger = word.get_min_date_transformed()
+			min_ = max(challenger, min_)
+			challenger = word.get_max_date_transformed()
+			max_ = min(challenger, max_)
+		return (min_, max_)
 
 	def get_word_arrays(self, mode=TRAINING, bootstrap=False):
-		(minDate, maxDate) = self.__get_date_limits(mode=mode)
+		(minDate, maxDate) = self.get_date_limits(mode=mode)
 		# Create Response Variable Array
 		respVarArray = None
 		if mode==TRAINING:
-			for varHandle in [self.respWord]: #We may allow multiple resp words
+			for hndl_Word in [self.respWord]: #We may allow multiple resp words
 				# Store history locally for later efficiency
-				varHandle.save_series_local()
+				hndl_Word.save_series_local()
 				# Add history to arary
 				if respVarArray is None:
-					respVarArray = varHandle.get_series_values_filtered(minDate, maxDate)
+					respVarArray = hndl_Word.get_values_transformed_filtered(minDate, maxDate)
 				else:
-					newArray = varHandle.get_series_values_filtered(minDate, maxDate) # sep out for testing
+					newArray = hndl_Word.get_values_transformed_filtered(minDate, maxDate) # sep out for testing
 					respVarArray = np.hstack((respVarArray, newArray))
 		# Create Predictor Variable Array
 		predVarArray = None
-		for varHandle in self.predWords:
+		for hndl_Word in self.predWords:
 			if predVarArray is None:
-				predVarArray = varHandle.get_series_values_filtered(minDate, maxDate)
+				predVarArray = hndl_Word.get_values_transformed_filtered(minDate, maxDate)
 			else:
-				newArray = varHandle.get_series_values_filtered(minDate, maxDate) # sep out for testing
+				newArray = hndl_Word.get_values_transformed_filtered(minDate, maxDate) # sep out for testing
 				predVarArray = np.hstack((predVarArray, newArray))
 		if bootstrap and mode==TRAINING:
 			len_ = len(predVarArray)
@@ -225,6 +237,15 @@ class EMF_WordSet_Handle():
 		for ticker in ignoreTickers:
 			self.__remove_pred_data_series(ticker)
 
+
+	# def get_date_array(self, mode=TRAINING):
+	# 	if mode==TRAINING:
+	# 		array_ = self.predWords + [self.respWord]
+	# 	elif mode==PREDICTION:
+	# 		array_ = self.predWords
+	# 	else:
+	# 		raise NameError('mode not recognized.')
+	# 	return reduce(np.intersect1d, tuple(array_))
 
 	# def get_predictor_word_handles_complete_set(self):
 	# 	raise NotImplementedError

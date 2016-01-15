@@ -1,13 +1,14 @@
 # TODO: 
 #	rename in underscore style
-# 	move date test to new file
+# 	move main
+# 	move date functionalities to new file (handle_TimeSeries)
 
 # EMF 		From...Import
-from lib_EMF		 		import 	TEMP_MODE, TEST_MODE, QA_MODE, PROD_MODE
+from 	lib_EMF		 		import 	TEMP_MODE, TEST_MODE, QA_MODE, PROD_MODE
 # EMF 		Import...As
-import lib_QuandlAPI
-import lib_Logging
-import lib_DB
+import 	lib_DB
+import 	lib_Logging
+import 	lib_QuandlAPI
 # System 	Import...As
 import 	logging 			as 		log
 import 	datetime
@@ -16,7 +17,6 @@ import 	re
 # System 	From...Import
 from 	calendar 			import 	monthrange
 from 	math 				import 	floor
-
 
 ######################## DIRECTORY CODE
 def get_EMF_settings(mode=TEMP_MODE):
@@ -276,22 +276,22 @@ class Specifier(str):
 		return self._regex.sub(repl, format)
 
 
-def main():
-	print 'ADD'
-	dt1 = dt_str_YYYY_MM_DD_to_datetime('2015-03-20',endOfMonth=True)
-	dt2 = dt_add_months(dt1, 30)
-	g = dt_date_range_generator(dt1, dt2, periodicity=QUARTERS, isEpoch=False)
-	for i in g:
-		print dt_epoch_to_datetime(i)
-	print 'ADD'
-	dt = dt_str_YYYY_MM_DD_to_datetime('2015-01-20',endOfMonth=True)
-	for i in xrange(30):
-		print dt_add_months(dt, i)
-	print 'SUBTRACT'
-	dt = dt_str_YYYY_MM_DD_to_datetime('2015-01-20',endOfMonth=True)
-	for i in xrange(30):
-		print dt_subtract_months(dt, i)
+# def main():
+# 	print 'ADD'
+# 	dt1 = dt_str_YYYY_MM_DD_to_datetime('2015-03-20',endOfMonth=True)
+# 	dt2 = dt_add_months(dt1, 30)
+# 	g = dt_date_range_generator(dt1, dt2, periodicity=QUARTERS, isEpoch=False)
+# 	for i in g:
+# 		print dt_epoch_to_datetime(i)
+# 	print 'ADD'
+# 	dt = dt_str_YYYY_MM_DD_to_datetime('2015-01-20',endOfMonth=True)
+# 	for i in xrange(30):
+# 		print dt_add_months(dt, i)
+# 	print 'SUBTRACT'
+# 	dt = dt_str_YYYY_MM_DD_to_datetime('2015-01-20',endOfMonth=True)
+# 	for i in xrange(30):
+# 		print dt_subtract_months(dt, i)
 
 
-if __name__ == '__main__':
-	main()
+# if __name__ == '__main__':
+# 	main()

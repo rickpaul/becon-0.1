@@ -1,6 +1,7 @@
 # TODO: 
 #	Implement Controls
 #		e.g. logarithms must be above zero
+# 	Level back and level forward transformations are truncating, for lack of good date functions
 
 # EMF 		Import...As
 import util_Transformation as util_Trns
@@ -101,17 +102,19 @@ TransformationNames = {
 }
 
 TransformationReversals = {
-	util_Trns.transform_None: util_Trns.transform_usePredictions,
-	util_Trns.transform_Level_Backwards: util_Trns.transform_usePredictions,
-	util_Trns.transform_Level_Forwards: util_Trns.transform_usePredictions,
-	util_Trns.transform_FOD_BackwardLooking: util_Trns.transform_SubtractSeries,
-	util_Trns.transform_FOD_ForwardLooking: util_Trns.transform_AddSeries,
+	util_Trns.transform_None: 						util_Trns.transform_usePredictions,
+	util_Trns.transform_Level_Backwards: 			util_Trns.transform_usePredictions,
+	util_Trns.transform_Level_Forwards: 			util_Trns.transform_usePredictions,
+	util_Trns.transform_FOD_BackwardLooking: 		util_Trns.transform_SubtractSeries,
+	util_Trns.transform_FOD_ForwardLooking: 		util_Trns.transform_AddSeries,
 }
 
 TimeTransformationReversals = {
-	util_Trns.timeSeriesTransform_None: util_Trns.transform_None,
-	util_Trns.timeSeriesTransform_TruncatePast: util_Trns.timeSeriesTransform_ShiftPast,
-	util_Trns.timeSeriesTransform_TruncateFuture: util_Trns.timeSeriesTransform_ShiftFuture,
+	util_Trns.timeSeriesTransform_None: 			util_Trns.transform_None,
+	# util_Trns.timeSeriesTransform_ShiftPast: 		util_Trns.timeSeriesTransform_ShiftFuture,
+	# util_Trns.timeSeriesTransform_ShiftFuture: 		util_Trns.timeSeriesTransform_ShiftPast,
+	util_Trns.timeSeriesTransform_TruncatePast: 	util_Trns.timeSeriesTransform_ShiftPast,
+	util_Trns.timeSeriesTransform_TruncateFuture: 	util_Trns.timeSeriesTransform_ShiftFuture,
 
 }
 

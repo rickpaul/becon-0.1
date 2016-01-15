@@ -1,9 +1,7 @@
-
+# EMF 		From...Import
 from 	util_EMF 			import DAYS, WEEKS, MONTHS, QUARTERS, YEARS
 # EMF 		Import...As
 import 	lib_Transformation 	as lib_Trns
-
-
 
 # When creating random transformations,
 # create n from geomdist where p = _ (mean=1/p)
@@ -11,7 +9,7 @@ WORD_COUNT_GEOMETRIC_PARAM = 0.75
 MIN_WORD_COUNT = 3
 
 MIN_BATCH_SIZE = 4
-MAX_BATCH_SIZE = 4
+MAX_BATCH_SIZE = 20
 
 MODEL_RETENTION_THRESHHOLD = 0.3
 BOOTSTRAP_MULTIPLIER = 1
@@ -33,21 +31,45 @@ try:
 except ValueError:
 	pass # Value not found
 
-TestModelTemplate = {
+TimeToModelTemplate = {
 	'responseTicker' : ['US_TimeUntilRec'],
-	# 'responseTrns' : ['RateOfChange'],
+	'responseTrns' : ['None', 'Futr_Lvl'],
 	'responseKwargs': {
 		'PeriodDiff': [1,3,6,9,12],
+		'numRanges': [5]
 	},
-	# 'predictorTrns' : ['Truncate', 'RateOfChange'],
+	# 'predictorTrns' : [ 'RateOfChange'],
 	'predictorKwargs': {
 		'PeriodDiff': [1,3,6,9,12],
 	},
 	'models' : ['RegrDecisionTree'],
-	'dataSeriesCriteria' : {
+	'predictorCriteria' : {
 		# 'interpolatePredictorData' : False,
 		# 'matchResponsePeriodicity' : True,
 		'periodicity' : MONTHS,
 		# 'categorical' : False
 	}
 }
+
+SP500Template = {
+	'responseTicker' : ['SP500_RealPrice'],
+	'responseTrns' : ['None', 'Futr_Lvl'],
+	'responseKwargs': {
+		'PeriodDiff': [1,3,6,9,12],
+		'numRanges': [5]
+	},
+	# 'predictorTrns' : [ 'RateOfChange'],
+	'predictorKwargs': {
+		'PeriodDiff': [1,3,6,9,12],
+	},
+	'models' : ['RegrDecisionTree'],
+	'predictorCriteria' : {
+		# 'interpolatePredictorData' : False,
+		# 'matchResponsePeriodicity' : True,
+		'periodicity' : MONTHS,
+		# 'categorical' : False
+	}
+}
+
+
+

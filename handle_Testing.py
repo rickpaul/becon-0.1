@@ -32,7 +32,7 @@ class EMF_Testing_Handle:
 			if categorical is not None:
 				hndl_Data.set_categorical(categorical[i])	
 			hndl_Data.set_periodicity(periodicity)
-			hndl_Data.save_series_to_db(dates, values)
+			hndl_Data.save_series_db(dates, values)
 
 	def retrieve_test_word(self, ticker, transPattern):
 		'''

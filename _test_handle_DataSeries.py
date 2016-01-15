@@ -21,7 +21,7 @@ def testDataSeriesHandle(hndl_DB):
 	name = 'test1'
 	ticker = 'test1'
 	dataHandle = EMF_DataSeries_Handle(hndl_DB, name=name, ticker=ticker, insertIfNot=True)
-	dataHandle.save_series_to_db(dates, data)
+	dataHandle.save_series_db(dates, data)
 	assert np.all(dataHandle.get_series_dates() == dates)
 	assert np.all(dataHandle.get_series_values() == data)
 	assert dataHandle.get_earliest_date()==0

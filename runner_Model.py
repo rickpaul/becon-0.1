@@ -26,13 +26,6 @@ class EMF_Model_Runner():
 		self.hndl_WordSet = EMF_WordSet_Handle(self.hndl_DB)
 		self.hndl_Res = EMF_Results_Handle()
 
-	# DEPRECATED
-	# def register_models(self, modelName=None):
-	# 	if modelName is None:
-	# 		self.models = AvailableModels
-	# 	else:
-	# 		self.models.append(AvailableModels[modelName])
-
 	def set_model_from_template(self, template):
 		'''
 		TODOS:
@@ -56,8 +49,8 @@ class EMF_Model_Runner():
 			self.hndl_WordSet.set_pred_trns_kwargs(template['predictorKwargs'])
 
 		# Set Predictor Variable(s) in WordSet
-		if 'dataSeriesCriteria' in template and len(template['dataSeriesCriteria']):
-			self.hndl_WordSet.set_predictor_data_criteria(**template['dataSeriesCriteria'])
+		if 'predictorCriteria' in template and len(template['predictorCriteria']):
+			self.hndl_WordSet.set_predictor_data_criteria(**template['predictorCriteria'])
 		# Set Models
 		for model in template['models']:
 			self.models.append(AvailableModels[model])
@@ -67,20 +60,22 @@ class EMF_Model_Runner():
 		hndl_Model = choice(self.models)(self.hndl_WordSet)
 		# Choose Response Word at Random
 		self.hndl_WordSet.select_response_word_handle_random()
+		self.hndl_Res.set_response_word(self.hndl_WordSet.respWord)
 		# Run Batches
 		for i in xrange(randint(MIN_BATCH_SIZE, MAX_BATCH_SIZE)):
 			# Generate Words
 			self.hndl_WordSet.select_predictor_word_handles_random()
 			# Run Model
 			hndl_Model.train_model()
-			log.info(hndl_Model.train_score) #TEST: Delete
-			log.info(hndl_Model.feature_importances()) #TEST: Delete
-			predictions = hndl_Model.get_series_values() #TEST: Delete
-			dates = hndl_Model.get_series_dates() #TEST: Delete
-			# self.__save_model_results(hndl_Model)
-			utl_Tst.plot_data_series(self.hndl_WordSet.get_response_word_raw(), hndl_Model)  #TEST: Delete
+			# log.info(hndl_Model.train_score) #TEST: Delete
+			# log.info(hndl_Model.feature_importances()) #TEST: Delete
+			# predictions = hndl_Model.get_series_values() #TEST: Delete
+			# dates = hndl_Model.get_series_dates() #TEST: Delete
+			self.__save_model_results(hndl_Model)
+			# utl_Tst.plot_data_series(self.hndl_WordSet.get_response_word_raw(), hndl_Model)  #TEST: Delete
 			# Prepare WordSet for Next Run (Not Really Nec. Safety First?)
 			self.hndl_WordSet.clear_pred_word_handles()
+		return self.hndl_Res
 
 	def __save_model_results(self, hndl_Model):
 		score = hndl_Model.test_model()
@@ -93,9 +88,8 @@ class EMF_Model_Runner():
 		respID = self.hndl_WordSet.get_response_word_handle().wordSeriesID
 		conn = self.hndl_DB.conn_()
 		cursor = self.hndl_DB.cursor_()
-		for (hndl_Word, score) in zip(self.hndl_WordSet.predWords, varScores):
+		for (hndl_Word, score) in zip(self.hndl_WordSet.predWords, hndl_Model.adjusted_feat_scores):
 			predID = hndl_Word.wordSeriesID
 			insertStat_WordStatsTable(conn, cursor, respID, predID, score)
 		# if bad model, register dataSeries and transformations as not-helpful
 		# if good model, register dataSeries and transformations as helpful 
-		# if good model, store feature-importances

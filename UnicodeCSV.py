@@ -15,7 +15,11 @@ class UTF8Recoder:
 		return self
 
 	def next(self):
-		return self.reader.next().encode("utf-8")
+		n = self.reader.next()
+		try:
+			return n.encode("utf-8")
+		except UnicodeDecodeError:
+			return n.decode('iso-8859-1').encode("utf-8")
 
 class UnicodeReader:
 	"""

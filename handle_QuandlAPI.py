@@ -3,8 +3,13 @@
 #	Add Logging
 #	Implement Parameter Checking (e.g. dates in correct format, order =asc or desc)
 #	How do you know if data is interpolated or forecast?
+
+# 	Make sure CSV written is utf-8
+# 	Get metadata first; only download if necessary
+
 # EMF 		From...Import
 from	util_EMF 		import dt_str_YYYY_MM_DD_to_epoch as YMD_to_epoch
+from	util_EMF 		import str_YYYY_MM_DD_is_end_of_month as YMD_is_EoM
 # EMF 		Import...As
 import 	lib_QuandlAPI 	as lib_quandl
 # System 	Import...As
@@ -123,7 +128,8 @@ class EMF_QuandlAPI_Handle:
 		values = []
 		numRows = len(dataset)
 		for row in dataset:
-			# originalDates.append(YMD_to_epoch(row[0]))
+			if not YMD_is_EoM(row[0]):
+				log.warning('Date {0} not End of Month.'.format(row[0]))
 			dates.append(YMD_to_epoch(row[0], endOfMonth=True))
 			values.append(row[columnIndex])
 		# originalDates = np.asarray(originalDates)

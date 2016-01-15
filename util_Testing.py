@@ -1,8 +1,9 @@
 
 # EMF 		From...Import
-from util_EMF import dt_epoch_to_datetime, dt_add_months, dt_end_of_month, strftime
+from 	util_EMF 	import dt_epoch_to_datetime, dt_datetime_to_epoch
+from 	util_EMF 	import dt_add_months, dt_end_of_month, strftime
 # System 	Import...As
-import numpy as np
+import 	numpy 		as np
 
 def create_test_data_2d_corner(n=1000):
 	#Create Test Data: defined on a 3x3 square comprising (0,3) and (0,3)
@@ -90,8 +91,7 @@ def create_test_data_correlated_returns(n=500, numDims=5, includeResponse=True):
 	categorical = [False]*w
 	return {'dt': dt, 'data': data, 'names': names, 'categorical': categorical,  'responseIdx': responseIdx}
 
-def create_monthly_date_range(n=500, startEpoch=0, asString=True):
-	'''sloppy'''
+def create_monthly_date_range(n=500, startEpoch=0, asString=False):
 	dt = []
 	if asString:
 		outputFn = lambda d: strftime(d, '%Y-%m-%d')
@@ -117,39 +117,3 @@ def plot_data_series(*handles):
 	for hndl in handles:
 		plt.plot(hndl.get_series_dates(), hndl.get_series_values())
 	plt.show()
-
-if __name__ == '__main__':
-	from json import dumps
-	from math import sqrt
-	from util_EMF import dt_str_YYYY_MM_DD_to_epoch
-	series = create_test_data_correlated_returns(n=300, numDims=1, includeResponse=False)
-	dt = create_monthly_date_range(n=len(series['dt']))
-	json_data = [{'dt':d,'value':v} for (d,v) in zip(dt, series['data'][:,0].tolist())]
-	end_val = series['data'][-1,0]
-	end_dt = dt_str_YYYY_MM_DD_to_epoch(dt[-1])
-	dt_arr = create_monthly_date_range(n=13, startEpoch=end_dt)
-	std = np.std(series['data'])
-	models = []
-	for m in xrange(40):
-		d = {	'model_id': str(m),
-				'confidence': np.random.random(),
-				'model_desc': 'model desc ' + str(m)}
-		data = []
-		for i in [1,3,6,9,12]:
-			data.append({
-				'dt' : dt_arr[i],
-				'value' : end_val + np.random.normal()*std*sqrt(i),
-			})
-		d['predictions'] = data
-		models.append(d)
-	writer = open('__website/history.json', 'wb')
-	writer.write(dumps(json_data))
-	writer.close()
-
-	writer = open('__website/predictions.json', 'wb')
-	writer.write(dumps(models))
-	writer.close()
-# 	create_test_data_blobs()
-# 	create_test_data_2d_circle()
-# 	create_test_data_2d_cross()
-# 	create_test_data_2d_corner()

@@ -14,12 +14,14 @@ class EMF_Model_Handle(EMF_Serial_Handle):
 		self.hndl_WordSet = hndl_WordSet
 
 	def __str__(self):
-		return self.model_short_name
 		predVars = [str(hndl) for hndl in [self.hndl_WordSet.respWord]]
 		predVars = join(predVars, '|')
 		respVars = [str(hndl) for hndl in self.hndl_WordSet.predWords]
 		respVars = join(respVars, '|')
 		return '[{0}][{1}][{2}]'.format(self.model_short_name, predVars, respVars)
+
+	def __desc__(self):
+		pass
 
 	def add_keyword_argument(self, kwarg, kwargValue):
 		origValue = self.kwargs.get(kwarg, None)
@@ -53,8 +55,8 @@ class EMF_Model_Handle(EMF_Serial_Handle):
 		Runs the model
 		TODOS:
 				implement sample weights for model fits
-				make fit in-sample/test out-of-sample. Curr. exposing self to bias.
 				change way we assert run readiness
+				assert minDate<maxDate
 		'''
 		# Make Sure We're Ready (Don't Love This)
 		assert self._evaluate_run_readiness()
@@ -105,15 +107,9 @@ class EMF_Model_Handle(EMF_Serial_Handle):
 	def save_model(self):
 		'''
 		IMPLEMENTATION OF MODEL TEMPLATE
+		This will, e.g. save tree in separable form (for description)
 		'''
 		raise NotImplementedError
-
-	# def save_model_pickle(self):
-	# 	dictObj = {
-	# 	'predictions': self.predictions,
-	# 	'total_score': self.total_score,
-	# 	}
-	# 	raise NotImplementedError
 
 	def evaluate_model(self):
 		'''

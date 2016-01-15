@@ -51,7 +51,7 @@ class EMF_Quandl_Runner:
 		if metadata['NUM_COLUMNS'] != 2 and Q_COLUMN_NUM == 1:
 			log.warning('Found more than one column. Ensure you have right column).')
 		hndl_Data = EMF_DataSeries_Handle(self.hndl_DB, name=db_name, ticker=db_ticker, insertIfNot=True)
-		hndl_Data.save_series_to_db(dates, values)
+		hndl_Data.save_series_db(dates, values)
 		return metadata
 
 	def download_CSV_datasets(self):
