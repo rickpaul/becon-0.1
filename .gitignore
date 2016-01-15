@@ -1,3 +1,10 @@
+# JS Libraries
+__website/d3/*
+__website/queue/*
+
+# JS Data
+__website/*.json
+
 # SSH Files
 .ssh/*
 
