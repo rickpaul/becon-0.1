@@ -115,8 +115,8 @@ TimeTransformationReversals = {
 	util_Trns.timeSeriesTransform_None: 			util_Trns.transform_None,
 	util_Trns.timeSeriesTransform_ShiftPast: 		util_Trns.timeSeriesTransform_ShiftFuture,
 	util_Trns.timeSeriesTransform_ShiftFuture: 		util_Trns.timeSeriesTransform_ShiftPast,
-	util_Trns.timeSeriesTransform_TruncatePast: 	util_Trns.timeSeriesTransform_ShiftFuture,
-	util_Trns.timeSeriesTransform_TruncateFuture: 	util_Trns.timeSeriesTransform_ShiftPast,
+	util_Trns.timeSeriesTransform_TruncatePast: 	util_Trns.timeSeriesTransform_ShiftPast,
+	util_Trns.timeSeriesTransform_TruncateFuture: 	util_Trns.timeSeriesTransform_ShiftFuture,
 }
 
 

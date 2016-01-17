@@ -10,6 +10,7 @@ from 	util_TimeSet 	import dt_add_seconds, dt_subtract_seconds
 from 	util_TimeSet 	import dt_str_Y_M_D_to_datetime
 # System 	Import...As
 import 	datetime
+import 	numpy 			as np
 
 def min_time_handle_merge(hndl_Time1, hndl_Time2):
 	hndl_Time = EMF_TimeSet_Handle()
@@ -18,7 +19,7 @@ def min_time_handle_merge(hndl_Time1, hndl_Time2):
 	hndl_Time.periodicity = max(hndl_Time1.periodicity, hndl_Time2.periodicity)
 	return hndl_Time
 
-def min_time_handle_merge(hndl_Time1, hndl_Time2):
+def max_time_handle_merge(hndl_Time1, hndl_Time2):
 	hndl_Time = EMF_TimeSet_Handle()
 	hndl_Time.startEpoch = min(hndl_Time1.startEpoch, hndl_Time2.startEpoch)
 	hndl_Time.endEpoch = max(hndl_Time1.endEpoch, hndl_Time2.endEpoch)
@@ -243,7 +244,7 @@ class EMF_TimeSet_Handle(object):
 
 	def get_dates(self, outputType=EPOCH_TYPE):
 		generator = self.get_date_generator(outputType=outputType)
-		return [d for d in generator]
+		return np.array([d for d in generator])
 
 	def get_date_filter(self, min_, max_, inputType=EPOCH_TYPE):
 		for date in self.get_date_generator(outputType=inputType):

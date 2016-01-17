@@ -16,7 +16,7 @@ def get_EMF_settings(mode=TEMP_MODE):
 			'deleteDB':		True,
 			'logLoc':		lib_Logging.TempLogFilePath,
 			'recordLog':	False,
-			'recordLevel':	log.DEBUG,
+			'recordLevel':	log.INFO,
 			'deleteLog':	None,
 			'logAppend':	True,
 			'QuandlCSVLoc': lib_QuandlAPI.TempQuandlCSV,

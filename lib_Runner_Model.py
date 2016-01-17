@@ -9,13 +9,14 @@ WORD_COUNT_GEOMETRIC_PARAM = 0.75
 MIN_WORD_COUNT = 3
 
 MIN_BATCH_SIZE = 4
-MAX_BATCH_SIZE = 20
+MAX_BATCH_SIZE = 4
 
 MODEL_RETENTION_THRESHHOLD = 0.3
 BOOTSTRAP_MULTIPLIER = 1
 
 TRAINING = 927610 # Random
-PREDICTION = 176920 # Random
+PREDICTION = 176092 # Random
+PREDICTION_DEPENDENT = 290761 # Random. # Will probably be deleted. Nec. for current spaghetti
 
 PredictorTransformationKeys = lib_Trns.PredictorTransformationKeys
 PredictorTransformationKeys = [x for x in PredictorTransformationKeys if not x.endswith(lib_Trns.PATTERN_SUFFIX_NORM_STRAT)]

@@ -1,4 +1,5 @@
 # TODOS:
+# 	This should probably be a pandas dataframe
 
 # EMF 		From...Import
 from 	lib_WordSeries	 		import DATE_COL, VALUE_COL, WORD_HISTORY_DTYPE
@@ -75,10 +76,8 @@ class EMF_WordSeries_Handle(EMF_Serial_Handle):
 		return np.array(self.hndl_Data.hndl_Time.get_dates())
 
 	def __generate_transformed_series(self):
-		values = self.hndl_Trns.transform_data(self.hndl_Data.get_series_values())
-		len_ = len(values)
-		values = np.reshape(values, (len_, 1))
-		dates = np.reshape(self.hndl_Time.get_dates(), (len_, 1))
+		values = self.hndl_Trns.transform_data(self.hndl_Data.get_series_values()).reshape(-1,1)
+		dates = self.hndl_Time.get_dates().reshape(-1,1)
 		return (values, dates)
 
 	# Pretty sloppy. Should just break it up.
@@ -195,9 +194,8 @@ class EMF_WordSeries_Handle(EMF_Serial_Handle):
 		series = lib_DBInst.getCompleteWordHistory_WordHistoryTable(self.hndl_DB.cursor, 
 																	self.wordSeriesID)
 		series = np.asarray(dtype=WORD_HISTORY_DTYPE)
-		(len_, ) = wordSeries.shape
-		values = np.reshape(series[VALUE_COL], (len_, 1))
-		dates = np.reshape(series[DATE_COL], (len_, 1))
+		values = series[VALUE_COL].reshape(-1,1)
+		dates = series[DATE_COL].reshape(-1,1)
 		return (values, dates)
 
 	def __save_value_db(self, date, value):

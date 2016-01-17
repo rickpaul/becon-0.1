@@ -4,18 +4,19 @@ from 	lib_EMF				import TEMP_MODE, TEST_MODE
 from 	lib_Runner_Model 	import TimeToRecTemplate
 from 	lib_TimeSet		 	import DAYS, WEEKS, MONTHS, QUARTERS, YEARS
 from 	runner_Model 		import EMF_Model_Runner
-from 	util_Testing 		import save_test_data_fn, create_test_data_correlated_returns
+from 	util_Testing 		import save_test_data_fn, create_test_data_correlated_returns, create_test_data_linear_change
 from 	util_DB				import connect_to_DB
 
 
 TestModelTemplate = {
 	'responseTicker' : ['y'],
-	# 'responseTrns' : ['None', 'Futr_Lvl'],
-	# 'responseKwargs': {
-	# 	'PeriodDiff': [1,3,6,9,12],
+	'responseTrns' : ['Futr_Change'],
+	'responseKwargs': {
+		'PeriodDiff': [1,3,6,9,12],
 	# 	'numRanges': [5]
-	# },
-	# 'predictorTrns' : [ 'RateOfChange'],
+	},
+	'responseCanPredict': 1,
+	# 'predictorTrns' : [ 'Past_Change'],
 	'predictorKwargs': {
 		'PeriodDiff': [1,3,6,9,12],
 	},

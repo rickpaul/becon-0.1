@@ -10,6 +10,7 @@ from 	lib_Model 				import AvailableModels
 from 	lib_Runner_Model		import MIN_BATCH_SIZE, MAX_BATCH_SIZE, MODEL_RETENTION_THRESHHOLD
 from 	lib_Runner_Model 		import PredictorTransformationKeys, ResponseTransformationKeys
 # EMF 		Import...As
+import 	util_Testing 			as utl_Tst # Delete
 # System 	From...Import
 from 	random 					import choice, randint
 # System 	Import...As
@@ -74,15 +75,14 @@ class EMF_Model_Runner(object):
 			# Add Predictive Words to WordSet
 			self.hndl_WrdSlct.select_pred_words_random()
 			self.hndl_WordSet.pred_words = self.hndl_WrdSlct.pred_words
-			return
 			# Run Model
 			hndl_Model.train_model()
-			# log.info(hndl_Model.train_score) #TEST: Delete
-			# log.info(hndl_Model.feature_importances()) #TEST: Delete
-			# predictions = hndl_Model.get_series_values() #TEST: Delete
-			# dates = hndl_Model.get_series_dates() #TEST: Delete
+			log.info(hndl_Model.train_score) #TEST: Delete
+			log.info(hndl_Model.feature_importances()) #TEST: Delete
+			predictions = hndl_Model.get_series_values() #TEST: Delete
+			dates = hndl_Model.get_series_dates() #TEST: Delete
 			self.__save_model_results(hndl_Model)
-			# utl_Tst.plot_data_series(self.hndl_WordSet.get_response_word_raw(), hndl_Model)  #TEST: Delete
+			utl_Tst.plot_data_series(self.hndl_WordSet.resp_word.hndl_Data, hndl_Model)  #TEST: Delete
 			# Prepare WordSet for Next Run (Not Really Nec. Safety First?)
 			del self.hndl_WrdSlct.pred_words
 			del self.hndl_WordSet.pred_words
@@ -91,15 +91,15 @@ class EMF_Model_Runner(object):
 	def __save_model_results(self, hndl_Model):
 		score = hndl_Model.test_model()
 		if score >= MODEL_RETENTION_THRESHHOLD:
-			log.info('Model accepted with score {0}'.format(score))
+			log.info('MODEL: Model accepted with score {0}'.format(score))
 			self.hndl_Res.add_model(hndl_Model)
 		else:
-			log.info('Model rejected with score {0}'.format(score))
+			log.info('MODEL: Model rejected with score {0}'.format(score))
 		# Put stats in db
-		respID = self.hndl_WordSet.get_response_word_handle().wordSeriesID
+		respID = self.hndl_WordSet.resp_word.wordSeriesID
 		conn = self.hndl_DB.conn
 		cursor = self.hndl_DB.cursor
-		for (hndl_Word, score) in zip(self.hndl_WordSet.predWords, hndl_Model.adjusted_feat_scores):
+		for (hndl_Word, score) in zip(self.hndl_WordSet.pred_words, hndl_Model.adjusted_feat_scores):
 			predID = hndl_Word.wordSeriesID
 			insertStat_WordStatsTable(conn, cursor, respID, predID, score)
 		# if bad model, register dataSeries and transformations as not-helpful

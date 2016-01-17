@@ -1,17 +1,20 @@
 # TODO:
 #	Remove hndl_DB?
+# 	Make play nicer with timeseries i.e. what is point of timeseries
+
 
 # EMF 		From...Import
+from 	handle_TimeSet 			import max_time_handle_merge, min_time_handle_merge
 from 	lib_Runner_Model		import BOOTSTRAP_MULTIPLIER
-from 	lib_Runner_Model		import TRAINING, PREDICTION
+from 	lib_Runner_Model		import TRAINING, PREDICTION, PREDICTION_DEPENDENT
 # EMF 		Import...As
 # System 	Import...As
-import 	numpy 			as np
-import 	logging 		as log
-import 	pandas	 		as pd
+import 	numpy 					as np
+import 	logging 				as log
+import 	pandas	 				as pd
 # System 	From...Import
-from 	numpy.random 	import geometric
-from 	random 			import choice
+from 	numpy.random 			import geometric
+from 	random 					import choice
 
 
 
@@ -25,6 +28,17 @@ class EMF_WordSet_Handle(object):
 		self._pred_words = None
 		self._periodicity = None
 
+	def sample_weights():
+	    doc = "The Sample Weights."
+	    def fget(self):
+	        return self._sample_weights
+	    def fset(self, value):
+	        self._sample_weights = value
+	    def fdel(self):
+	        del self._sample_weights
+	    return locals()
+	sample_weights = property(**sample_weights())
+
 	def resp_word():
 		doc = "The Response Word."
 		def fget(self):
@@ -32,13 +46,18 @@ class EMF_WordSet_Handle(object):
 		def fset(self, value):
 			self._resp_word = value
 			self.add_word(value)
+			# Sloppy
+			dates = value.get_raw_dates()
+			values = value.get_raw_values()
+			newDF = pd.DataFrame({'raw': values.ravel()}, index=dates.ravel())
+			self._word_array = pd.concat([self._word_array, newDF], axis=1, ignore_index=False)
 		def fdel(self):
 			del self._resp_word
 		return locals()
 	resp_word = property(**resp_word())
 
 	def pred_words():
-		doc = "The Response Word."
+		doc = "The Predictive Words."
 		def fget(self):
 			return self._pred_words
 		def fset(self, value):
@@ -59,11 +78,10 @@ class EMF_WordSet_Handle(object):
 		if self._word_array is None:
 			log.info('WORDSET: Creating Word Array.')
 			log.info('WORDSET: Adding {0} to Word Array.'.format(key))
-			if dates is None:
-				dates = hndl_Word.get_series_dates()
-			if values is None:
-				values = hndl_Word.get_series_values()			
+			dates = hndl_Word.get_series_dates()
+			values = hndl_Word.get_series_values()			
 			self._word_array = pd.DataFrame({key: values.ravel()}, index=dates.ravel())
+			self._hndl_Time = hndl_Word.hndl_Time
 			log.debug('WORDSET: Added {0} points for {1} to Word Array.'.format(len(self._word_array), key))
 		# Check for key in Word Array
 		elif key in self._word_array and (not force):
@@ -72,35 +90,19 @@ class EMF_WordSet_Handle(object):
 		# Add To Word Array
 		else:
 			log.info('WORDSET: Adding {0} to Word Array.'.format(key))
-			if dates is None:
-				dates = hndl_Word.get_series_dates()
-			if values is None:
-				values = hndl_Word.get_series_values()
+			dates = hndl_Word.get_series_dates()
+			values = hndl_Word.get_series_values()
 			newDF = pd.DataFrame({key: values.ravel()}, index=dates.ravel())
+			self._hndl_Time = max_time_handle_merge(hndl_Word.hndl_Time, self._hndl_Time)
 			self._word_array = pd.concat([self._word_array, newDF], axis=1, ignore_index=False)
-			log.debug('WORDSET: Added {0} points for {1} to Word Array.'.format(len(newDF), key))
+			log.info('WORDSET: Added {0} points for {1} to Word Array.'.format(len(newDF), key))
 
-	# def get_word_values(self, hndl_Word):
-	# 	key = self.__word_key(hndl_Word)
-	# 	if key in self._word_array:
-	# 		return self._word_array[key][~self._word_array[key].isnull()]
-	# 	else:
-	# 		values = hndl_Word.get_series_values()
-	# 		self.add_word(hndl_Word, values=values)
-	# 		return values
-
-	# def get_word_dates(self, hndl_Word):
-	# 	key = self.__word_key(hndl_Word)
-	# 	if key in self._word_array:
-	# 		return self._word_array[~self._word_array[key].isnull()].index
-	# 	else:
-	# 		dates = hndl_Word.get_series_dates()
-	# 		self.add_word(hndl_Word, dates=dates)
-	# 		return dates
-
-	def get_model_filter(self, mode=PREDICTION):
+	def get_model_filter(self, mode=TRAINING):
 		if mode == PREDICTION:
-			keys = [self.__word_key(w) for w in self._pred_words]
+			if self.resp_word.prediction_requires_raw_data():
+				keys = [self.__word_key(w) for w in self._pred_words]+['raw']
+			else:
+				keys = [self.__word_key(w) for w in self._pred_words]
 		elif mode == TRAINING:
 			keys = [self.__word_key(w) for w in self._pred_words+[self._resp_word]] 
 		else:
@@ -110,10 +112,7 @@ class EMF_WordSet_Handle(object):
 		
 	def get_values_filtered(self, hndl_Word, filter_):
 		key = self.__word_key(hndl_Word)
-		return np.array(self._word_array[key][filter_])
-
-	def get_dates_filtered(self, filter_):
-		return np.array(self._word_array[filter_].index)
+		return np.array(self._word_array[key][filter_]).reshape(-1,1)
 
 	def get_word_arrays(self, mode=TRAINING, bootstrap=False):
 		filter_ = self.get_model_filter(mode=mode)
@@ -145,15 +144,23 @@ class EMF_WordSet_Handle(object):
 
 	def get_prediction_dates(self):
 		if self.resp_word.prediction_requires_raw_data():
-			mode = TRAINING
+			# mode = TRAINING
+			time_Arr = [w.hndl_Time for w in self._pred_words]
+			time_Arr += [self._resp_word.hndl_Data.hndl_Time] #So sloppy.
 		else:
-			mode = PREDICTION
-		filter_ = self.get_model_filter(mode=mode)
-		return self.get_dates_filtered(filter_)
+			# mode = PREDICTION
+			time_Arr = [w.hndl_Time for w in self._pred_words]
+		hndl_Time = reduce(min_time_handle_merge, time_Arr)
+		self.resp_word.hndl_Trns.reverse_transform_time(hndl_Time)
+		return hndl_Time.get_dates()
 
 	def get_prediction_values(self, predictions):
-		self.resp_word.get_raw_values()
-
+		if self.resp_word.prediction_requires_raw_data():
+			filter_ = self.get_model_filter(mode=PREDICTION)
+			raw_data = np.array(self._word_array['raw'][filter_]).reshape(-1,1)
+			return self.resp_word.hndl_Trns.reverse_transform_data(raw_data, predictions)
+		else:
+			return self.resp_word.hndl_Trns.reverse_transform_data(None, predictions)
 
 
 	def response_word_is_set(self):
@@ -168,17 +175,6 @@ class EMF_WordSet_Handle(object):
 	def get_predictor_word_types(self):
 		return [w.get_model_categorization() for w in self._pred_words]
 
-	# def get_predicted_values(self, predictions):
-	# 	rawValues = self._resp_word.get_values_basis_filtered(*self.get_date_limits(mode=PREDICTION))
-	# 	return self._resp_word.hndl_Trns.reverse_transform_data(rawValues, predictions)
-
-	# def get_predicted_dates(self):
-	# 	# rawValues = self._resp_word.get_dates_basis_filtered(*self.get_date_limits(mode=PREDICTION))
-	# 	rawValues = self._pred_words[0].get_dates_basis_filtered(*self.get_date_limits(mode=PREDICTION))
-
-	# 	return self._resp_word.hndl_Trns.reverse_transform_time(rawValues)
-
-
 	# def log_self(self):
 	# 	'''
 	# 	for testing
@@ -189,25 +185,3 @@ class EMF_WordSet_Handle(object):
 	# 	limits = map(dt_epoch_to_str_Y_M_D, self.get_date_limits(mode=PREDICTION))
 	# 	log.info('WORDSET : training word limits: {0} to {1}'.format(*limits))
 
-
-	# def get_date_limits(self, mode=TRAINING):
-	# 	'''
-	# 	TODO:
-	# 			Just put the stuff in array and run min/max
-	# 	'''
-	# 	if mode==TRAINING:
-	# 		min_ = self._resp_word.min_date
-	# 		max_ = self._resp_word.max_date
-	# 		array_ = self._pred_words
-	# 	elif mode==PREDICTION:
-	# 		min_ = self._pred_words[0].min_date
-	# 		max_ = self._pred_words[0].max_date
-	# 		array_ = self._pred_words[1:]
-	# 	else:
-	# 		raise NameError('mode not recognized.')		
-	# 	for word in array_:
-	# 		challenger = word.min_date
-	# 		min_ = max(challenger, min_)
-	# 		challenger = word.min_date
-	# 		max_ = min(challenger, max_)
-	# 	return (min_, max_)

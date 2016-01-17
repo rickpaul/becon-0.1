@@ -42,33 +42,26 @@ class EMF_Transformation_Handle:
 			dataSeries = fn(dataSeries, self.trnsKwargs)
 		dataSeries = self.categorization(dataSeries, self.trnsKwargs)
 		return dataSeries
-	
-	def reverse_transform_data(self, dataSeries, predictionDelta=None):
+
+	# Sloppy
+	def reverse_transform_data(self, dataSeries, modifier=None):
 		for fn in reversed(self.dataTrnsList):
 			revFn = lib_Trns.TransformationReversals[fn]
-			if predictionDelta is not None:
-				dataSeries = revFn(dataSeries, predictionDelta, self.trnsKwargs)
+			if modifier is not None:
+				dataSeries = revFn(dataSeries, modifier, self.trnsKwargs)
 			else:
 				dataSeries = revFn(dataSeries, self.trnsKwargs)
 		return dataSeries
 
 	def prediction_is_value_dependent(self):
 		and_ = lambda x,y: x and y
-		return reduce(and_, [lib_Trns.TransformationReversals[fn] in IndependentTransformationReversals for fn in self.dataTrnsList])
+		return reduce(and_, [lib_Trns.TransformationReversals[fn] not in lib_Trns.IndependentTransformationReversals for fn in self.dataTrnsList])
 
 	def transform_time(self, timeHandle):
-		'''
-		TODO:
-					Make/return a copy of timeHandle?
-		'''
 		for fn in self.timeTrnsList:
 			fn(timeHandle, self.trnsKwargs)
 
 	def reverse_transform_time(self, timeHandle):
-		'''
-		TODO:
-					Make/return a copy of timeHandle?
-		'''
 		for fn in reversed(self.timeTrnsList):
 			revFn = lib_Trns.TimeTransformationReversals[fn]
 			revFn(timeHandle, self.trnsKwargs)
