@@ -60,21 +60,20 @@ class EMF_Model_Handle(EMF_Serial_Handle):
 		'''
 		# Make Sure We're Ready (Don't Love This)
 		assert self._evaluate_run_readiness()
-		(predVarArray, respVarArray) = self.hndl_WordSet.get_word_arrays(mode=TRAINING, bootstrap=True)
+		(pred_array, resp_array) = self.hndl_WordSet.get_word_arrays(mode=TRAINING, bootstrap=True)
 		# Run Model
 		if self.hndl_WordSet.sampleWeights is not None:
-			self.model.fit(predVarArray, respVarArray, self.hndl_WordSet.sampleWeights)
+			self.model.fit(pred_array, resp_array, self.hndl_WordSet.sampleWeights)
 		else:
-			self.model.fit(predVarArray, respVarArray)
+			self.model.fit(pred_array, resp_array)
 		# Save Scores
-		self.train_score = self.determine_accuracy(predVarArray, respVarArray)
+		self.train_score = self.determine_accuracy(pred_array, resp_array)
 		self.adjusted_feat_scores = self.feature_importances()*self.train_score
 
 	def test_model(self):
-		(predVarArray, respVarArray) = self.hndl_WordSet.get_word_arrays(mode=TRAINING, bootstrap=True)
-		self.test_score = self.determine_accuracy(predVarArray, respVarArray)
+		(pred_array, resp_array) = self.hndl_WordSet.get_word_arrays(mode=TRAINING, bootstrap=False)
+		self.test_score = self.determine_accuracy(pred_array, resp_array)
 		self.adjusted_feat_scores = self.feature_importances()*self.test_score
-		return self.test_score
 
 	def determine_accuracy(self, test_predVars, test_respVars, sample_weights=None):
 		'''

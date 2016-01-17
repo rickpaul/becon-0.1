@@ -4,31 +4,42 @@ import 	logging 	as log
 # System 	From...Import
 from 	os 			import remove
 
-class EMF_Database_Handle:
-	def __init__(self, dbLocation, deleteDB=False):
+class EMF_Database_Handle(object):
+	def __init__(self, dbLoc, deleteDB=False):
 		'''
 		CONSIDER:
-					__conn and __cursor aren't passed by copy. Are they actually protected?
+					__conn and _cursor aren't passed by copy. Are they actually protected?
 		'''
-		self.__dbLocation = dbLocation
-		self.__conn = sq.connect(dbLocation)
-		self.__cursor = self.__conn.cursor()
-		self.__deleteDB = deleteDB
-		log.info('Database %s opened.', self.__dbLocation)
+		self._dbLoc = dbLoc
+		self._conn = sq.connect(dbLoc)
+		self._cursor = self._conn.cursor()
+		self._deleteDB = deleteDB
+		log.info('Database %s opened.', self._dbLoc)
 
 	def __del__(self):
-		self.__conn.close()
-		log.info('Database %s closed.', self.__dbLocation)
-		if self.__deleteDB:
-			remove(self.__dbLocation)
-			log.warning('Database %s deleted.', self.__dbLocation)
+		self._conn.close()
+		log.info('Database %s closed.', self._dbLoc)
+		if self._deleteDB:
+			remove(self._dbLoc)
+			log.warning('Database %s deleted.', self._dbLoc)
 
+	def conn():
+		doc = "The conn property."
+		def fget(self):
+			return self._conn
+		return locals()
+	conn = property(**conn())
 
-	def conn_(self):
-		return self.__conn 
+	def cursor():
+		doc = "The cursor property."
+		def fget(self):
+			return self._cursor
+		return locals()
+	cursor = property(**cursor())
 
-	def cursor_(self):
-		return self.__cursor
-
-	def dbLoc_(self):
-		return self.__dbLocation
+	def dbLoc():
+		doc = "The dbLoc property."
+		def fget(self):
+			return self._dbLoc
+		return locals()
+	dbLoc = property(**dbLoc())

@@ -11,8 +11,8 @@ Transformations = {
 	'None':					(util_Trns.transform_None, 						util_Trns.timeSeriesTransform_None,),
 	'Logarithm': 			(util_Trns.transform_Logarithm, 				util_Trns.timeSeriesTransform_None,),
 	'Absolute': 			(util_Trns.transform_AbsoluteValue, 			util_Trns.timeSeriesTransform_None,),
-	'Level_Past': 			(util_Trns.transform_Level_Backwards, 			util_Trns.timeSeriesTransform_TruncatePast,),
-	'Level_Future': 		(util_Trns.transform_Level_Forwards, 			util_Trns.timeSeriesTransform_TruncateFuture,),
+	'Level_Past': 			(util_Trns.transform_None, 						util_Trns.timeSeriesTransform_ShiftFuture,),
+	'Level_Future': 		(util_Trns.transform_None, 						util_Trns.timeSeriesTransform_ShiftPast,),
 	'FOD_Past': 			(util_Trns.transform_FOD_BackwardLooking, 		util_Trns.timeSeriesTransform_TruncatePast,),
 	'FOD_Future': 			(util_Trns.transform_FOD_ForwardLooking, 		util_Trns.timeSeriesTransform_TruncateFuture,),
 	'NormDistLocation': 	(util_Trns.transform_NormalDistributionZScore, 	util_Trns.timeSeriesTransform_None,),
@@ -103,20 +103,22 @@ TransformationNames = {
 
 TransformationReversals = {
 	util_Trns.transform_None: 						util_Trns.transform_usePredictions,
-	util_Trns.transform_Level_Backwards: 			util_Trns.transform_usePredictions,
-	util_Trns.transform_Level_Forwards: 			util_Trns.transform_usePredictions,
 	util_Trns.transform_FOD_BackwardLooking: 		util_Trns.transform_SubtractSeries,
 	util_Trns.transform_FOD_ForwardLooking: 		util_Trns.transform_AddSeries,
 }
 
+IndependentTransformationReversals = [
+	util_Trns.transform_usePredictions,
+]
+
 TimeTransformationReversals = {
 	util_Trns.timeSeriesTransform_None: 			util_Trns.transform_None,
-	# util_Trns.timeSeriesTransform_ShiftPast: 		util_Trns.timeSeriesTransform_ShiftFuture,
-	# util_Trns.timeSeriesTransform_ShiftFuture: 		util_Trns.timeSeriesTransform_ShiftPast,
-	util_Trns.timeSeriesTransform_TruncatePast: 	util_Trns.timeSeriesTransform_ShiftPast,
-	util_Trns.timeSeriesTransform_TruncateFuture: 	util_Trns.timeSeriesTransform_ShiftFuture,
-
+	util_Trns.timeSeriesTransform_ShiftPast: 		util_Trns.timeSeriesTransform_ShiftFuture,
+	util_Trns.timeSeriesTransform_ShiftFuture: 		util_Trns.timeSeriesTransform_ShiftPast,
+	util_Trns.timeSeriesTransform_TruncatePast: 	util_Trns.timeSeriesTransform_ShiftFuture,
+	util_Trns.timeSeriesTransform_TruncateFuture: 	util_Trns.timeSeriesTransform_ShiftPast,
 }
+
 
 
 # HASHING CONSTANTS

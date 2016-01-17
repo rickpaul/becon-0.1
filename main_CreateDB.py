@@ -1,6 +1,9 @@
+# DELETE THIS
+
+
 # EMF 		From...Import
 from 	lib_EMF			import TEMP_MODE, TEST_MODE, QA_MODE, PROD_MODE
-from 	util_CreateDB 	import create_DB
+from 	util_CreateDB 	import create_or_connect_to_DB
 # EMF 		Import...As
 # System 	From...Import
 from 	sys 		import argv
@@ -15,4 +18,4 @@ if __name__ == '__main__':
 		if ('-mode-QA' in args):   kwargs['mode'] = QA_MODE
 		if ('-mode-PROD' in args): kwargs['mode'] = PROD_MODE
 		if ('-manual' in args):    kwargs['manualOverride'] = True
-	create_DB(**kwargs)
+	create_or_connect_to_DB(**kwargs)

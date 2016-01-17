@@ -12,7 +12,7 @@ import 	numpy 				as 	np
 
 def check_Quandl_Download():
 	hndl_DB = get_DB_Handle(TEST_MODE)
-	allTickers = retrieve_DataSeries_All(hndl_DB.cursor_(), column=TICKER)
+	allTickers = retrieve_DataSeries_All(hndl_DB.cursor, column=TICKER)
 	print 'Retrieved {0} Tickers:'.format(len(allTickers))
 	allTickers = ['NAHB_Housing_ProspectiveBuyers']
 	for t in allTickers:

@@ -1,7 +1,4 @@
 
-# EMF 		From...Import
-from 	util_EMF 	import dt_epoch_to_datetime, dt_datetime_to_epoch
-from 	util_EMF 	import dt_add_months, dt_end_of_month, strftime
 # System 	Import...As
 import 	numpy 		as np
 
@@ -53,6 +50,11 @@ def create_test_data_blobs(numDims=4):
 	categorical += [True]
 	return {'dt': dt, 'data': data, 'names': names, 'categorical': categorical,  'responseIdx': numDims}
 
+def create_test_data_linear_change(n=500, increase=.01):
+	return {'dt': np.arange(n), 
+			'data': np.linspace(0, (n-1)*increase, num=n), 
+			'names': ['x'], 'categorical': [False],  
+			'responseIdx': None}
 
 def create_test_data_correlated_returns(n=500, numDims=5, includeResponse=True):
 	w = numDims + int(includeResponse)

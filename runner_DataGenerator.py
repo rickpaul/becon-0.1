@@ -6,7 +6,7 @@ from 	handle_DataSeries		import EMF_DataSeries_Handle
 from 	handle_WordSeries 		import EMF_WordSeries_Handle
 from 	util_Transformation 	import transform_TimeSinceValue, transform_TimeToValue
 from 	lib_EMF					import TEMP_MODE, TEST_MODE
-from 	util_CreateDB 			import connect_DB
+from 	util_DB 	 			import connect_to_DB
 
 class EMF_DataGenerator_Runner:
 	def __init__(self, DBHandle):
@@ -57,7 +57,7 @@ class EMF_DataGenerator_Runner:
 			count += 1
 
 def main():
-	hndl_DB = connect_DB(mode=TEST_MODE)
+	hndl_DB = connect_to_DB(mode=TEST_MODE)
 	dataGen = EMF_DataGenerator_Runner(hndl_DB)
 	dataGen.insert_time_to_recession()
 

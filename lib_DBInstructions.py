@@ -89,17 +89,17 @@ def __get_retrieve_DataSeriesID_Statement(name=None, ticker=None):
 											whereValues=wV, 
 											whereOperators=wO,
 											selectColumns=sC)
-def __get_insert_DataSeriesID_Statement(name=None, ticker=None):
+def __get_insert_DataSeriesID_Statement(name, ticker):
 	table = 'T_DATA_SERIES'
 	columns = ['txt_data_name', 'txt_data_ticker']
 	values = [name, ticker]
 	return DB_util.generateInsertStatement(table, columns, values)
-def __get_insert_DataSeriesID_Metadata(seriesID):
+def __get_insert_DataSeriesID_Metadata(seriesID, periodicity):
 	table = 'T_DATA_SERIES_METADATA'
-	columns = ['int_data_series_ID']
-	values = [seriesID]
+	columns = ['int_data_series_ID', 'int_periodicity']
+	values = [seriesID, periodicity]
 	return DB_util.generateInsertStatement(table, columns, values)
-def retrieve_DataSeriesID(conn, cursor, name=None, ticker=None, insertIfNot=False):
+def retrieve_DataSeriesID(conn, cursor, name=None, ticker=None, periodicity=None, insertIfNot=False):
 	'''
 	
 	'''
@@ -111,15 +111,16 @@ def retrieve_DataSeriesID(conn, cursor, name=None, ticker=None, insertIfNot=Fals
 		if insertIfNot:
 			assert name is not None
 			assert ticker is not None
-			log.debug('Series ID Not Found for %s... Creating.', ticker)
+			assert periodicity is not None
+			log.info('DATABASE: Series ID Not Found for %s... Creating.', ticker)
 			statement = __get_insert_DataSeriesID_Statement(name, ticker)
 			(success, rowID_or_Error) = DB_util.commitDBStatement(conn, cursor, statement)
 			if success:
-				statement = __get_insert_DataSeriesID_Metadata(rowID_or_Error)
+				statement = __get_insert_DataSeriesID_Metadata(rowID_or_Error, periodicity)
 				(success, rowID_or_Error) = DB_util.commitDBStatement(conn, cursor, statement)
 				return rowID_or_Error # a row ID
 			else:
-				log.error('Series ID Not Created for %s. Error:\n%s', ticker, rowID_or_Error)
+				log.error('DATABASE: Series ID Not Created for %s. Error:\n%s', ticker, rowID_or_Error)
 				raise Exception('Series ID Failed to be Created')
 		else:
 			return None
@@ -224,13 +225,13 @@ def retrieve_WordSeriesID(conn, cursor, seriesName, insertIfNot=False):
 		return results
 	else:
 		if insertIfNot:
-			log.debug('Word Series ID Not Found for %s... Creating.', seriesName)
+			log.info('DATABASE: Word Series ID Not Found for %s... Creating.', seriesName)
 			statement = __get_insert_WordSeriesID_Statement(seriesName)
 			(success, rowID_or_Error) = DB_util.commitDBStatement(conn, cursor, statement)
 			if success:
 				return rowID_or_Error # a row ID
 			else:
-				log.error('Series ID Not Created for %s. Error:\n%s', seriesName, rowID_or_Error)
+				log.error('DATABASE: Series ID Not Created for %s. Error:\n%s', seriesName, rowID_or_Error)
 				raise Exception('Word Series ID Failed to be Created')
 		else:
 			return None

@@ -1,14 +1,18 @@
 # TODOS:
 #	we insert but we don't retrieve isInterpolated, isForecast
-#	Find a way to make sure that data history date/times match up (create canonical dates fn)
-#	Implement json handle
+#	Make periodicity a required field for insertion?
+# 	use verify_date_series
+# 	Make all get_set into properties
+# 		transform __get from db into __load_metadata
+# 		transform __save to db into __save_metadata
 
 # EMF 		From...Import
+from 	handle_TimeSet 			import EMF_TimeSet_Handle, verify_date_series
 from 	lib_DataSeries			import DATE_COL, VALUE_COL, DATA_HISTORY_DTYPE
 from 	lib_JSON				import JSONRepository, DATA_SERIES_TO_JSON
 from 	template_SerialHandle 	import EMF_Serial_Handle
 from 	util_DB					import typify
-from	util_EMF				import dt_now_as_epoch, dt_epoch_to_str_YMD, dt_date_range_generator
+from	util_TimeSet			import dt_now_as_epoch
 # EMF 		Import...As
 import 	lib_DBInstructions 		as lib_DBInst
 # System 	Import...As
@@ -19,11 +23,22 @@ from 	sys 					import maxint
 from 	json 					import dumps as json_dump
 
 class EMF_DataSeries_Handle(EMF_Serial_Handle):
-	def __init__(self, dbHandle, name=None, ticker=None, insertIfNot=False):
-		self.hndl_DB = dbHandle
+	def __init__(self, dbHandle, name=None, ticker=None, periodicity=None, insertIfNot=False):
+		self._hndl_DB = dbHandle
+		self._hndl_Time = None
 		self.stored_series = None
 		self._metadataCache = {}
-		self.seriesID = self.__set_data_series(name, ticker, insertIfNot)
+		self.seriesID = lib_DBInst.retrieve_DataSeriesID(	self._hndl_DB.conn, 
+															self._hndl_DB.cursor,
+															name=name,
+															ticker=ticker,
+															periodicity=periodicity,
+															insertIfNot=insertIfNot)
+		assert self.seriesID is not None # Did we catch something?
+		if name is None: name = self.__get_from_DB('txt_data_name')
+		self.seriesName = name
+		if ticker is None: ticker = self.__get_from_DB('txt_data_ticker')
+		self.seriesTicker = ticker
 
 	def __str__(self):
 		return self.seriesTicker
@@ -31,33 +46,16 @@ class EMF_DataSeries_Handle(EMF_Serial_Handle):
 	def __get_from_DB(self, column):
 		if column in self._metadataCache:
 			return self._metadataCache[column]
-		value = lib_DBInst.retrieve_DataSeriesMetaData(self.hndl_DB.cursor_(), column, self.seriesID)
+		value = lib_DBInst.retrieve_DataSeriesMetaData(self._hndl_DB.cursor, column, self.seriesID)
 		self._metadataCache[column] = value
 		return value
 
 	def __send_to_DB(self, column, value):
-		success = lib_DBInst.update_DataSeriesMetaData(self.hndl_DB.conn_(), self.hndl_DB.cursor_(), column, value, self.seriesID)
+		success = lib_DBInst.update_DataSeriesMetaData(self._hndl_DB.conn, self._hndl_DB.cursor, column, value, self.seriesID)
 		if success:
 			self._metadataCache[column] = value
 		else:
 			raise NotImplementedError #How 
-
-	def __set_data_series(self, name, ticker, insertIfNot):
-		'''
-		TODOS: 
-					Move up the insertIfNot functionality out of this fn
-		'''
-		self.seriesID = lib_DBInst.retrieve_DataSeriesID(	self.hndl_DB.conn_(), 
-															self.hndl_DB.cursor_(),
-															name=name,
-															ticker=ticker,
-															insertIfNot=insertIfNot)
-		assert self.seriesID is not None # Did we catch something?
-		if name is None: name = self.__get_from_DB('txt_data_name')
-		self.seriesName = name
-		if ticker is None: ticker = self.__get_from_DB('txt_data_ticker')
-		self.seriesTicker = ticker
-		return self.seriesID
 
 	def __get_series(self, regenerate=False):
 		# If Stored, Return
@@ -65,20 +63,20 @@ class EMF_DataSeries_Handle(EMF_Serial_Handle):
 			return self.stored_series
 		# If not Stored, Get Data from DB
 		else:
-			dataSeries = lib_DBInst.getCompleteDataHistory_DataHistoryTable(self.hndl_DB.cursor_(), self.seriesID)
+			dataSeries = lib_DBInst.getCompleteDataHistory_DataHistoryTable(self._hndl_DB.cursor, self.seriesID)
 			dataSeries = np.asarray(dataSeries, dtype=DATA_HISTORY_DTYPE)
 			self.set_num_points(len(dataSeries))
 			return dataSeries
 
-	def get_series_values_filtered(self, min_, max_):
-		series = self.__get_series()
-		filter_ = np.logical_and(series[DATE_COL]>=min_, series[DATE_COL]<=max_)
-		return np.reshape(series[filter_][VALUE_COL], (sum(filter_), 1))
+	# def get_series_values_filtered(self, min_, max_):
+	# 	series = self.__get_series()
+	# 	filter_ = np.logical_and(series[DATE_COL]>=min_, series[DATE_COL]<=max_)
+	# 	return np.reshape(series[filter_][VALUE_COL], (sum(filter_), 1))
 
-	def get_series_dates_filtered(self, min_, max_):
-		series = self.__get_series()
-		filter_ = np.logical_and(series[DATE_COL]>=min_, series[DATE_COL]<=max_)
-		return np.reshape(series[filter_][DATE_COL], (sum(filter_), 1))
+	# def get_series_dates_filtered(self, min_, max_):
+	# 	series = self.__get_series()
+	# 	filter_ = np.logical_and(series[DATE_COL]>=min_, series[DATE_COL]<=max_)
+	# 	return np.reshape(series[filter_][DATE_COL], (sum(filter_), 1))
 
 	def get_series_values(self):
 		'''
@@ -90,9 +88,25 @@ class EMF_DataSeries_Handle(EMF_Serial_Handle):
 	def get_series_dates(self):
 		'''
 		TODOS:
-					We have no way to retrieve whether is interpolated or is forecast
+					Can we replace this with get_date_handle?
+
 		'''
 		return self.__get_series()[DATE_COL]
+
+	def hndl_Time():
+		doc = "Get Time Handle."
+		def fget(self):
+			if self._hndl_Time is None:
+				self._hndl_Time = EMF_TimeSet_Handle()
+				self._hndl_Time.periodicity = self.get_periodicity()
+				self._hndl_Time.startEpoch = self.get_earliest_date()
+				self._hndl_Time.endEpoch = self.get_latest_date()
+			return self._hndl_Time
+		def fdel(self):
+			del self._hndl_Time
+		return locals()
+	hndl_Time = property(**hndl_Time())
+
 
 	def save_series_local(self, regenerate=True):
 		self.stored_series = self.__get_series(regenerate=regenerate)
@@ -102,7 +116,7 @@ class EMF_DataSeries_Handle(EMF_Serial_Handle):
 		CONSIDER:
 					Is it appropriate to cast values here? I think so....
 		'''
-		return lib_DBInst.insertDataPoint_DataHistoryTable( self.hndl_DB.conn_(), self.hndl_DB.cursor_(), 
+		return lib_DBInst.insertDataPoint_DataHistoryTable( self._hndl_DB.conn, self._hndl_DB.cursor, 
 															self.seriesID, 
 															int(date), 
 															float(value), 
@@ -153,7 +167,7 @@ class EMF_DataSeries_Handle(EMF_Serial_Handle):
 		if 'num_data_points' in self._metadataCache:
 			return self._metadataCache['num_data_points']
 		else:
-			numPoints = lib_DBInst.getCompleteDataHistory_DataHistoryTable(self.hndl_DB.cursor_(), self.seriesID, selectCount=True)
+			numPoints = lib_DBInst.getCompleteDataHistory_DataHistoryTable(self._hndl_DB.cursor, self.seriesID, selectCount=True)
 			self.set_num_points(numPoints)
 			return numPoints
 			
@@ -167,7 +181,7 @@ class EMF_DataSeries_Handle(EMF_Serial_Handle):
 			pass
 
 	def get_periodicity(self):
-		return typify(int, self.__get_from_DB('code_local_periodicity'))
+		return typify(int, self.__get_from_DB('int_periodicity'))
 
 	def get_categorical(self):
 		return typify(bool, self.__get_from_DB('bool_data_is_categorical'))
@@ -197,35 +211,3 @@ class EMF_DataSeries_Handle(EMF_Serial_Handle):
 		self.lastUpdate = dt_now_as_epoch()
 		self.__send_to_DB('dt_last_updated_history', self.lastUpdate)
 
-	def write_to_JSON(self):
-		'''
-		TODOS:
-					Create JSON Util
-		'''
-		JSON = map(DATA_SERIES_TO_JSON, self.__get_series())
-		JSONFileName = self.__get_JSON_filename()
-		try:
-			with open(JSONFileName, 'wb') as writer:
-				writer.write(json_dump(JSON))
-		except:
-			raise
-		finally:
-			writer.close()
-
-	def __get_JSON_filename(self, simple=True):		
-		fileName = self.seriesTicker
-		if not simple:
-			fileName += ('|' + dt_epoch_to_str_YMD(self.get_earliest_date()))
-			fileName += ('|' + dt_epoch_to_str_YMD(self.get_latest_date()))
-			fileName += ('|' + dt_epoch_to_str_YMD(self.get_last_update()))
-		return (JSONRepository + fileName + '.json')
-
-	# def check_data_fullness(self, periodicity=12):
-	# 	'''
-	# 	This method checks if the data is filled in (i.e. if data is monthly since 1990, 
-	# 		every year should have) 12 points at expected times.
-	# 	'''
-	# 	generator = dt_date_range_generator(self.get_earliest_date(), self.get_latest_date(), periodicity)
-
-	# 	if periodicity == 12:
-	# 		raise NotImplementedError

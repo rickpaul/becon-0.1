@@ -1,10 +1,5 @@
 # TODO:
 #	Make transformations return metadata
-# EMF 		From...Import
-from 	util_EMF 	import YEARS, QUARTERS, MONTHS, WEEKS, DAYS
-from 	util_EMF 	import dt_add_months, dt_subtract_months
-from 	util_EMF 	import dt_epoch_to_datetime, dt_datetime_to_epoch
-# EMF 		Import...As
 # System 	Import...As
 import 	numpy 		as np
 import 	logging 	as log
@@ -50,16 +45,6 @@ def transform_FOD_ForwardLooking(data, kwargs):
 	key = 'PeriodDiff'
 	periodDelta = kwargs.get(key, kwargDefaults[key])
 	return data[periodDelta:] - data[:-periodDelta]
-
-def transform_Level_Backwards(data, kwargs):
-	key = 'PeriodDiff'
-	periodDelta = kwargs.get(key, kwargDefaults[key])
-	return data[:-periodDelta]
-
-def transform_Level_Forwards(data, kwargs):
-	key = 'PeriodDiff'
-	periodDelta = kwargs.get(key, kwargDefaults[key])
-	return data[periodDelta:]
 
 def transform_NormalDistributionZScore(data, kwargs):
 	mean = np.mean(data)
@@ -142,7 +127,6 @@ def transform_TimeSinceValue(data, kwargs):
 			counter += 1
 	return out
 
-
 # CATEGORIZATIONS
 
 def categorize_None(data, kwargs):
@@ -212,91 +196,38 @@ def categorize_LessThanAmount(data, kwargs):
 	raise NotImplementedError
 
 # TIME SERIES TRANSFORMATIONS
-def timeSeriesTransform_TruncateUntilValue(timeSeries, dataSeries, kwargs):
-	'''
-	TODO:
-				Modify time series transformations to take data *and* times
-	'''
-	raise NotImplementedError
-	key = 'value'
-	value = kwargs.get(key, kwargDefaults[key])
+# def timeSeriesTransform_TruncateUntilValue(timeSeries, dataSeries, kwargs):
+# 	'''
+# 	TODO:
+# 				Modify time series transformations to take data *and* times
+# 	'''
+# 	raise NotImplementedError
+# 	key = 'value'
+# 	value = kwargs.get(key, kwargDefaults[key])
 
 
-def timeSeriesTransform_TruncatePast(timeSeries, kwargs):
+def timeSeriesTransform_TruncatePast(timeHandle, kwargs):
 	key = 'PeriodDiff'
-	periodDelta = kwargs.get(key, kwargDefaults[key])
-	return timeSeries[periodDelta:]
+	delta = kwargs.get(key, kwargDefaults[key])
+	timeHandle.truncate_start(delta)
 
-def timeSeriesTransform_TruncateFuture(timeSeries, kwargs):
+def timeSeriesTransform_TruncateFuture(timeHandle, kwargs):
 	key = 'PeriodDiff'
-	periodDelta = kwargs.get(key, kwargDefaults[key])
-	return timeSeries[:-periodDelta]
+	delta = kwargs.get(key, kwargDefaults[key])
+	timeHandle.truncate_end(delta)
 
-def timeSeriesTransform_ShiftFuture(timeSeries, kwargs):
+def timeSeriesTransform_ShiftFuture(timeHandle, kwargs):
 	key = 'PeriodDiff'
-	periodDelta = kwargs.get(key, kwargDefaults[key])
-	# HACKED! FIX!
-	out = timeSeries
-	for i in xrange(len(timeSeries)):
-		out[i] = dt_datetime_to_epoch(dt_add_months(dt_epoch_to_datetime(timeSeries[i]), periodDelta))
-	return out
+	delta = kwargs.get(key, kwargDefaults[key])
+	timeHandle.shift_forward(delta)
 
-def timeSeriesTransform_ShiftPast(timeSeries, kwargs):
+def timeSeriesTransform_ShiftPast(timeHandle, kwargs):
 	key = 'PeriodDiff'
-	periodDelta = kwargs.get(key, kwargDefaults[key])
-	# HACKED! FIX! Assuming monthly, for one.
-	out = timeSeries
-	for i in xrange(len(timeSeries)):
-		out[i] = dt_datetime_to_epoch(dt_subtract_months(dt_epoch_to_datetime(timeSeries[i]), periodDelta))
-	return out
+	delta = kwargs.get(key, kwargDefaults[key])
+	timeHandle.shift_backward(delta)
 
-def timeSeriesTransform_None(timeSeries, kwargs):
-	return timeSeries
-
-# TIME POINT TRANSFORMATIONS
-
-def timePointTransform_EarliestDate(date, periodicity, fn, kwargs):
-	if fn == timeSeriesTransform_TruncatePast:
-		key = 'PeriodDiff'
-		periodDelta = kwargs.get(key, kwargDefaults[key])
-		dt_ = dt_epoch_to_datetime(date)
-		if periodicity == MONTHS:
-			dt_ = dt_add_months(dt_, periodDelta)
-			return dt_datetime_to_epoch(dt_)
-		elif periodicity == YEARS:
-			dt_ = dt_add_months(dt_, periodDelta*12)
-			return dt_datetime_to_epoch(dt_)
-		elif periodicity == QUARTERS:
-			dt_ = dt_add_months(dt_, periodDelta*3)
-			return dt_datetime_to_epoch(dt_)
-		elif periodicity == DAYS or periodicity == WEEKS:
-			raise NotImplementedError
-		else:
-			return date+periodicity*periodDelta
-	else:
-		return date
-
-def timePointTransform_LatestDate(date, periodicity, fn, kwargs):
-	if fn == timeSeriesTransform_TruncateFuture:
-		key = 'PeriodDiff'
-		periodDelta = kwargs.get(key, kwargDefaults[key])
-		dt_ = dt_epoch_to_datetime(date)
-		if periodicity == MONTHS:
-			dt_ = dt_subtract_months(dt_, periodDelta)
-			return dt_datetime_to_epoch(dt_)
-		elif periodicity == YEARS:
-			dt_ = dt_subtract_months(dt_, periodDelta*12)
-			return dt_datetime_to_epoch(dt_)
-		elif periodicity == QUARTERS:
-			dt_ = dt_subtract_months(dt_, periodDelta*3)
-			return dt_datetime_to_epoch(dt_)
-		elif periodicity == DAYS or periodicity == WEEKS:
-			raise NotImplementedError
-		else:
-			return date-periodicity*periodDelta
-	else:
-		return date
-
+def timeSeriesTransform_None(timeHandle, kwargs):
+	pass
 
 # TRANSFORMATION PATTERNS NAMES
 

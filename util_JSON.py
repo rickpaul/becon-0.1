@@ -2,7 +2,7 @@ from 	lib_JSON		import JSON_MODEL_PREDICTIONS_SUFFIX, JSON_MODEL_METADATA_SUFFIX
 from 	lib_JSON		import JSONSuffix
 from 	lib_Website 	import WebRepository
 # System 	From...Import
-from 	json 			import dump, loads
+from 	json 			import dump, load
 
 
 def get_json_history_path(dataName):
@@ -21,7 +21,6 @@ def get_json_model_path(dataName):
 									JSON_MODEL_METADATA_SUFFIX,
 									JSONSuffix)
 
-
 def save_to_JSON(filePath, json_data, overwrite=True):
 	if overwrite:
 		flag = 'wb'
@@ -31,4 +30,5 @@ def save_to_JSON(filePath, json_data, overwrite=True):
 		dump(json_data, writer)
 
 def load_from_JSON(filePath):
-	return load(filePath)
+	with open(filePath, 'r') as reader:
+		return load(reader)

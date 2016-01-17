@@ -1,5 +1,5 @@
 # EMF 		From...Import
-from 	lib_TimeSet import DAYS, WEEKS, MONTHS, QUARTERS, YEARS, DT_EPOCH_ZERO
+from 	lib_TimeSet import DAYS, WEEKS, MONTHS, QUARTERS, YEARS, DT_EPOCH_ZERO, SECONDS
 # System 	Import...As
 import 	logging 			as 		log
 import 	datetime
@@ -27,6 +27,15 @@ from 	math 				import 	floor
 # 	month_ = datetime_.month
 # 	day_ = monthrange(year_, month_)[1]
 # 	return datetime.datetime(year_, month_, day_, tzinfo=pytz.UTC)
+def dt_add_seconds(datetime_, seconds):
+	epoch_ = dt_datetime_to_epoch(datetime_)
+	epoch_ += seconds
+	return dt_epoch_to_datetime(epoch_)
+
+def dt_subtract_seconds(datetime_, seconds):
+	epoch_ = dt_datetime_to_epoch(datetime_)
+	epoch_ -= seconds
+	return dt_epoch_to_datetime(epoch_)
 
 def dt_subtract_months(datetime_, months):
 	month_ = int((datetime_.month) - (months % 12))

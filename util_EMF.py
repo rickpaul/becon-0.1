@@ -4,7 +4,8 @@ from 	lib_EMF		 		import 	TEMP_MODE, TEST_MODE, QA_MODE, PROD_MODE
 import 	lib_DB
 import 	lib_Logging
 import 	lib_QuandlAPI
-
+# System 	Import...As
+import 	logging as log
 
 ######################## DIRECTORY CODE
 def get_EMF_settings(mode=TEMP_MODE):
@@ -15,7 +16,7 @@ def get_EMF_settings(mode=TEMP_MODE):
 			'deleteDB':		True,
 			'logLoc':		lib_Logging.TempLogFilePath,
 			'recordLog':	False,
-			'recordLevel':	log.INFO,
+			'recordLevel':	log.DEBUG,
 			'deleteLog':	None,
 			'logAppend':	True,
 			'QuandlCSVLoc': lib_QuandlAPI.TempQuandlCSV,

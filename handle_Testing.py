@@ -4,7 +4,7 @@ from handle_Logging		 	import EMF_Logging_Handle
 from handle_Transformation	import EMF_Transformation_Handle
 from handle_WordSeries		import EMF_WordSeries_Handle
 from lib_EMF		 		import TEMP_MODE, TEST_MODE
-from util_CreateDB	 		import create_or_connect_DB
+from util_CreateDB	 		import create_or_connect_to_DB
 # EMF 		Import...As
 # System 	Import...As
 import logging 	as log
@@ -15,7 +15,7 @@ class EMF_Testing_Handle:
 		if mode != TEMP_MODE and mode != TEST_MODE:
 			log.ERROR('Attempting a test on a non-test Database')
 			return
-		self.hndl_DB = create_or_connect_DB(mode=mode)
+		self.hndl_DB = create_or_connect_to_DB(mode=mode)
 		self.wordHandles = {}
 
 	def __del__(self):
@@ -28,7 +28,7 @@ class EMF_Testing_Handle:
 				values = values[:,i]
 			except IndexError:
 				values = values
-			hndl_Data = EMF_DataSeries_Handle(self.hndl_DB, name=t, ticker=t, insertIfNot=True)
+			hndl_Data = EMF_DataSeries_Handle(self.hndl_DB, name=t, ticker=t, periodicity=periodicity, insertIfNot=True)
 			if categorical is not None:
 				hndl_Data.set_categorical(categorical[i])	
 			hndl_Data.set_periodicity(periodicity)

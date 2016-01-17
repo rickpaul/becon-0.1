@@ -14,7 +14,7 @@ class EMF_Results_Handle():
 	def __init__(self):
 		self.model_info = {}
 		# self.predictionFeatures = {}
-		self.respWord = None
+		self._resp_word = None
 		self.dataName = None
 		self.model_index = 1
 		self.predictionArray = None # Panda Array of size (dates)x(models)
@@ -53,7 +53,7 @@ class EMF_Results_Handle():
 		return (model_idxs, pred_values)
 
 	def add_model(self, hndl_Model):
-		assert self.respWord is not None
+		assert self._resp_word is not None
 		self.__add_predictions(hndl_Model)
 		self.__add_model_metadata(hndl_Model)
 		self.model_index += 1
@@ -80,7 +80,8 @@ class EMF_Results_Handle():
 		self.predictionArray = pd.concat([self.predictionArray, newValues], axis=1, ignore_index=False)
 
 	def set_response_word(self, respWord, refillResp=False):
-		self.respWord = respWord
+		log.info('RESULTS: Setting Results Response Word: {0}'.format(respWord))
+		self._resp_word = respWord
 		self.dataName = str(respWord.hndl_Data)
 		# Load Results Model State
 		self.load_metadata_json()
@@ -88,34 +89,38 @@ class EMF_Results_Handle():
 		self.load_prediction_array_Pickle()
 		# Load Word History
 		if self.predictionArray is None:
-			values = respWord.get_values_basis()
-			dates = respWord.get_dates_basis()
+			log.info('RESULTS: Creating Results Prediction Array with Response Word: {0}'.format(respWord))
+			values = respWord.get_raw_values()
+			dates = respWord.get_raw_dates()
 			self.predictionArray = pd.DataFrame({0: values.ravel()}, index=dates.ravel())
 		elif refillResp:
-			values = respWord.get_values_basis()
-			dates = respWord.get_dates_basis()
+			log.info('RESULTS: Resetting Prediction Array with Response Word: {0}'.format(respWord))
+			values = respWord.get_raw_values()
+			dates = respWord.get_raw_dates()
 			newValues = pd.DataFrame({0: values.ravel()}, index=dates.ravel())
 			self.predictionArray[0] = newValues
 
 	def load_metadata_json(self):
 		try:
 			filePath = get_results_metadata_path(self.dataName)
+			log.info('RESULTS: Loading Results Handle Metadata.')
 			self.__dict__.update(load_from_JSON(filePath))
 		except Exception, e:
-			log.warning('Failed to save results pickle.')
-			log.warning('File path was: {0}'.format(filePath))
+			log.warning('RESULTS: Failed to Load Results Handle Metadata.')
+			log.warning(e)
+			log.warning('RESULTS: File path was: {0}'.format(filePath))
 
 	def load_prediction_array_Pickle(self):
-
 		filePath = get_prediction_array_path(self.dataName)
 		try:
+			log.info('RESULTS: Loading Results Handle Predictions Array.')
 			self.predictionArray = pickle.load( open( filePath, "rb" ) )
 			if self.predictionArray is not None:
-				log.warning('Loading over an existing results array.')
+				log.warning('RESULTS: Loading over an existing results array.')
 		except Exception, e:
-			print e
-			log.warning('Failed to load results pickle.')
-			log.warning('File path was: {0}'.format(filePath))
+			log.warning('RESULTS: Failed to load results pickle.')
+			log.warning(e)
+			log.warning('RESULTS: File path was: {0}'.format(filePath))
 
 	def save_metadata_json(self):
 		try:
@@ -124,19 +129,20 @@ class EMF_Results_Handle():
 				'model_info'	: self.model_info
 			}
 			filePath = get_results_metadata_path(self.dataName)
-			log.info('Saving results handle metadata to ', filePath)
+			log.info('RESULTS: Saving Results Handle Metadata to {0}'.format(filePath))
 			save_to_JSON(filePath, json_)
 		except Exception, e:
-			log.warning('Failed to save results metadata json.')
-			log.warning('File path was: {0}'.format(filePath))
+			log.warning('RESULTS: Failed to save Results Handle Metadata.')
+			log.warning(e)
+			log.warning('RESULTS: File path was: {0}'.format(filePath))
 
 	def save_prediction_array_Pickle(self):
 		filePath = get_prediction_array_path(self.dataName)
 		try:
-			log.info('Saving prediction array pickle to ', filePath)
+			log.info('RESULTS: Saving prediction array pickle to {0}'.format(filePath))
 			self.predictionArray.to_pickle(filePath)
 		except Exception, e:
-			print e
-			log.warning('Failed to save prediction array pickle.')
-			log.warning('File path was: {0}'.format(filePath))
+			log.warning('RESULTS: Failed to save Predictions Array.')
+			log.warning(e)
+			log.warning('RESULTS: File path was: {0}'.format(filePath))
 

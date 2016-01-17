@@ -1,5 +1,5 @@
 # EMF 		From...Import
-from 	util_EMF 			import DAYS, WEEKS, MONTHS, QUARTERS, YEARS
+from 	lib_TimeSet		 	import DAYS, WEEKS, MONTHS, QUARTERS, YEARS
 # EMF 		Import...As
 import 	lib_Transformation 	as lib_Trns
 
@@ -31,7 +31,7 @@ try:
 except ValueError:
 	pass # Value not found
 
-TimeToModelTemplate = {
+TimeToRecTemplate = {
 	'responseTicker' : ['US_TimeUntilRec'],
 	'responseTrns' : ['None', 'Futr_Lvl'],
 	'responseKwargs': {
@@ -58,16 +58,18 @@ SP500Template = {
 		'PeriodDiff': [1,3,6,9,12],
 		'numRanges': [5]
 	},
+	'responseCanPredict' : True,
 	# 'predictorTrns' : [ 'RateOfChange'],
 	'predictorKwargs': {
 		'PeriodDiff': [1,3,6,9,12],
 	},
 	'models' : ['RegrDecisionTree'],
 	'predictorCriteria' : {
-		# 'interpolatePredictorData' : False,
 		# 'matchResponsePeriodicity' : True,
 		'periodicity' : MONTHS,
 		# 'categorical' : False
+		'minDate' : None,
+		'maxDate' : None,
 	}
 }
 

@@ -94,8 +94,6 @@ def testTransformationReversal_Future_FoD(data, dt, hndl_Srs_Original):
 	assert np.all(dt_rvrs == dt[10:])
 	# assert np.all(data_rvrs == data[10:])
 
-
-
 def testTransformationReversals():
 	testInfo = utl_Tst.create_test_data_correlated_returns(numDims=1, n=100)
 	data = testInfo['data'][:,0]

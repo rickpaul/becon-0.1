@@ -2,55 +2,60 @@
 # 	Implement multiprocessing
 
 # EMF 		From...Import
-from 	handle_DataSeries		import EMF_DataSeries_Handle
-from 	handle_Model 			import EMF_Model_Handle
 from 	handle_Results	 		import EMF_Results_Handle
-from 	handle_WordSeries 		import EMF_WordSeries_Handle
+from 	handle_WordSelector 	import EMF_WordSelector_Handle
 from 	handle_WordSet 			import EMF_WordSet_Handle
 from 	lib_DBInstructions		import insertStat_WordStatsTable
 from 	lib_Model 				import AvailableModels
 from 	lib_Runner_Model		import MIN_BATCH_SIZE, MAX_BATCH_SIZE, MODEL_RETENTION_THRESHHOLD
 from 	lib_Runner_Model 		import PredictorTransformationKeys, ResponseTransformationKeys
 # EMF 		Import...As
-import 	util_Testing 			as utl_Tst
 # System 	From...Import
 from 	random 					import choice, randint
 # System 	Import...As
 import 	logging 				as log
 
-class EMF_Model_Runner():
+class EMF_Model_Runner(object):
 	def __init__(self, DBHandle):
 		self.hndl_DB = DBHandle
-		self.models = []
-		self.periodicity = None
 		self.hndl_WordSet = EMF_WordSet_Handle(self.hndl_DB)
+		self.hndl_WrdSlct = EMF_WordSelector_Handle(self.hndl_DB)
 		self.hndl_Res = EMF_Results_Handle()
+		self.models = []
 
 	def set_model_from_template(self, template):
 		'''
 		TODOS:
 					How to interpolate data?
 		'''
-		# Set Response Ticker in WordSet
-		if len(template['responseTicker']) != 1:
-			raise NotImplementedError
-		self.hndl_WordSet.set_resp_data_ticker(template['responseTicker'][0])
+		# Set Response Ticker in WordSelector
+		self.hndl_WrdSlct.resp_data_tickers = template['responseTicker']
 		if 'responseTrns' in template:
-			self.hndl_WordSet.set_resp_trns_ptrns(template['responseTrns'])
+			self.hndl_WrdSlct.resp_trns_ptrns 	= template['responseTrns']
 		else:
-			self.hndl_WordSet.set_resp_trns_ptrns(ResponseTransformationKeys)
+			self.hndl_WrdSlct.resp_trns_ptrns 	= ResponseTransformationKeys
 		if 'responseKwargs' in template:
-			self.hndl_WordSet.set_resp_trns_kwargs(template['responseKwargs'])
-		if 'predictorTrns' in template:
-			self.hndl_WordSet.set_pred_trns_ptrns(template['predictorTrns'])
-		else:
-			self.hndl_WordSet.set_pred_trns_ptrns(PredictorTransformationKeys)
+			self.hndl_WrdSlct.resp_trns_kwargs 	= template['responseKwargs']
+		if 'responseCanPredict' in template:
+			self.hndl_WrdSlct.resp_can_predict 	= template['responseCanPredict']
 		if 'predictorKwargs' in template:
-			self.hndl_WordSet.set_pred_trns_kwargs(template['predictorKwargs'])
-
-		# Set Predictor Variable(s) in WordSet
-		if 'predictorCriteria' in template and len(template['predictorCriteria']):
-			self.hndl_WordSet.set_predictor_data_criteria(**template['predictorCriteria'])
+			self.hndl_WrdSlct.pred_trns_kwargs 	= template['predictorKwargs']
+		if 'predictorCriteria' in template:
+			predCrit = template['predictorCriteria']
+			if 'periodicity' in predCrit:
+				self.hndl_WrdSlct.pred_data_periodicity 	= predCrit['periodicity']
+			if 'categorical' in predCrit:
+				self.hndl_WrdSlct.pred_data_is_categorical 	= predCrit['categorical']
+			if 'minDate' in predCrit:
+				self.hndl_WrdSlct.pred_data_min_date 		= predCrit['minDate']
+			if 'maxDate' in predCrit:
+				self.hndl_WrdSlct.pred_data_max_date 		= predCrit['maxDate']
+			if 'matchRespPeriodicity' in predCrit:
+				raise NotImplementedError
+		if 'predictorTrns' in template:
+			self.hndl_WrdSlct.pred_trns_ptrns 	= template['predictorTrns']
+		else:
+			self.hndl_WrdSlct.pred_trns_ptrns 	= PredictorTransformationKeys
 		# Set Models
 		for model in template['models']:
 			self.models.append(AvailableModels[model])
@@ -59,12 +64,17 @@ class EMF_Model_Runner():
 		# Choose Model at Random
 		hndl_Model = choice(self.models)(self.hndl_WordSet)
 		# Choose Response Word at Random
-		self.hndl_WordSet.select_response_word_handle_random()
-		self.hndl_Res.set_response_word(self.hndl_WordSet.respWord)
+		# Add Response Word to WordSet
+		self.hndl_WrdSlct.select_resp_word_random()
+		self.hndl_WordSet.resp_word = self.hndl_WrdSlct.resp_word
+		# Add Response Word to WordSet
+		self.hndl_Res.set_response_word(self.hndl_WordSet.resp_word)
 		# Run Batches
 		for i in xrange(randint(MIN_BATCH_SIZE, MAX_BATCH_SIZE)):
-			# Generate Words
-			self.hndl_WordSet.select_predictor_word_handles_random()
+			# Add Predictive Words to WordSet
+			self.hndl_WrdSlct.select_pred_words_random()
+			self.hndl_WordSet.pred_words = self.hndl_WrdSlct.pred_words
+			return
 			# Run Model
 			hndl_Model.train_model()
 			# log.info(hndl_Model.train_score) #TEST: Delete
@@ -74,7 +84,8 @@ class EMF_Model_Runner():
 			self.__save_model_results(hndl_Model)
 			# utl_Tst.plot_data_series(self.hndl_WordSet.get_response_word_raw(), hndl_Model)  #TEST: Delete
 			# Prepare WordSet for Next Run (Not Really Nec. Safety First?)
-			self.hndl_WordSet.clear_pred_word_handles()
+			del self.hndl_WrdSlct.pred_words
+			del self.hndl_WordSet.pred_words
 		return self.hndl_Res
 
 	def __save_model_results(self, hndl_Model):
@@ -86,8 +97,8 @@ class EMF_Model_Runner():
 			log.info('Model rejected with score {0}'.format(score))
 		# Put stats in db
 		respID = self.hndl_WordSet.get_response_word_handle().wordSeriesID
-		conn = self.hndl_DB.conn_()
-		cursor = self.hndl_DB.cursor_()
+		conn = self.hndl_DB.conn
+		cursor = self.hndl_DB.cursor
 		for (hndl_Word, score) in zip(self.hndl_WordSet.predWords, hndl_Model.adjusted_feat_scores):
 			predID = hndl_Word.wordSeriesID
 			insertStat_WordStatsTable(conn, cursor, respID, predID, score)
