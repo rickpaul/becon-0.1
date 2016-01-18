@@ -4,7 +4,7 @@ from 	handle_Testing 			import EMF_Testing_Handle
 from 	handle_Transformation	import EMF_Transformation_Handle
 from 	handle_WordSeries		import EMF_WordSeries_Handle
 from 	runner_Model 			import EMF_Model_Runner
-from 	util_EMF 				import TEMP_MODE
+from 	lib_EMF 				import TEMP_MODE
 from 	util_Testing 			import save_test_data_fn, create_test_data_linear_change
 from 	util_Testing 			import plot_data_series
 

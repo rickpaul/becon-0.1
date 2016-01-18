@@ -96,7 +96,7 @@ def __get_insert_DataSeriesID_Statement(name, ticker):
 	return DB_util.generateInsertStatement(table, columns, values)
 def __get_insert_DataSeriesID_Metadata(seriesID, periodicity):
 	table = 'T_DATA_SERIES_METADATA'
-	columns = ['int_data_series_ID', 'int_periodicity']
+	columns = ['int_data_series_ID', 'code_local_periodicity']
 	values = [seriesID, periodicity]
 	return DB_util.generateInsertStatement(table, columns, values)
 def retrieve_DataSeriesID(conn, cursor, name=None, ticker=None, periodicity=None, insertIfNot=False):

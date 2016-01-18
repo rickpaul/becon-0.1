@@ -87,9 +87,10 @@ class EMF_Model_Handle(EMF_Serial_Handle):
 			return self.model.score(test_predVars, test_respVars)
 
 	def get_series_values(self):
-		predictions = self.model.predict(self.hndl_WordSet.get_word_arrays(mode=PREDICTION)[0])
-		predictions = predictions.reshape(-1, 1)
-		return self.hndl_WordSet.get_prediction_values(predictions=predictions)
+		self.predictions = self.model.predict(self.hndl_WordSet.get_word_arrays(mode=PREDICTION)[0])
+		self.predictions = predictions.reshape(-1, 1)
+		self.predictions = self.hndl_WordSet.get_prediction_values(predictions=predictions)
+		return self.predictions
 
 	def get_series_dates(self):
 		return self.hndl_WordSet.get_prediction_dates()
@@ -115,7 +116,16 @@ class EMF_Model_Handle(EMF_Serial_Handle):
 		'''
 		IMPLEMENTATION OF MODEL TEMPLATE
 		'''
-		raise NotImplementedError
+		# Count number of single values (denotes spikes, unrealistic)
+		y = np.ediff1d(x)
+		z = np.not_equal(y,0).astype(int)
+		sum(z[:-1] & z[1:])
+
+		 = len(self.predictions)
+		# Determine bias
+
+		# Determine rolling bias
+
 
 	def get_save_location(self):
 		raise NotImplementedError

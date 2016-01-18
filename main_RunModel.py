@@ -11,7 +11,7 @@ import 	lib_Runner_Model
 ######################## CURRENT RUN PARAMS
 CURRENT_MODE 	= lib_EMF.TEST_MODE
 CURRENT_MODEL 	= lib_Runner_Model.SP500Template
-NUM_TRAIN_RUNS 	= 10
+NUM_TRAIN_RUNS 	= 1
 
 
 def main():

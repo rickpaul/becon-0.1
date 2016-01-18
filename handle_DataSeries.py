@@ -181,7 +181,7 @@ class EMF_DataSeries_Handle(EMF_Serial_Handle):
 			pass
 
 	def get_periodicity(self):
-		return typify(int, self.__get_from_DB('int_periodicity'))
+		return typify(int, self.__get_from_DB('code_local_periodicity'))
 
 	def get_categorical(self):
 		return typify(bool, self.__get_from_DB('bool_data_is_categorical'))
@@ -196,7 +196,7 @@ class EMF_DataSeries_Handle(EMF_Serial_Handle):
 		return typify(int, self.__get_from_DB('dt_last_updated_history'))
 
 	def set_periodicity(self, periodicity):
-		self.__send_to_DB('int_periodicity', periodicity)
+		self.__send_to_DB('code_local_periodicity', periodicity)
 
 	def set_categorical(self, categorical):
 		self.__send_to_DB('bool_data_is_categorical', categorical)
