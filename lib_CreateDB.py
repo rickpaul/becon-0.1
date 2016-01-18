@@ -29,7 +29,6 @@ createDataSeriesMetadataTable = '''
 CREATE TABLE T_DATA_SERIES_METADATA
 (
 	int_data_series_ID INTEGER UNIQUE NOT NULL PRIMARY KEY,
-	int_periodicity TEXT,
 	dt_min_data_date INTEGER, /* earliest stored data point */
 	dt_max_data_date INTEGER, /* latest stored data point */
 	code_local_periodicity INTEGER,
@@ -40,7 +39,6 @@ CREATE TABLE T_DATA_SERIES_METADATA
 '''
 creationInstructions['T_DATA_SERIES_METADATA'] = createDataSeriesMetadataTable
 DataSeriesColumns = [
-'int_periodicity',
 'dt_min_data_date',
 'dt_max_data_date',
 'code_local_periodicity',

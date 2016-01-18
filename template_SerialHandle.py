@@ -1,7 +1,7 @@
 from abc import ABCMeta, abstractmethod
 
 
-class EMF_Serial_Handle:
+class EMF_Serial_Handle(object):
 	__metaclass__ = ABCMeta
 
 	@abstractmethod

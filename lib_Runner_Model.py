@@ -1,5 +1,5 @@
 # EMF 		From...Import
-from 	util_EMF 			import DAYS, WEEKS, MONTHS, QUARTERS, YEARS
+from 	lib_TimeSet		 	import DAYS, WEEKS, MONTHS, QUARTERS, YEARS
 # EMF 		Import...As
 import 	lib_Transformation 	as lib_Trns
 
@@ -9,13 +9,14 @@ WORD_COUNT_GEOMETRIC_PARAM = 0.75
 MIN_WORD_COUNT = 3
 
 MIN_BATCH_SIZE = 4
-MAX_BATCH_SIZE = 20
+MAX_BATCH_SIZE = 4
 
 MODEL_RETENTION_THRESHHOLD = 0.3
 BOOTSTRAP_MULTIPLIER = 1
 
 TRAINING = 927610 # Random
-PREDICTION = 176920 # Random
+PREDICTION = 176092 # Random
+PREDICTION_DEPENDENT = 290761 # Random. # Will probably be deleted. Nec. for current spaghetti
 
 PredictorTransformationKeys = lib_Trns.PredictorTransformationKeys
 PredictorTransformationKeys = [x for x in PredictorTransformationKeys if not x.endswith(lib_Trns.PATTERN_SUFFIX_NORM_STRAT)]
@@ -31,7 +32,7 @@ try:
 except ValueError:
 	pass # Value not found
 
-TimeToModelTemplate = {
+TimeToRecTemplate = {
 	'responseTicker' : ['US_TimeUntilRec'],
 	'responseTrns' : ['None', 'Futr_Lvl'],
 	'responseKwargs': {
@@ -58,16 +59,18 @@ SP500Template = {
 		'PeriodDiff': [1,3,6,9,12],
 		'numRanges': [5]
 	},
+	'responseCanPredict' : True,
 	# 'predictorTrns' : [ 'RateOfChange'],
 	'predictorKwargs': {
 		'PeriodDiff': [1,3,6,9,12],
 	},
 	'models' : ['RegrDecisionTree'],
 	'predictorCriteria' : {
-		# 'interpolatePredictorData' : False,
 		# 'matchResponsePeriodicity' : True,
 		'periodicity' : MONTHS,
 		# 'categorical' : False
+		'minDate' : None,
+		'maxDate' : None,
 	}
 }
 

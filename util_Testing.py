@@ -1,7 +1,4 @@
 
-# EMF 		From...Import
-from 	util_EMF 	import dt_epoch_to_datetime, dt_datetime_to_epoch
-from 	util_EMF 	import dt_add_months, dt_end_of_month, strftime
 # System 	Import...As
 import 	numpy 		as np
 
@@ -53,6 +50,11 @@ def create_test_data_blobs(numDims=4):
 	categorical += [True]
 	return {'dt': dt, 'data': data, 'names': names, 'categorical': categorical,  'responseIdx': numDims}
 
+def create_test_data_linear_change(n=500, increase=.01):
+	return {'dt': np.arange(n), 
+			'data': np.linspace(0, (n-1)*increase, num=n), 
+			'names': ['x'], 'categorical': [False],  
+			'responseIdx': None}
 
 def create_test_data_correlated_returns(n=500, numDims=5, includeResponse=True):
 	w = numDims + int(includeResponse)
@@ -90,19 +92,6 @@ def create_test_data_correlated_returns(n=500, numDims=5, includeResponse=True):
 	dt = np.arange(n)
 	categorical = [False]*w
 	return {'dt': dt, 'data': data, 'names': names, 'categorical': categorical,  'responseIdx': responseIdx}
-
-def create_monthly_date_range(n=500, startEpoch=0, asString=False):
-	dt = []
-	if asString:
-		outputFn = lambda d: strftime(d, '%Y-%m-%d')
-	else: #asEpoch
-		outputFn = dt_datetime_to_epoch
-	currentDT = dt_end_of_month(dt_epoch_to_datetime(startEpoch))
-	dt.append(outputFn(currentDT))
-	for i in xrange(1,n):
-		currentDT = dt_add_months(currentDT, 1)
-		dt.append(outputFn(currentDT))
-	return dt
 
 def save_test_data_fn(hndl_Test, fn, **kwargs):
 	return save_test_data(hndl_Test, **fn(**kwargs))

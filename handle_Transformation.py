@@ -39,49 +39,32 @@ class EMF_Transformation_Handle:
 		'''
 		'''
 		for fn in self.dataTrnsList:
-			dataSeries = self.__transform(fn, dataSeries)
-		dataSeries = self.__transform(self.categorization, dataSeries)
+			dataSeries = fn(dataSeries, self.trnsKwargs)
+		dataSeries = self.categorization(dataSeries, self.trnsKwargs)
 		return dataSeries
-	
-	def reverse_transform_data(self, dataSeries, predictionDelta=None):
+
+	# Sloppy
+	def reverse_transform_data(self, dataSeries, modifier=None):
 		for fn in reversed(self.dataTrnsList):
 			revFn = lib_Trns.TransformationReversals[fn]
-			if predictionDelta is not None:
-				dataSeries = revFn(dataSeries, predictionDelta, self.trnsKwargs)
+			if modifier is not None:
+				dataSeries = revFn(dataSeries, modifier, self.trnsKwargs)
 			else:
 				dataSeries = revFn(dataSeries, self.trnsKwargs)
 		return dataSeries
 
-	def transform_time(self, timeSeries):
-		for fn in self.timeTrnsList:
-			timeSeries = self.__transform(fn, timeSeries)
-		return timeSeries
+	def prediction_is_value_dependent(self):
+		and_ = lambda x,y: x and y
+		return reduce(and_, [lib_Trns.TransformationReversals[fn] not in lib_Trns.IndependentTransformationReversals for fn in self.dataTrnsList])
 
-	def reverse_transform_time(self, timeSeries):
+	def transform_time(self, timeHandle):
+		for fn in self.timeTrnsList:
+			fn(timeHandle, self.trnsKwargs)
+
+	def reverse_transform_time(self, timeHandle):
 		for fn in reversed(self.timeTrnsList):
 			revFn = lib_Trns.TimeTransformationReversals[fn]
-			timeSeries = self.__transform(revFn, timeSeries)
-		return timeSeries
-
-	def transform_earliest_time(self, dte, periodicity):
-		'''
-		TODO:
-					rename to make clear this is for domain, not range.
-					add range function
-		'''
-		for fn in self.timeTrnsList:
-			dte = util_Trns.timePointTransform_EarliestDate(dte, periodicity, fn, self.trnsKwargs)
-		return dte
-
-	def transform_latest_time(self, dte, periodicity):
-		'''
-		TODO:
-					rename to make clear this is for domain, not range.
-					add range function
-		'''
-		for fn in self.timeTrnsList:
-			dte = util_Trns.timePointTransform_LatestDate(dte, periodicity, fn, self.trnsKwargs)
-		return dte
+			revFn(timeHandle, self.trnsKwargs)
 
 	def is_bounded(self):
 		return self.isBounded

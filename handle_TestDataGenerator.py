@@ -69,6 +69,6 @@ class EMF_TestDataGenerator:
 		save_to_JSON(filePath, models)
 
 
-if __name__ == '__main__':
-	generator = EMF_TestDataGenerator()
-	generator.generate_d3_JSON_ParallelCoords()
+# if __name__ == '__main__':
+# 	generator = EMF_TestDataGenerator()
+# 	generator.generate_d3_JSON_ParallelCoords()

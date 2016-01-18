@@ -11,10 +11,10 @@ from 	numpy 			import int64, float64
 
 SQL_NULL = 'NULL' # Sqlite null
 
-def get_DB_Handle(mode=TEMP_MODE):
+def connect_to_DB(mode=TEMP_MODE):
 	settings = get_EMF_settings(mode)
 	dbLocation = settings['dbLoc']
-	return EMF_Database_Handle(dbLocation, deleteDB=False)
+	return EMF_Database_Handle(dbLocation)	
 
 ########################################Generic Query Construction Code / Helper Code
 def stringify(value_):
@@ -81,9 +81,10 @@ def generateJoinedSelectStatement(	leftTable, rightTable,
 	select_ = join([(t+'.'+c) for (t, c) in zip(selectTables, selectColumns)], ', ')
 	where_ = join([(t+'.'+c+op+stringify(v)) for (t, c, op, v) in zip(whereTables, whereColumns, whereOperators, whereValues)], ' and ')
 	join_ = '{0}.{1}={2}.{3}'.format(leftTable, leftJoinCol, rightTable, rightJoinCol)
+	where_ = 'where {0}'.format(where_) if len(where_) else ''
 	order_ = '' if order_ is None else ('order by ' + join(order_[0],', ') + ' ' + order_[1])
 	limit_ = '' if limit_ is None else ('limit ' + str(limit_))
-	return 'select {0} from {1} inner join {2} on {3} where {4} {5};'.format(select_, leftTable, rightTable, join_, where_, order_, limit_)
+	return 'select {0} from {1} inner join {2} on {3} {4} {5} {6};'.format(select_, leftTable, rightTable, join_, where_, order_, limit_)
 
 
 def retrieveDBStatement(cursor, statement, expectedColumnCount=1, expectedCount=None):
@@ -103,12 +104,12 @@ def retrieveDBStatement(cursor, statement, expectedColumnCount=1, expectedCount=
 	Messy. Clean up (need a comprehensive error strategy)
 	Implement select for number of columns!
 	'''	
-	log.debug('Attempting %s ...', statement)
+	log.debug('DATABASE: Attempting %s ...', statement)
 	try:
 		cursor.execute(statement)
 		results = cursor.fetchall()
 	except Exception as e:
-		log.debug('%s Failed!', statement)
+		log.error('DATABASE: %s Failed!', statement)
 		log.error('%s', e)
 		raise e
 
@@ -117,11 +118,11 @@ def retrieveDBStatement(cursor, statement, expectedColumnCount=1, expectedCount=
 
 	# Check Count if successful
 	if (expectedCount is not None) and (len(results) != expectedCount):
-		log.error('%s Had unexpected number of rows (%d expected; %d retrieved)', statement, expectedCount, len(results))
+		log.error('DATABASE: %s Had unexpected number of rows (%d expected; %d retrieved)', statement, expectedCount, len(results))
 		raise Exception('Unexpected number of rows for query')
 
 	if len(results[0]) != expectedColumnCount:
-		log.error('%s Had unexpected number of columns (%d expected; %d retrieved)', statement, expectedColumnCount, len(results[0]))
+		log.error('DATABASE: %s Had unexpected number of columns (%d expected; %d retrieved)', statement, expectedColumnCount, len(results[0]))
 		raise Exception('Unexpected number of columns for query')
 
 	if expectedColumnCount == 1:
@@ -155,10 +156,10 @@ def commitDBStatement(conn, cursor, statement, failSilently=False):
 		seriesID = cursor.lastrowid
 		return (True, seriesID)
 	except Exception as e:
-		log.debug('%s Failed!', statement)
+		log.debug('DATABASE: %s Failed!', statement)
 		log.error('%s', e)
 		if failSilently:
 			return (False, str(e))
 		else:
-			log.error('FAILED SQL STATEMENT\n{0}\n'.format(statement))
+			log.error('DATABASE: FAILED SQL STATEMENT\n{0}\n'.format(statement))
 			raise e

@@ -14,9 +14,9 @@ class EMF_Model_Handle(EMF_Serial_Handle):
 		self.hndl_WordSet = hndl_WordSet
 
 	def __str__(self):
-		predVars = [str(hndl) for hndl in [self.hndl_WordSet.respWord]]
+		predVars = [str(hndl) for hndl in [self.hndl_WordSet.resp_word]]
 		predVars = join(predVars, '|')
-		respVars = [str(hndl) for hndl in self.hndl_WordSet.predWords]
+		respVars = [str(hndl) for hndl in self.hndl_WordSet.pred_words]
 		respVars = join(respVars, '|')
 		return '[{0}][{1}][{2}]'.format(self.model_short_name, predVars, respVars)
 
@@ -60,19 +60,19 @@ class EMF_Model_Handle(EMF_Serial_Handle):
 		'''
 		# Make Sure We're Ready (Don't Love This)
 		assert self._evaluate_run_readiness()
-		(predVarArray, respVarArray) = self.hndl_WordSet.get_word_arrays(mode=TRAINING, bootstrap=True)
+		(pred_array, resp_array) = self.hndl_WordSet.get_word_arrays(mode=TRAINING, bootstrap=True)
 		# Run Model
-		if self.hndl_WordSet.sampleWeights is not None:
-			self.model.fit(predVarArray, respVarArray, self.hndl_WordSet.sampleWeights)
+		if self.hndl_WordSet.sample_weights is not None:
+			self.model.fit(pred_array, resp_array, self.hndl_WordSet.sample_weights)
 		else:
-			self.model.fit(predVarArray, respVarArray)
+			self.model.fit(pred_array, resp_array)
 		# Save Scores
-		self.train_score = self.determine_accuracy(predVarArray, respVarArray)
+		self.train_score = self.determine_accuracy(pred_array, resp_array)
 		self.adjusted_feat_scores = self.feature_importances()*self.train_score
 
 	def test_model(self):
-		(predVarArray, respVarArray) = self.hndl_WordSet.get_word_arrays(mode=TRAINING, bootstrap=True)
-		self.test_score = self.determine_accuracy(predVarArray, respVarArray)
+		(pred_array, resp_array) = self.hndl_WordSet.get_word_arrays(mode=TRAINING, bootstrap=False)
+		self.test_score = self.determine_accuracy(pred_array, resp_array)
 		self.adjusted_feat_scores = self.feature_importances()*self.test_score
 		return self.test_score
 
@@ -81,18 +81,19 @@ class EMF_Model_Handle(EMF_Serial_Handle):
 		IMPLEMENTATION OF MODEL TEMPLATE
 		Perfectly accurate is 1, perfectly inaccurate is 0
 		'''
-		if sample_weights is not None:
-			return self.model.score(test_predVars, test_respVars, sample_weights)
+		if self.hndl_WordSet.sample_weights is not None:
+			return self.model.score(test_predVars, test_respVars, self.hndl_WordSet.sample_weights)
 		else:
 			return self.model.score(test_predVars, test_respVars)
 
 	def get_series_values(self):
-		predictions = self.model.predict(self.hndl_WordSet.get_word_arrays(mode=PREDICTION)[0])
-		predictions = predictions.reshape((len(predictions), 1))
-		return self.hndl_WordSet.get_predicted_values(predictions=predictions)
+		self.predictions = self.model.predict(self.hndl_WordSet.get_word_arrays(mode=PREDICTION)[0])
+		self.predictions = predictions.reshape(-1, 1)
+		self.predictions = self.hndl_WordSet.get_prediction_values(predictions=predictions)
+		return self.predictions
 
 	def get_series_dates(self):
-		return self.hndl_WordSet.get_predicted_dates()
+		return self.hndl_WordSet.get_prediction_dates()
 
 	def feature_names(self):
 		return self.hndl_WordSet.features
@@ -115,7 +116,16 @@ class EMF_Model_Handle(EMF_Serial_Handle):
 		'''
 		IMPLEMENTATION OF MODEL TEMPLATE
 		'''
-		raise NotImplementedError
+		# Count number of single values (denotes spikes, unrealistic)
+		y = np.ediff1d(x)
+		z = np.not_equal(y,0).astype(int)
+		sum(z[:-1] & z[1:])
+
+		 = len(self.predictions)
+		# Determine bias
+
+		# Determine rolling bias
+
 
 	def get_save_location(self):
 		raise NotImplementedError

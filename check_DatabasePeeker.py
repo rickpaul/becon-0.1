@@ -4,15 +4,16 @@
 
 # EMF 		From...Import
 from lib_EMF		import TEMP_MODE, TEST_MODE, QA_MODE, PROD_MODE
-from util_CreateDB 	import connect_DB
+from util_DB		import connect_to_DB
+# System	From...Import
 from string 		import find, join, lower
 from pprint 		import pprint
 
 
 ########################################Database Helper Code / Outward-Facing Simple Statement Executor
 def __executeSimpleDatabaseStatement(hndl_DB, statement, showCols=True):
-	c = hndl_DB.cursor_()
-	cn = hndl_DB.conn_()
+	c = hndl_DB.cursor
+	cn = hndl_DB.conn
 	statement = statement.replace('\t', '')
 	statement = statement.replace('\n', '')
 	statement = statement.strip()
@@ -38,7 +39,7 @@ def __executeSimpleDatabaseStatement(hndl_DB, statement, showCols=True):
 			print 'NOTHING FOUND'
 		else:
 			pprint(results)
-	elif queryType == 'insert' or queryType == 'update':
+	elif queryType == 'insert' or queryType == 'update' or queryType == 'delete':
 		c.execute(statement)
 		cn.commit()
 	else:
@@ -47,7 +48,7 @@ def __executeSimpleDatabaseStatement(hndl_DB, statement, showCols=True):
 
 ########################################Database Helper Code / Outward-facing Table Peeking for Debugging
 def __peekTable(hndl_DB, tableName, displayPragma=False, limit=10):
-	c = hndl_DB.cursor_()
+	c = hndl_DB.cursor
 	# Print Table Length
 	viewLengthCommand = 'select count(*) from ' + tableName
 	c.execute(viewLengthCommand)
@@ -83,7 +84,7 @@ def __databasePicker(mode=TEMP_MODE):
 				return None
 			modes = [TEMP_MODE, TEST_MODE, QA_MODE, PROD_MODE]
 			mode = modes[int(db)-1]
-			return connect_DB(mode=mode)
+			return connect_to_DB(mode=mode)
 		except Exception as e:
 			print 'ERROR: '
 			print e
@@ -92,7 +93,7 @@ def __databasePicker(mode=TEMP_MODE):
 	return None
 
 def __tablePeeker(hndl_DB):
-	c = hndl_DB.cursor_()
+	c = hndl_DB.cursor
 	errorCount = 10
 	table = ''
 	while errorCount >= 0:

@@ -5,7 +5,7 @@ from lib_QuandlAPI 	import CSVRepository
 from lib_JSON		import JSONRepository
 from lib_Pickle		import PickleRepository
 from lib_EMF		import TEMP_MODE, TEST_MODE, QA_MODE, PROD_MODE
-from util_CreateDB	import create_DB
+from util_CreateDB	import create_or_connect_to_DB
 from util_EMF 		import get_EMF_settings
 from handle_Logging	import EMF_Logging_Handle
 # EMF 		Import...As
@@ -35,7 +35,7 @@ AllDatabases = [
 def __createDatabases():
 	for mode in AllDatabases:
 		if not get_EMF_settings(mode=mode)['deleteDB']:
-			create_DB(mode=mode)
+			create_or_connect_to_DB(mode=mode)
 
 def __createDirectories():
 	for directory in AllDirectories:

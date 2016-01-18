@@ -47,14 +47,6 @@ def __drop_table(conn, cursor, tableName):
 def __db_exists(DBFilePath):
 	return isfile(DBFilePath)
 
-def __create_DB_directory(DBFilePath):
-	# Find Database Directory
-	directory = dirname(DBFilePath)
-	# Create Directory if Necessary
-	if not exists(directory):
-		log.info('Creating OS Directory for DB at {0}'.format(directory))
-		makedirs(directory)
-
 def __create_table(conn, cursor, tableName, instruction, force=False):
 	if __table_exists(conn, cursor, tableName):
 		if force:
@@ -67,7 +59,7 @@ def __create_table(conn, cursor, tableName, instruction, force=False):
 	log.info("Table %s created.", tableName)
 	(success, error) = commitDBStatement(conn, cursor, instruction)
 
-def create_DB(mode=TEMP_MODE, manualOverride=False):
+def create_or_connect_to_DB(mode=TEMP_MODE, manualOverride=False):
 	'''
 	Given a DB path and table creation instructions, creates a DB and its tables
 
@@ -95,7 +87,6 @@ def create_DB(mode=TEMP_MODE, manualOverride=False):
 		log.info('DB {0} found.'.format(dbLocation))
 	else:
 		dbExists = False
-		__create_DB_directory(dbLocation)
 		log.info('DB {0} not found. Will be created.'.format(dbLocation))
 	# Hook To DB
 	hndl_DB = EMF_Database_Handle(dbLocation, deleteDB=deleteDB)
@@ -103,22 +94,18 @@ def create_DB(mode=TEMP_MODE, manualOverride=False):
 	try:
 		log.info('Performing {0} table creation'.format('manual' if manualOverride else 'full'))
 		for (tableName, instruction) in tableCreationInstructions.iteritems():
-			__create_table(hndl_DB.conn_(), hndl_DB.cursor_(), tableName, instruction, force=force)
+			__create_table(hndl_DB.conn, hndl_DB.cursor, tableName, instruction, force=force)
 	except:
 		log.error('Database Creation Failed.')
 		raise
 	return hndl_DB
 
-def connect_DB(mode=TEMP_MODE):
-	settings = get_EMF_settings(mode)
-	dbLocation = settings['dbLoc']
-	return EMF_Database_Handle(dbLocation)	
-
-def create_or_connect_DB(mode=TEMP_MODE, manualOverride=False):
-	# Get Settings
-	settings = get_EMF_settings(mode)
-	dbLocation = settings['dbLoc']
-	if __db_exists(dbLocation):
-		return EMF_Database_Handle(dbLocation) # Don't allow deletion here
-	else:
-		return create_DB(mode=mode, manualOverride=manualOverride)
+#DELETABLE
+# def create_or_connect_to_DB(mode=TEMP_MODE, manualOverride=False):
+# 	# Get Settings
+# 	settings = get_EMF_settings(mode)
+# 	dbLocation = settings['dbLoc']
+# 	if __db_exists(dbLocation):
+# 		return EMF_Database_Handle(dbLocation) # Don't allow deletion here
+# 	else:
+# 		return create_DB(mode=mode, manualOverride=manualOverride)

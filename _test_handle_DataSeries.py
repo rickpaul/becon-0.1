@@ -6,7 +6,7 @@
 
 # EMF 		From...Import
 from lib_EMF		 	import TEMP_MODE
-from util_CreateDB	 	import create_DB
+from util_CreateDB	 	import create_or_connect_to_DB
 from lib_DataSeries	 	import DATE_COL, VALUE_COL
 from handle_DataSeries 	import EMF_DataSeries_Handle
 # EMF 		Import...As
@@ -38,7 +38,7 @@ def testDataSeriesHandle(hndl_DB):
 def main():
 	try:
 		np.random.seed(10)
-		hndl_DB = create_DB(mode=TEMP_MODE)
+		hndl_DB = create_or_connect_to_DB(mode=TEMP_MODE)
 		testDataSeriesHandle(hndl_DB)
 		# testWriteToJSON(hndl_DB)
 	except Exception, e:
