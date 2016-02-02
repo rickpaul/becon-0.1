@@ -67,17 +67,19 @@ class EMF_CSV_Handle:
 		self.fileContent[currentRow][columnIndex] = newValue
 		return True
 
-	def write_to_csv(self, writeAsBackup=True):
+	def write_to_csv(self, writeBackup=True):
 		'''
-
 		RETURNS:
 					<bool>	Success of operation
+		
+		TODO:
+					Implement some sort of versioning
 		'''		
 		# Check if Write is Necessary
 		if not self.hasChanged:
 			return False
 		# Copy File to Backup
-		if writeAsBackup:
+		if writeBackup:
 			backupFile = self.csvFileName[:-4] + '_bkup.csv'
 			if not isfile(backupFile):
 				copy2(self.csvFileName, backupFile)
@@ -92,47 +94,3 @@ class EMF_CSV_Handle:
 		copy2(tempFile,self.csvFileName)
 		remove(tempFile)
 		return True
-
-###### TEST BELOW
-
-def test_editable():
-	# Read Test CSV
-	testCSV = lib_Qndl.CSVRepository + 'testCSV.csv'
-	handle = EMF_CSV_Handle(testCSV, hasHeader=False)
-	row = handle.next()
-	assert row[0] == 'One'
-	# Write To Test CSV
-	assert handle.change_current_row('Ein', columnIndex=0) #return success
-	assert handle.fileContent[0][0] == 'Ein'
-	handle.write_to_csv(writeAsBackup=True)
-	# Read Backup
-	testCSV_bkup = lib_Qndl.CSVRepository + 'testCSV_bkup.csv'
-	handle = EMF_CSV_Handle(testCSV_bkup, hasHeader=False)
-	row = handle.next()
-	assert row[0] == 'Ein'
-	# Delete Backup
-	remove(testCSV_bkup)
-
-
-def test_nonEditable():
-	# Read Test CSV
-	testCSV = lib_Qndl.CSVRepository + 'testCSV.csv'
-	handle = EMF_CSV_Handle(testCSV, hasHeader=False, editableColumns=[])
-	count = 0
-	for row in handle:	
-		count += 1
-		print row
-	assert count == 2
-	try:
-		row = handle.next()
-		assert False
-	except StopIteration:
-		pass
-def main():
-	test_nonEditable()
-	test_editable()
-
-if __name__ == '__main__':
-	import lib_QuandlAPI as lib_Qndl
-	from os import remove
-	main()
