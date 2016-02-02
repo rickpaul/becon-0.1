@@ -24,10 +24,10 @@ def testDataSeriesHandle(hndl_DB):
 	dataHandle.save_series_db(dates, data)
 	assert np.all(dataHandle.get_series_dates() == dates)
 	assert np.all(dataHandle.get_series_values() == data)
-	assert dataHandle.get_earliest_date()==0
-	assert dataHandle.get_latest_date()==199
-	assert dataHandle.seriesName == name
-	assert dataHandle.seriesTicker == ticker
+	assert dataHandle.min_date==0
+	assert dataHandle.max_date==199
+	assert dataHandle.name == name
+	assert dataHandle.ticker == ticker
 	
 # def testWriteToJSON(hndl_DB):
 # 	name = 'test1'
