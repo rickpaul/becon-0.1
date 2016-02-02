@@ -1,13 +1,13 @@
-from abc import ABCMeta, abstractmethod
+from abc import ABCMeta, abstractproperty
 
 
 class EMF_Serial_Handle(object):
 	__metaclass__ = ABCMeta
 
-	@abstractmethod
-	def get_series_values(self):
+	@abstractproperty
+	def values(self):
 		pass
 
-	@abstractmethod
-	def get_series_dates(self):
+	@abstractproperty
+	def dates(self):
 		pass
