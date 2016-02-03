@@ -9,24 +9,25 @@ import 	re
 from 	calendar 			import 	monthrange
 from 	math 				import 	floor
 
-# def dt_is_end_of_month(datetime_):
-# 	year_ = datetime_.year
-# 	month_ = datetime_.month
-# 	day_ = monthrange(year_, month_)[1]
-# 	return (datetime_.day == day_ and 
-# 			datetime_.hour == 0 and 
-# 			datetime_.minute == 0 and 
-# 			datetime_.second == 0)
+def dt_is_end_of_month(datetime_):
+	year_ = datetime_.year
+	month_ = datetime_.month
+	day_ = monthrange(year_, month_)[1]
+	return (datetime_.day == day_ and 
+			datetime_.hour == 0 and 
+			datetime_.minute == 0 and 
+			datetime_.second == 0)
 
-# def str_YYYY_MM_DD_is_end_of_month(str_):
-# 	dt = dt_str_YYYY_MM_DD_to_datetime(str_)
-# 	return dt_is_end_of_month(dt)
+def str_Y_M_D_is_end_of_month(str_):
+	dt = dt_str_Y_M_D_to_datetime(str_)
+	return dt_is_end_of_month(dt)
 
-# def dt_end_of_month(datetime_):
-# 	year_ = datetime_.year
-# 	month_ = datetime_.month
-# 	day_ = monthrange(year_, month_)[1]
-# 	return datetime.datetime(year_, month_, day_, tzinfo=pytz.UTC)
+def dt_end_of_month(datetime_):
+	year_ = datetime_.year
+	month_ = datetime_.month
+	day_ = monthrange(year_, month_)[1]
+	return datetime.datetime(year_, month_, day_, tzinfo=pytz.UTC)
+
 def dt_add_seconds(datetime_, seconds):
 	epoch_ = dt_datetime_to_epoch(datetime_)
 	epoch_ += seconds
@@ -40,7 +41,7 @@ def dt_subtract_seconds(datetime_, seconds):
 def dt_subtract_months(datetime_, months):
 	month_ = int((datetime_.month) - (months % 12))
 	year_ = int(datetime_.year - floor(months/12.0) - int(month_<=0))
-	month_ = int((month_) % 12 + 12*(month_==0)) #sloppy
+	month_ = int((month_) % 12 + 12*(month_%12==0)) #sloppy
 	day_ = monthrange(year_, month_)[1]
 	return datetime.datetime(year_, month_, day_, tzinfo=pytz.UTC)
 
@@ -80,8 +81,11 @@ def dt_str_Y_M_D_to_datetime(dateString, endOfMonth=False):
 		dt = dt_end_of_month(dt)
 	return dt
 
-def dt_str_Y_M_D_to_epoch(dateString):
-	dt = dt_str_YYYY_MM_DD_to_datetime(dateString)
+def dt_str_Y_M_D_Junk_to_epoch(dateString, endOfMonth=False):
+	return dt_str_Y_M_D_to_epoch(dateString[:10], endOfMonth=endOfMonth)
+
+def dt_str_Y_M_D_to_epoch(dateString, endOfMonth=False):
+	dt = dt_str_Y_M_D_to_datetime(dateString, endOfMonth=endOfMonth)
 	return dt_datetime_to_epoch(dt)
 
 def dt_epoch_to_str_Y_M_D(epoch_):
@@ -169,17 +173,17 @@ class Specifier(str):
 
 # def main():
 # 	print 'ADD'
-# 	dt1 = dt_str_YYYY_MM_DD_to_datetime('2015-03-20',endOfMonth=True)
+# 	dt1 = dt_str_Y_M_D_to_datetime('2015-03-20',endOfMonth=True)
 # 	dt2 = dt_add_months(dt1, 30)
 # 	g = dt_date_range_generator(dt1, dt2, periodicity=QUARTERS, isEpoch=False)
 # 	for i in g:
 # 		print dt_epoch_to_datetime(i)
 # 	print 'ADD'
-# 	dt = dt_str_YYYY_MM_DD_to_datetime('2015-01-20',endOfMonth=True)
+# 	dt = dt_str_Y_M_D_to_datetime('2015-01-20',endOfMonth=True)
 # 	for i in xrange(30):
 # 		print dt_add_months(dt, i)
 # 	print 'SUBTRACT'
-# 	dt = dt_str_YYYY_MM_DD_to_datetime('2015-01-20',endOfMonth=True)
+# 	dt = dt_str_Y_M_D_to_datetime('2015-01-20',endOfMonth=True)
 # 	for i in xrange(30):
 # 		print dt_subtract_months(dt, i)
 

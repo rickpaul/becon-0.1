@@ -56,6 +56,29 @@ class EMF_TimeSet_Handle(object):
 		_endDT = None
 		_periodicity = None
 
+	def __str__(self):
+		if self._periodicity==MONTHS:
+			p = 'M'
+		elif self._periodicity==YEARS:
+			p = 'Y'
+		elif self._periodicity==QUARTERS:
+			p = 'Q'
+		elif self._periodicity==WEEKS:
+			p = 'W'
+		elif self._periodicity==DAYS:
+			p = 'D'
+		elif self._periodicity==SECONDS:
+			p = 'S'
+		else:
+			raise NameError
+		if self._periodicity==SECONDS:
+			s = self._startEpoch
+			e = self._endEpoch
+		else:
+			s = self._startYMD
+			e = self._endYMD
+		return '{0}.{1}=>{2}'.format(p,s,e)
+
 	def startYMD():
 		doc = "Start Y-M-D"
 		def fget(self):
@@ -152,6 +175,8 @@ class EMF_TimeSet_Handle(object):
 			return self._periodicity
 		def fset(self, value):
 			if type(value) is not int:
+				raise TypeError
+			if value not in [DAYS, WEEKS, MONTHS, QUARTERS, YEARS, SECONDS]:
 				raise TypeError
 			self._periodicity = value
 		def fdel(self):
@@ -253,33 +278,13 @@ class EMF_TimeSet_Handle(object):
 			else:
 				yield False
 
-	# def start_date_earlier(self, numPeriods): # do we want this?
-	# 	if self.periodicity == MONTHS:
-	# 		return dt_subtract_months(self.startDT, 1*numPeriods)
-	# 	elif self.periodicity == QUARTERS:
-	# 		return dt_subtract_months(self.startDT, 3*numPeriods)
-	# 	elif self.periodicity == YEARS:
-	# 		return dt_subtract_months(self.startDT, 12*numPeriods)
-	# 	else:
-	# 		raise NotImplementedError
-
-	# def end_date_later(self, numPeriods): # do we want this?
-	# 	if self.periodicity == MONTHS:
-	# 		return dt_add_months(self.startDT, 1*numPeriods)
-	# 	elif self.periodicity == QUARTERS:
-	# 		return dt_add_months(self.startDT, 3*numPeriods)
-	# 	elif self.periodicity == YEARS:
-	# 		return dt_add_months(self.startDT, 12*numPeriods)
-	# 	else:
-	# 		raise NotImplementedError
-
-if __name__ == '__main__':
-	x = EMF_TimeSet_Handle()
-	x.startYMD = '1980-01-01'
-	x.endYMD = '1982-01-01'
-	x.periodicity = MONTHS
-	x.truncate_end(2)
-	print x.startDT
-	print x.endDT
-	print x.get_dates(outputType=DATESTRING_TYPE)
-	print [y for y in x.get_date_filter('1980-06-01', '1981-06-01', DATESTRING_TYPE)]
+# if __name__ == '__main__':
+# 	x = EMF_TimeSet_Handle()
+# 	x.startYMD = '1980-01-01'
+# 	x.endYMD = '1982-01-01'
+# 	x.periodicity = MONTHS
+# 	x.truncate_end(2)
+# 	print x.startDT
+# 	print x.endDT
+# 	print x.get_dates(outputType=DATESTRING_TYPE)
+# 	print [y for y in x.get_date_filter('1980-06-01', '1981-06-01', DATESTRING_TYPE)]
