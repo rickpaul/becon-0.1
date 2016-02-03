@@ -1,50 +1,86 @@
-CURRENTLY:
 
+CURRENTLY:
+	+ Create canonical dates functions to make sure dates line up
+	+ Create Interpolator
+		+ Interpolate using last known value
+		+ Interpolate linearly
+		+ Interpolate using PCE/other matrix factorization methods
+	+ Create 2D Map with Descriptors
 
 PRIORITY 1:
-	+ Create Statistics Database
-	+ Create canonical dates functions to make sure dates line ups	
+	+ Data Download
+		+ How do we make sure dates are end of month/line up?
+	+ Non-Random Model Selection
+		+ Model Evaluator
+			+ Correlation
+			+ ANOVA Stats
+			+ PCE Comparison?
+	+ Model Description
+		+ Transformation Pattern Description
+			+ Transformations and Categorizations return values
+			+ Functions
+		+ Word Description
+		+ Data Description
+			+ Need Metadata Tree? (i.e. define geographies/subgeographies, sectors/subsectors)
+	+ Implement Test/Training Sampling
+		+ Implement bootstrapping
+	+ Implement Pre-processing (normalization/de-normalization)
 
 PRIORITY 2:
-	+ In DatabaseInstructions, combine generate statement fns with actual fns
-		? Separated initially for testing purposes?
-	+ Create Testing Library for common functions (e.g. createTestDB)
-		+ Migrate over testing library from other library
+	+ Migrate over testing library from other library
 	+ Consider changing transformations from set of three to unbounded list
 	+ Add to list of transformations
+		+ Above Average
+		+ High Volatility
 	+ Add to list of categorizations
 	+ Add complexity scores to models (idea of how long they run, for budgeting)
 
 PRIORITY 3:
 	+ Define program in packages
-	+ Implement cython where appropriate
-		+ datatree impurity calculations
-		+ most BCM calculations
 	+ Need a comprehensive Error Strategy
 		+ Define specific errors
-		? Who's raising errors where? See Database select/retrieval statements for example
 	+ Need a comprehensive Logging Strategy
 		+ Log Channeling (i.e. separate db debugging)
 
 PRIORITY 4:
+	+ Remove assert statements
 
-INDIVIDUAL FILES:
 
-EMF_DataSeriesHandle:
-#	Should we save data history internally (save DB retrieval, like in wordHistory)
-#	Implement multiple row insertion
-#	save maxDateEncountered, minDateEncountered, etc.
-#	we insert but we don't retrieve isInterpolated, isForecast
-#	Find a way to make sure that data history date/times match up (create canonical dates fn)
+LONG-TERM:
+	+ Implement Theoretical Inputter (i.e. how do we put in fall in china growth -> high oil prices)
 
-_test_EMF_DataSeriesHandle:
-#	Make cleaner
-#	Test __getFromDB/__sendToDB
+http://www.nytimes.com/2016/01/10/your-money/one-market-prediction-is-sure-wall-street-will-be-wrong.html
+inverted yield curve -> expected recession
+rising yield curve -> expected stability
+P/E above average -> market returns over next 5 years
+interest rates -> market returns over short term
 
-EMF_WordSeriesHandle:
-#	Implement multiple row insertion
-#	save maxDateEncountered, minDateEncountered, etc.
-#	Find a way to make sure that word history date/times match up (create canonical dates fn)
+geopolitical worries
+troubles in chinese markets
 
-util_EMF:
-#	Remove Main
+
+Rising USD -> Low manufacturing employment
+Low Oil Price -> Low manufacturing employment
+Quantitative Easing (Probably needs to be broken down) -> low bond yields
+Low inflation -> low bond yields
+Low expected volatility of inflation -> low bond yields
+Low commodity prices -> low bond yields
+Low bond yields -> less investor demand for bonds
+
+
+DATA HANDLE:
+	+ (Easy) Make it so data series can take series ID, as well as name and ticker 
+
+
+TIME HANDLE:
+	+ Time Handle can read data and figure out its own periodicity/range
+	+ Time Handle doesn't have to be end of month 
+	+ Time Handle only holds one type of data (e.g. datetime object or epoch)
+
+
+MODEL HANDLE:
+	+ Make it take Serial Handle Template Again
+	+ Make it take Model Template Again
+
+RESULTS HANDLE:
+	+ Make sure when you lead metadata and pickle, that same models are represented in both.
