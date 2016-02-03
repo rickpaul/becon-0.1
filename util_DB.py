@@ -53,6 +53,12 @@ def generateUpdateStatement(table, setColumns, setValues, whereColumns, whereVal
 	whereString = join(whereStatements,' and ')
 	return 'update {0} set {1} where {2};'.format(table, setString, whereString)
 
+########################################Generic Query Construction Code / Delete Code
+def generateDeleteStatement(table, whereColumns, whereValues):
+	whereStatements = [(a + '=' + stringify(b)) for (a,b) in zip(whereColumns,whereValues)]
+	whereString = join(whereStatements,' and ')
+	return 'delete from {0} where {1};'.format(table, whereString)
+
 ########################################Generic Query Construction Code / Select Code
 def generateSelectStatement(table_, 
 							selectColumns=None, selectCount=False, 
@@ -102,7 +108,6 @@ def retrieveDBStatement(cursor, statement, expectedColumnCount=1, expectedCount=
 
 	TODOS:
 	Messy. Clean up (need a comprehensive error strategy)
-	Implement select for number of columns!
 	'''	
 	log.debug('DATABASE: Attempting %s ...', statement)
 	try:
@@ -149,9 +154,15 @@ def commitDBStatement(conn, cursor, statement, failSilently=False):
 	TODO:
 				Separate returns to not have ambiguity in return
 	'''
-	log.debug('Attempting %s ...', statement)
+	log.debug('DATABASE: Attempting %s ...', statement)
 	try:
-		cursor.execute(statement)
+		if type(statement) == list:
+			for st in statement:
+				cursor.execute(st)
+		elif type(statement) == str:
+			cursor.execute(statement)
+		else:
+			raise TypeError
 		conn.commit()
 		seriesID = cursor.lastrowid
 		return (True, seriesID)
