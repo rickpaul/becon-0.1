@@ -21,36 +21,58 @@ class EMF_Transformation_Handle:
 		for t in trnsList:
 			self.__add_transformation(t)
 		self.__set_categorization(categorization)
-		self.trnsName = trnsPtrn
-		self.trnsCode = trnsCode
-		# For some reason trnsKwargs was all pointing to same dict instance,
-		# so different declarations of trns_Hndl were having inadvertent trnsKwargs
+		self._trnsName = trnsPtrn
+		self._trnsCode = trnsCode
+		# For some reason _trnsKwargs was all pointing to same dict instance,
+		# so different declarations of trns_Hndl were having inadvertent _trnsKwargs
 		# changes. Copy fixed it.
-		self.trnsKwargs = copy(trnsKwargs) 
+		self._trnsKwargs = copy(trnsKwargs) 
 
 	def __str__(self):
-		return lib_Trns.TransformationNames[self.trnsName](self.trnsKwargs)
+		return lib_Trns.TransformationNames[self._trnsName](self._trnsKwargs)
+
+	def name():
+		doc = "The name property."
+		def fget(self):
+			return self._trnsName
+		return locals()
+	name = property(**name())
+
+	def code():
+		doc = "The code property."
+		def fget(self):
+			return self._trnsCode
+		return locals()
+	code = property(**code())
+
+	def parameters():
+		doc = "The code property."
+		def fget(self):
+			return self._trnsKwargs
+		return locals()
+	parameters = property(**parameters())
 
 	def set_extra_parameter(self, name, value):
 		assert name in util_Trns.kwargDefaults
-		self.trnsKwargs[name] = value
+		self._trnsKwargs[name] = value
 
 	def transform_data(self, dataSeries):
 		'''
 		'''
 		for fn in self.dataTrnsList:
-			dataSeries = fn(dataSeries, self.trnsKwargs)
-		dataSeries = self.categorization(dataSeries, self.trnsKwargs)
-		return dataSeries
+			dataSeries = fn(dataSeries, self._trnsKwargs)[util_Trns.DATA_KEY]
+		categorizationData = self.categorization(dataSeries, self._trnsKwargs)
+		self.dataSplits = categorizationData.get(util_Trns.SPLITS_KEY,None)
+		return categorizationData[util_Trns.DATA_KEY]
 
 	# Sloppy
 	def reverse_transform_data(self, dataSeries, modifier=None):
 		for fn in reversed(self.dataTrnsList):
 			revFn = lib_Trns.TransformationReversals[fn]
 			if modifier is not None:
-				dataSeries = revFn(dataSeries, modifier, self.trnsKwargs)
+				dataSeries = revFn(dataSeries, modifier, self._trnsKwargs)[util_Trns.DATA_KEY]
 			else:
-				dataSeries = revFn(dataSeries, self.trnsKwargs)
+				dataSeries = revFn(dataSeries, self._trnsKwargs)[util_Trns.DATA_KEY]
 		return dataSeries
 
 	def prediction_is_value_dependent(self):
@@ -59,12 +81,12 @@ class EMF_Transformation_Handle:
 
 	def transform_time(self, timeHandle):
 		for fn in self.timeTrnsList:
-			fn(timeHandle, self.trnsKwargs)
+			fn(timeHandle, self._trnsKwargs)
 
 	def reverse_transform_time(self, timeHandle):
 		for fn in reversed(self.timeTrnsList):
 			revFn = lib_Trns.TimeTransformationReversals[fn]
-			revFn(timeHandle, self.trnsKwargs)
+			revFn(timeHandle, self._trnsKwargs)
 
 	def is_bounded(self):
 		return self.isBounded
@@ -73,15 +95,9 @@ class EMF_Transformation_Handle:
 		(data_trns_fn, time_trns_fn) = lib_Trns.Transformations[trns_name]
 		self.dataTrnsList.append(data_trns_fn)
 		self.timeTrnsList.append(time_trns_fn)
-		self.trnsName = trns_name
+		self._trnsName = trns_name
 
 	def __set_categorization(self, cat_name):
 		(cat_function, is_bounded) = lib_Trns.Categorizations[cat_name]
 		self.categorization = cat_function
 		self.isBounded = is_bounded
-
-	def __transform(self, function, series):
-		'''
-		'''
-		return function(series, self.trnsKwargs)
-
