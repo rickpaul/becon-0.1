@@ -19,40 +19,40 @@ class EMF_Logging_Handle:
 	def __init__(self, mode=TEMP_MODE):
 		# Get Settings
 		settings = get_EMF_settings(mode)
-		self.__recordLog = settings['recordLog']
-		self.__deleteLog = self.__recordLog and settings['deleteLog']
-		self.__recordLevel = settings['recordLevel']
+		self._recordLog = settings['recordLog']
+		self._deleteLog = self._recordLog and settings['deleteLog']
+		self._recordLevel = settings['recordLevel']
 		# Initialize Log
-		if self.__recordLog:
-			self.__logLocation = settings['logLoc']
+		if self._recordLog:
+			self._logLocation = settings['logLoc']
 			fileMode = 'wb' if not(settings['logAppend']) else 'ab'
 			log.basicConfig(format='%(asctime)s:%(levelname)s:%(message)s', 
 							datefmt='%m/%d/%Y %I:%M:%S %p',
-							filename=self.__logLocation,
+							filename=self._logLocation,
 							filemode=fileMode,
-							level=self.__recordLevel)	
+							level=self._recordLevel)	
 		else:
-			self.__logLocation = None
+			self._logLocation = None
 			log.basicConfig(format='%(asctime)s:%(levelname)s:%(message)s', 
 							datefmt='%I:%M:%S %p',
-							level=self.__recordLevel)
+							level=self._recordLevel)
 		# Declare Progress
 		log.info('Log initialized.')
-		if self.__logLocation is not None:
-			log.info('Log stored at %s.', self.__logLocation)
-			if self.__deleteLog:
+		if self._logLocation is not None:
+			log.info('Log stored at %s.', self._logLocation)
+			if self._deleteLog:
 				log.info('Log will be deleted at completion.')
 
 	def __del__(self):
-		if self.__recordLog:
-			if self.__deleteLog:
-				log.warning('Log File {} deleted'.format(self.__logLocation))
+		if self._recordLog:
+			if self._deleteLog:
+				log.warning('Log File {} deleted'.format(self._logLocation))
 				remove(self.logLoc)
 			else:
-				log.info('Log File stored in {}'.format(self.__logLocation))
+				log.info('Log File stored in {}'.format(self._logLocation))
 
 	def logLoc_(self):
-		return self.__logLocation
+		return self._logLocation
 
 	def logLevel_(self):
-		return self.__recordLevel
+		return self._recordLevel

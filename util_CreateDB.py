@@ -99,13 +99,3 @@ def create_or_connect_to_DB(mode=TEMP_MODE, manualOverride=False):
 		log.error('Database Creation Failed.')
 		raise
 	return hndl_DB
-
-#DELETABLE
-# def create_or_connect_to_DB(mode=TEMP_MODE, manualOverride=False):
-# 	# Get Settings
-# 	settings = get_EMF_settings(mode)
-# 	dbLocation = settings['dbLoc']
-# 	if __db_exists(dbLocation):
-# 		return EMF_Database_Handle(dbLocation) # Don't allow deletion here
-# 	else:
-# 		return create_DB(mode=mode, manualOverride=manualOverride)
