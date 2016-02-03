@@ -104,5 +104,13 @@ def plot_data_series(*handles):
 	from matplotlib import pyplot as plt
 	plt.figure(1)
 	for hndl in handles:
-		plt.plot(hndl.get_series_dates(), hndl.get_series_values())
+		plt.plot(hndl.dates, hndl.values)
 	plt.show()
+
+def save_plot_data_series(name, *handles):
+	from matplotlib import pyplot as plt
+	from lib_Testing import testImgDir
+	plt.figure(1)
+	for hndl in handles:
+		plt.plot(hndl.dates, hndl.values)
+	plt.save(testImgDir+name, bbox_inches='tight')
