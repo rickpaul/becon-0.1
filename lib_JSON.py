@@ -13,9 +13,10 @@ JSON_MODEL_HISTORY_SUFFIX  = 'history'
 JSON_DATE_KEY = 'dt'
 JSON_VALUE_KEY = 'vl'
 
-JSON_MODEL_ID = 'model_id'
-JSON_MODEL_CONFIDENCE = 'confidence'
-JSON_MODEL_DESC = 'model_desc'
+JSON_MODEL_ID = 'm_id'
+JSON_MODEL_CONFIDENCE = 'm_cn'
+JSON_MODEL_DESC = 'm_dsc'
+JSON_MODEL_CATS = 'm_cat'
 
 # LAMBDAS
 DATA_SERIES_TO_JSON = lambda d, v: {JSON_DATE_KEY: dt_epoch_to_str_Y_M_D(d), JSON_VALUE_KEY: float(v)}

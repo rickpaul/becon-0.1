@@ -1,5 +1,6 @@
 # EMF 		From...Import
-from 	lib_JSON 		import JSON_MODEL_ID, JSON_MODEL_CONFIDENCE, JSON_MODEL_DESC
+from 	lib_JSON 		import JSON_MODEL_ID, JSON_MODEL_CONFIDENCE
+from 	lib_JSON 		import 	JSON_MODEL_DESC, JSON_MODEL_CATS
 from 	util_Results	import get_prediction_array_path, get_results_metadata_path
 from 	util_JSON 		import save_to_JSON, load_from_JSON
 # EMF 		Import...As
@@ -10,7 +11,7 @@ import 	pandas	 		as pd
 import 	pickle
 
 
-class EMF_Results_Handle():
+class EMF_Results_Handle(object):
 	def __init__(self):
 		self.model_info = {}
 		# self.predictionFeatures = {}
@@ -18,6 +19,26 @@ class EMF_Results_Handle():
 		self.dataName = None
 		self.model_index = 1
 		self.predictionArray = None # Panda Array of size (dates)x(models)
+		self._model_scores = []
+		self._max_size = 100
+
+	def max_size():
+		doc = "The max_size property."
+		def fget(self):
+			return self._max_size
+		def fset(self, value):
+			self._max_size = value
+		return locals()
+	max_size = property(**max_size())
+
+	def model_info():
+		doc = "The model_info property."
+		def fget(self):
+			return self._model_info
+		def fset(self, value):
+			self._model_info = value
+		return locals()
+	model_info = property(**model_info())
 
 	def __del__(self):
 		self.save_prediction_array_Pickle()
@@ -52,30 +73,55 @@ class EMF_Results_Handle():
 		pred_values = np.array(pred_values)
 		return (model_idxs, pred_values)
 
-	def add_model(self, hndl_Model):
+	def delete_models(self):
+		curr_size = self.predictionArray.shape[1]
+		oversize = curr_size - self.max_size
+		if oversize > 0:
+			log.info('RESULTS: Current Predictions have {0} too many models'.format(oversize))
+			delete_scores = sorted(x, key=lambda a: a[1]) #sorts ascending
+			delete_keys = map(lambda a: a[0], delete_scores[:oversize])
+			for key_ in delete_keys:
+				log.info('RESULTS: Deleting Model #{0}'.format(key_))
+				del self.model_info[key_]
+			self._model_scores = delete_scores[oversize:]
+		else:
+			log.info('RESULTS: Predictions Array has {0} models. Max is '.format(curr_size, self.max_size))
+
+	def add_model(self, hndl_Model, dates, values, model_score):
 		assert self._resp_word is not None
-		self.__add_predictions(hndl_Model)
-		self.__add_model_metadata(hndl_Model)
+		self.__add_predictions(dates, values)
+		self.__add_model_metadata(hndl_Model, model_score)
 		self.model_index += 1
+		self.delete_models()
+		self.save_prediction_array_Pickle()
+		self.save_metadata_json()		
 
 	def get_model_metadata(self, model_idx):
 		return self.model_info[model_idx]
 
-	def __add_model_metadata(self, hndl_Model):
-		model_name = str(hndl_Model)
+	def __add_model_metadata(self, hndl_Model, model_score):
+		'''
+		TODO:
+				By accepting score from evaluate model, we're preferring more conservative models 
+					(i.e. something that predicts out 24 won't be accepted most likely.)
+					How can we sort on two dimensions?
+					Should we move __evaluate_model from runner_Model to here?
+		'''
+		# model_name = str(hndl_Model)
+		self._model_scores.append((self.model_index, model_score))
 		model_acc = hndl_Model.test_score
-		# model_desc 	= desc(hndl_Model)
+		model_desc = hndl_Model.cat_desc
+		model_categories = hndl_Model.category_importances
 		# model_start	
 		# model_end		
 		self.model_info[self.model_index] = {
 			JSON_MODEL_ID :			self.model_index, 
 			JSON_MODEL_CONFIDENCE :	model_acc, 
-			JSON_MODEL_DESC :		model_name
+			JSON_MODEL_DESC :		model_desc,
+			JSON_MODEL_CATS : 		model_categories
 		}
 
-	def __add_predictions(self, hndl_Model):
-		dates = hndl_Model.get_series_dates()
-		values = hndl_Model.get_series_values()
+	def __add_predictions(self, dates, values):
 		newValues = pd.DataFrame({self.model_index: values.ravel()}, index=dates.ravel())
 		self.predictionArray = pd.concat([self.predictionArray, newValues], axis=1, ignore_index=False)
 
