@@ -3,12 +3,11 @@
 
 # EMF 		From...Import
 from 	lib_WordSeries	 		import DATE_COL, VALUE_COL, WORD_HISTORY_DTYPE
-from 	lib_WordSeries	 		import TRANSFORMED, BASIS
 from 	template_SerialHandle 	import EMF_Serial_Handle
 from 	util_DB					import typify
 from 	util_TimeSet			import dt_now_as_epoch
-from 	util_TimeSet 			import dt_epoch_to_str_Y_M_D # Logging/Testing
-from 	util_WordSeries			import generate_Word_Series_name
+from 	util_WordSeries			import generate_Word_Series_name, generate_Word_Series_generic_desc
+from 	util_WordSeries			import generate_Word_Series_categorical_desc
 # EMF 		Import...As
 import 	lib_DBInstructions 		as lib_DBInst
 # System 	Import...As
@@ -17,29 +16,84 @@ import 	numpy 					as np
 # System 	From...Import
 from 	copy 					import deepcopy 
 
-class EMF_WordSeries_Handle(EMF_Serial_Handle):
+class EMF_WordSeries_Handle(object):
 	def __init__(self, dbHandle, dataHandle, transformationHandle):
 		self.hndl_DB = dbHandle
 		self.hndl_Data = dataHandle
 		self.hndl_Trns = transformationHandle
 		self._hndl_Time = None
-		self.wordSeriesID = lib_DBInst.retrieve_WordSeriesID(	self.hndl_DB.conn, 
+		self._wordSeriesID = lib_DBInst.retrieve_WordSeriesID(	self.hndl_DB.conn, 
 																self.hndl_DB.cursor, 
 																str(self),
 																insertIfNot=True)
 		self.__save_metadata('int_data_series_ID', self.hndl_Data.seriesID)
-		self.__save_metadata('int_transformation_hash', self.hndl_Trns.trnsCode)
+		self.__save_metadata('int_transformation_hash', self.hndl_Trns.code)
 		self.stored_values = None
 		self.stored_dates = None
 
-	def __str__(self):
-		return generate_Word_Series_name(str(self.hndl_Data), str(self.hndl_Trns))
 
 	def __load_metadata(self, column):
 		return lib_DBInst.retrieve_WordSeriesMetaData(self.hndl_DB.cursor, column, self.wordSeriesID)
 
 	def __save_metadata(self, column, value):
 		return lib_DBInst.update_WordSeriesMetaData(self.hndl_DB.conn, self.hndl_DB.cursor, column, value, self.wordSeriesID)
+
+	def __str__(self):
+		return generate_Word_Series_name(self.hndl_Data, self.hndl_Trns)
+
+	def wordSeriesID():
+		doc = "The wordSeriesID property."
+		def fget(self):
+			return self._wordSeriesID
+		return locals()
+	wordSeriesID = property(**wordSeriesID())
+
+	def dataSeriesID():
+		doc = "The dataSeriesID property."
+		def fget(self):
+			return self.hndl_Data.seriesID
+		return locals()
+	dataSeriesID = property(**dataSeriesID())
+
+	def trns_name():
+		doc = "The trns_name property."
+		def fget(self):
+			return self.hndl_Trns.name
+		return locals()
+	trns_name = property(**trns_name())
+
+	def trns_code():
+		doc = "The trns_code property."
+		def fget(self):
+			return self.hndl_Trns.code
+		return locals()
+	trns_code = property(**trns_code())
+
+	def data_name():
+		doc = "The data_name property."
+		def fget(self):
+			return self.hndl_Data.name
+		return locals()
+	data_name = property(**data_name())
+
+	def data_ticker():
+		doc = "The data_name property."
+		def fget(self):
+			return self.hndl_Data.ticker
+		return locals()
+	data_ticker = property(**data_ticker())
+
+	def desc():
+		def fget(self):
+			return generate_Word_Series_generic_desc(self.hndl_Data, self.hndl_Trns)
+		return locals()
+	desc = property(**desc())
+
+	def cat_desc():
+		def fget(self):
+			return generate_Word_Series_categorical_desc(self.hndl_Data, self.hndl_Trns)
+		return locals()
+	cat_desc = property(**cat_desc())
 
 	def min_date():
 		doc = "Minimum date post-transformation"
@@ -55,6 +109,20 @@ class EMF_WordSeries_Handle(EMF_Serial_Handle):
 		return locals()
 	max_date = property(**max_date())
 
+	def dates():
+		doc = "The dates property."
+		def fget(self):
+			return self.get_series_dates()
+		return locals()
+	dates = property(**dates())
+
+	def values():
+		doc = "The values property."
+		def fget(self):
+			return self.get_series_values()
+		return locals()
+	values = property(**values())
+
 	# Is this sloppy?
 	def hndl_Time():
 		doc = "Time Handle"
@@ -65,6 +133,27 @@ class EMF_WordSeries_Handle(EMF_Serial_Handle):
 			return self._hndl_Time
 		return locals()
 	hndl_Time = property(**hndl_Time())
+
+	def category(): #Necessary?
+		doc = "The category property."
+		def fget(self):
+			return self.hndl_Data.category
+		return locals()
+	category = property(**category())
+
+	def subcategory(): #Necessary?
+		doc = "The subcategory property."
+		def fget(self):
+			return self.hndl_Data.subcategory
+		return locals()
+	subcategory = property(**subcategory())
+
+	def category_meaning(): #Necessary?
+		doc = "The category_meaning property."
+		def fget(self):
+			return self.hndl_Data.category_meaning
+		return locals()
+	category_meaning = property(**category_meaning())
 
 	def prediction_requires_raw_data(self):
 		return self.hndl_Trns.prediction_is_value_dependent()
@@ -83,10 +172,10 @@ class EMF_WordSeries_Handle(EMF_Serial_Handle):
 	# Pretty sloppy. Should just break it up.
 	def __get_transformed_series(self, regenerate=False):
 		# If stored locally, Retrieve
-		if self.__is_stored_local() and (not regenerate):
+		if (not regenerate) and self.__is_stored_local():
 			return (self.stored_values, self.stored_dates)
 		# If stored in DB, Retrieve Words from DB
-		elif self.__is_stored_db() and (not regenerate):
+		elif (not regenerate) and self.__is_stored_db():
 			return self.__get_series_db()
 		# If not stored, Generate Words
 		else:
@@ -120,7 +209,7 @@ class EMF_WordSeries_Handle(EMF_Serial_Handle):
 		typify(bool, self.__load_metadata('bool_word_is_stored'))
 
 	def get_model_categorization(self):
-		if self.hndl_Data.get_categorical():
+		if self.hndl_Data.is_categorical:
 			if self.hndl_Trns.is_bounded:
 				return 'categorical_bounded'
 			else:
@@ -128,118 +217,61 @@ class EMF_WordSeries_Handle(EMF_Serial_Handle):
 		else:
 			return 'continuous'
 
-	# def get_raw_values(self):
+	# def __get_series_db(self):
 	# 	'''
-	# 	gets untransformed values
-	# 	TODO: 
-	# 				Can fold this into _filtered by making min_, max_ named params
-	# 	'''		
-	# 	return self.hndl_Data.get_series_values()
+	# 	CONSIDER:
+	# 				We should check for transformation complexity. 
+	# 					It may be quicker to not access the db and just regenerate.
+	# 	'''	
+	# 	series = lib_DBInst.getCompleteWordHistory_WordHistoryTable(self.hndl_DB.cursor, 
+	# 																self.wordSeriesID)
+	# 	series = np.asarray(dtype=WORD_HISTORY_DTYPE)
+	# 	values = series[VALUE_COL].reshape(-1,1)
+	# 	dates = series[DATE_COL].reshape(-1,1)
+	# 	return (values, dates)
 
-	# def get_raw_dates(self):
+	# def __save_value_db(self, date, value):
 	# 	'''
-	# 	gets untransformed dates
-	# 	TODO: 
-	# 				Can fold this into _filtered by making min_, max_ named params
+	# 	TODOS: 
+	# 				- Make a version that takes more than one value (i.e. don't have to call this repeatedly.)
 	# 	'''
-	# 	return self.hndl_Data.get_date_handle()
+	# 	return lib_DBInst.insertWordPoint_WordHistoryTable( self.hndl_DB.conn, 
+	# 														self.hndl_DB.cursor, 
+	# 														self.wordSeriesID, 
+	# 														date, 
+	# 														value)
 
-	# def get_values_transformed_filtered(self, min_, max_):
-	# 	(values, dates) = self.__get_transformed_series()
-	# 	filter_ = np.logical_and(dates>=min_, dates<=max_)
-	# 	# strMin = dt_epoch_to_str_Y_M_D(min_) # Testing/Logging
-	# 	# strMax = dt_epoch_to_str_Y_M_D(max_) # Testing/Logging
-	# 	len_ = sum(filter_) # Testing/Logging
-	# 	# log.info('{3}\t: Found {0} words from {1} to {2}'.format(len_, strMin, strMax, self))
-	# 	# strMin = dt_epoch_to_str_Y_M_D(dates[filter_][0]) # TEST: DELETE
-	# 	# strMax = dt_epoch_to_str_Y_M_D(dates[filter_][-1]) # TEST: DELETE
-	# 	# log.info('{3}\t: Found {0} words from {1} to {2}'.format(len_, strMin, strMax, self))
-	# 	return np.reshape(values[filter_], (len_, 1))
+	# def save_series_db(self):
+	# 	'''
 
-	# def get_min_date_transformed(self):
-	# 	min_ = self.hndl_Data.get_earliest_date()
-	# 	return self.hndl_Trns.transform_earliest_time(min_, periodicity)
-
-	# def get_max_date_transformed(self):
-	# 	max_ = self.hndl_Data.get_latest_date()
-	# 	return self.hndl_Trns.transform_latest_time(max_, periodicity)
-
-	# def get_min_date_basis(self): # Deletable
-	# 	return self.hndl_Data.get_earliest_date()
-
-	# def get_max_date_basis(self): # Deletable
-	# 	return self.hndl_Data.get_latest_date()
-		
-	# def get_date_limits(self, mode=TRANSFORMED):
-	# 	if mode == TRANSFORMED:
-	# 		return (self.min_date, self.min_date)
-	# 	elif mode == BASIS:
-	# 		return (self.get_min_date_basis(), self.get_max_date_basis())
+	# 	TODOS: 
+	# 				++ Deal with None values
+	# 				++ Make roll back non-automatic 
+	# 				+ Store Data on successful inserts, maxDateEncountered, etc.
+	# 	'''
+	# 	(values, dates) = self.__get_transformed_series(regenerate=True)
+	# 	successfulInserts = 0
+	# 	unsuccessfulInserts = 0
+	# 	for i in xrange(dataLen):
+	# 		success = self.__save_value_db(dates[i], values[i])
+	# 		if not success:
+	# 			log.warning('Failed to Write Historical Word Point at %s for %s [value = %f]', self.wordSeriesTicker, dates[i], values[i])
+	# 			unsuccessfulInserts += 1
+	# 			break
+	# 		else:
+	# 			successfulInserts +=1
+	# 	# Roll Back Insert If Necessary
+	# 	if unsuccessfulInserts == 0:
+	# 		self.__set_word_is_stored(True)
 	# 	else:
-	# 		raise NameError
+	# 		self.delete_word_history()
+	# 	log.info('Successfully/Unsuccessfully wrote %d/%d Historical Word Points for %s', successfulInserts, unsuccessfulInserts, self.wordSeriesTicker)
+	# 	return (successfulInserts, unsuccessfulInserts)
 
-	# def log_self(self):  # Deletable
-	# 	limits = map(dt_epoch_to_str_Y_M_D, self.get_date_limits(mode=TRANSFORMED))
-	# 	log.info('WORDSERIES : Transformed word limits: {0} to {1}'.format(*limits))
-	# 	limits = map(dt_epoch_to_str_Y_M_D, self.get_date_limits(mode=BASIS))
-	# 	log.info('WORDSET : training word limits: {0} to {1}'.format(*limits))
-
-
-	def __get_series_db(self):
-		'''
-		CONSIDER:
-					We should check for transformation complexity. 
-						It may be quicker to not access the db and just regenerate.
-		'''	
-		series = lib_DBInst.getCompleteWordHistory_WordHistoryTable(self.hndl_DB.cursor, 
-																	self.wordSeriesID)
-		series = np.asarray(dtype=WORD_HISTORY_DTYPE)
-		values = series[VALUE_COL].reshape(-1,1)
-		dates = series[DATE_COL].reshape(-1,1)
-		return (values, dates)
-
-	def __save_value_db(self, date, value):
-		'''
-		TODOS: 
-					- Make a version that takes more than one value (i.e. don't have to call this repeatedly.)
-		'''
-		return lib_DBInst.insertWordPoint_WordHistoryTable( self.hndl_DB.conn, 
-															self.hndl_DB.cursor, 
-															self.wordSeriesID, 
-															date, 
-															value)
-
-	def save_series_db(self):
-		'''
-
-		TODOS: 
-					++ Deal with None values
-					++ Make roll back non-automatic 
-					+ Store Data on successful inserts, maxDateEncountered, etc.
-		'''
-		(values, dates) = self.__get_transformed_series(regenerate=True)
-		successfulInserts = 0
-		unsuccessfulInserts = 0
-		for i in xrange(dataLen):
-			success = self.__save_value_db(dates[i], values[i])
-			if not success:
-				log.warning('Failed to Write Historical Word Point at %s for %s [value = %f]', self.wordSeriesTicker, dates[i], values[i])
-				unsuccessfulInserts += 1
-				break
-			else:
-				successfulInserts +=1
-		# Roll Back Insert If Necessary
-		if unsuccessfulInserts == 0:
-			self.__set_word_is_stored(True)
-		else:
-			self.delete_word_history()
-		log.info('Successfully/Unsuccessfully wrote %d/%d Historical Word Points for %s', successfulInserts, unsuccessfulInserts, self.wordSeriesTicker)
-		return (successfulInserts, unsuccessfulInserts)
-
-	def delete_series_db(self):
-		'''
-		deletes word history from Database
-		'''
-		raise NotImplementedError
-		self.__save_metadata(self, 'bool_word_is_stored', 0)
-		log.info('Deleting Word History for %s', self.wordSeriesTicker)
+	# def delete_series_db(self):
+	# 	'''
+	# 	deletes word history from Database
+	# 	'''
+	# 	raise NotImplementedError
+	# 	self.__save_metadata(self, 'bool_word_is_stored', 0)
+	# 	log.info('Deleting Word History for %s', self.wordSeriesTicker)

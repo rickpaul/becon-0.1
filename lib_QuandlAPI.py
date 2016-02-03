@@ -14,9 +14,11 @@ QAQuandlCSV = CSVRepository + 'QuandlDataSeries.csv'
 ProdQuandlCSV = CSVRepository + 'QuandlDataSeries.csv'
 
 QuandlCSVColumns = [
-	'category1',
-	'category2',
-	'category3',
+	'geography',
+	'geography_size',
+	'category_1',
+	'sub_category_1',
+	'category_1_meaning',
 	'source',
 	'db_name',
 	'db_ticker',
@@ -32,7 +34,7 @@ QuandlCSVColumns = [
 	'Q_PERIODICITY',
 	'UNIT_TYPE',
 	'SEASONALLY_ADJUSTED',
-	'IS_CATEGORICAL'
+	'IS_CATEGORICAL',
 	'EMF_periodicity',
 	'EMF_DataType',
 	'EMF_DataSector',
@@ -59,8 +61,8 @@ QuandlEditableColumns = [
 ######################### API CODE
 QuandlAPIKey = 'pmM4BUFqzx1FetXxbj1x'
 
-# dataURL = 'https://www.quandl.com/api/v3/datasets/{db}/{ds}/data.json?api_key={api}'
-# metaDataURL = 'https://www.quandl.com/api/v3/datasets/{db}/{ds}/metadata.json?api_key={api}'
+QuandlDataURL = 'https://www.quandl.com/api/v3/datasets/{db}/{ds}/data.json?api_key={api}'
+QuandlMetadataURL = 'https://www.quandl.com/api/v3/datasets/{db}/{ds}/metadata.json?api_key={api}'
 QuandlURL = 'https://www.quandl.com/api/v3/datasets/{db}/{ds}.json?api_key={api}'
 
 URLParameterFormats = {
@@ -78,6 +80,5 @@ URLParameterFormats = {
 URLParameterDefaults = {
 	'order': 'asc',
 	'collapse': 'monthly',
+	'start_date': '1960-01-01'
 }
-
-START_DATE = '1960-01-01'

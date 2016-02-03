@@ -6,9 +6,17 @@ from 	handle_DataSeries		import EMF_DataSeries_Handle
 from 	handle_Transformation	import EMF_Transformation_Handle
 from 	handle_WordSeries		import EMF_WordSeries_Handle
 from 	lib_DBInstructions		import TICKER, retrieve_DataSeries_Filtered, retrieve_DataSeries_All
-from 	lib_Runner_Model		import WORD_COUNT_GEOMETRIC_PARAM, MIN_WORD_COUNT
+from 	lib_DBInstructions		import insertStat_DataStatsTable, retrieveStats_DataStatsTable
+from 	lib_DBInstructions		import insertStat_WordStatsTable, retrieveStats_WordStatsTable
+from 	lib_DBInstructions		import replaceStats_DataStatsTable, replaceStats_WordStatsTable
+from 	lib_DBInstructions		import retrieve_DataSeriesTicker, retrieve_DataSeriesID, retrieveAllStats_DataStatsTable
+from 	lib_Runner_Model		import PRED_COUNT_GEOMETRIC_PARAM, PRED_COUNT_FLOOR
+from 	util_Stats				import combined_variance, combined_mean, COMBINE_VAR
+from 	util_Stats				import weighted_choice
 # System 	Import...As
 import 	logging 				as log
+import 	numpy	 				as np
+import 	pandas	 				as pd
 # System 	From...Import
 from 	numpy.random 			import geometric
 from 	random 					import choice
@@ -24,8 +32,10 @@ class EMF_WordSelector_Handle(object):
 		self._resp_trns_kwargs = {}
 		#
 		self._resp_word = None
+		self._pred_words = None
 		#
 		self._pred_data_tickers = None
+		self._pred_data_eff_array = None
 		self._pred_trns_ptrns = []
 		self._pred_trns_kwargs = {}
 		#
@@ -35,9 +45,10 @@ class EMF_WordSelector_Handle(object):
 		self._pred_data_max_date = None
 		self._pred_data_min_date = None
 		self._pred_data_is_categorical = None
+		#
 
 	def resp_can_predict():
-		doc = 'Response Word Transformation Patterns'
+		doc = 'Response Data can be Predictor Data'
 		def fget(self):
 			return self._resp_can_predict
 		def fset(self, value):
@@ -48,7 +59,7 @@ class EMF_WordSelector_Handle(object):
 	resp_can_predict = property(**resp_can_predict())
 
 	def resp_data_tickers():
-		doc = 'Response Word Transformation Patterns'
+		doc = 'Response Data Ticker'
 		def fget(self):
 			return self._resp_data_tickers
 		def fset(self, value):
@@ -57,7 +68,7 @@ class EMF_WordSelector_Handle(object):
 	resp_data_tickers = property(**resp_data_tickers())
 
 	def resp_trns_ptrns():
-		doc = 'Response Word Transformation Patterns'
+		doc = 'Predictive Word Transformation Patterns'
 		def fget(self):
 			return self._resp_trns_ptrns
 		def fset(self, value):
@@ -66,7 +77,7 @@ class EMF_WordSelector_Handle(object):
 	resp_trns_ptrns = property(**resp_trns_ptrns())
 
 	def resp_trns_kwargs():
-		doc = 'Response Word Transformation Patterns'
+		doc = ''
 		def fget(self):
 			return self._resp_trns_kwargs
 		def fset(self, value):
@@ -75,7 +86,7 @@ class EMF_WordSelector_Handle(object):
 	resp_trns_kwargs = property(**resp_trns_kwargs())
 
 	def pred_trns_kwargs():
-		doc = 'Response Word Transformation Patterns'
+		doc = ''
 		def fget(self):
 			return self._pred_trns_kwargs
 		def fset(self, value):
@@ -84,7 +95,7 @@ class EMF_WordSelector_Handle(object):
 	pred_trns_kwargs = property(**pred_trns_kwargs())
 
 	def pred_trns_ptrns():
-		doc = 'Response Word Transformation Patterns'
+		doc = ''
 		def fget(self):
 			return self._pred_trns_ptrns
 		def fset(self, value):
@@ -93,7 +104,7 @@ class EMF_WordSelector_Handle(object):
 	pred_trns_ptrns = property(**pred_trns_ptrns())
 
 	def pred_data_periodicity():
-		doc = 'Response Word Transformation Patterns'
+		doc = ''
 		def fget(self):
 			return self._pred_data_periodicity
 		def fset(self, value):
@@ -106,7 +117,7 @@ class EMF_WordSelector_Handle(object):
 	pred_data_periodicity = property(**pred_data_periodicity())
 
 	def pred_data_min_date():
-		doc = 'Response Word Transformation Patterns'
+		doc = ''
 		def fget(self):
 			return self._pred_data_min_date
 		def fset(self, value):
@@ -119,7 +130,7 @@ class EMF_WordSelector_Handle(object):
 	pred_data_min_date = property(**pred_data_min_date())
 
 	def pred_data_max_date():
-		doc = 'Response Word Transformation Patterns'
+		doc = ''
 		def fget(self):
 			return self._pred_data_max_date
 		def fset(self, value):
@@ -132,7 +143,10 @@ class EMF_WordSelector_Handle(object):
 	pred_data_max_date = property(**pred_data_max_date())
 
 	def pred_data_is_categorical():
-		doc = 'Response Word Transformation Patterns'
+		'''
+		TODO: Rename. What is this?!
+		'''
+		doc = ''
 		def fget(self):
 			return self._pred_data_is_categorical
 		def fset(self, value):
@@ -145,19 +159,21 @@ class EMF_WordSelector_Handle(object):
 	pred_data_is_categorical = property(**pred_data_is_categorical())
 
 	def pred_words():
-		doc = 'Response Word Transformation Patterns'
+		doc = 'Predictive Word Array'
 		def fget(self):
 			return self._pred_words
 		def fdel(self):
+			log.info('WORDSELECT: Removing Predictive Words')
 			self._pred_words = None
 		return locals()
 	pred_words = property(**pred_words())
 
 	def resp_word():
-		doc = 'Response Word Transformation Patterns'
+		doc = 'Response Word'
 		def fget(self):
 			return self._resp_word
 		def fdel(self):
+			log.info('WORDSELECT: Removing Response Word')
 			self._resp_word = None
 		return locals()
 	resp_word = property(**resp_word())
@@ -171,9 +187,9 @@ class EMF_WordSelector_Handle(object):
 																categorical=self._pred_data_is_categorical)
 		if not self.resp_can_predict:
 			for t in self.resp_data_tickers:
-				self.__remove_pred_data_tickers(t)
+				self.__remove_pred_data_ticker(t)
 
-	def __remove_pred_data_tickers(self, ticker):
+	def __remove_pred_data_ticker(self, ticker):
 		try: 
 			idx = self._pred_data_tickers.index(ticker)
 			del(self._pred_data_tickers[idx])
@@ -188,16 +204,28 @@ class EMF_WordSelector_Handle(object):
 			hndl_Trns.set_extra_parameter(key, val)
 		self._resp_word = EMF_WordSeries_Handle(self.hndl_DB, hndl_Data, hndl_Trns)
 		log.info('WORDSELECT: Response Word: Chose {0}.'.format(self._resp_word))
+		return self.resp_word
 
-	def select_pred_words_random(self, numWords=None):
+	def select_pred_words_effectiveness(self, numWords=None):
 		assert self._resp_word is not None
 		# Add Predictive Words
 		if self._pred_data_tickers is None:
 			self.__add_pred_data_tickers()
+		# Add Sorting Array. This whole thing is sloppy.
+		if self._pred_data_eff_array is None:
+			self.simplify_data_statistics()
+			id_list = [retrieve_DataSeriesID(self.hndl_DB.conn, self.hndl_DB.cursor, ticker=t) for t in self._pred_data_tickers] # so sloppy.
+			effectiveness = np.array(retrieveAllStats_DataStatsTable(self.hndl_DB.cursor, self._resp_word.dataSeriesID)) # should be n by 2 (seriesID, effectiveness)
+			self._pred_data_eff_array = pd.DataFrame(index=id_list)
+			new_vals = pd.DataFrame({'eff': effectiveness[:,1]}, index=effectiveness[:,0])
+			self._pred_data_eff_array = pd.concat([self._pred_data_eff_array, new_vals], axis=1, ignore_index=False)
+			self._pred_data_eff_array = self._pred_data_eff_array.sort_values(['eff'], axis=0, ascending=False, na_position='first')
+			len_ = len(self._pred_data_eff_array)
+			self._pred_data_eff_array['prob'] = xrange(len_,0,-1)
+			self._total_prob = (len_)*(len_+1)/2
 		# Select How Many Words
 		if numWords is None:
-			numWords = geometric(WORD_COUNT_GEOMETRIC_PARAM) + MIN_WORD_COUNT
-		log.info('WORDSELECT: Predictive Words: Choosing {0} words'.format(numWords))
+			numWords = geometric(PRED_COUNT_GEOMETRIC_PARAM) + PRED_COUNT_FLOOR
 		# Select Words
 		count = 0
 		chosen = {}
@@ -205,13 +233,27 @@ class EMF_WordSelector_Handle(object):
 		max_date = self._resp_word.max_date
 		while (len(chosen) < numWords) and (count < numWords*10):
 			count += 1 # Avoid Infinite Loops
-			ticker = choice(self._pred_data_tickers)
-			hndl_Data = EMF_DataSeries_Handle(self.hndl_DB, ticker=choice(self._pred_data_tickers))
+			# Select Words / Create Data Handle
+			id_ = weighted_choice(self._pred_data_eff_array['prob'].iteritems(), self._total_prob)
+			ticker = retrieve_DataSeriesTicker(self.hndl_DB.cursor, id_)
+			hndl_Data = EMF_DataSeries_Handle(self.hndl_DB, ticker=ticker)
+			# Select Words / Create Trans Handle
 			hndl_Trns = EMF_Transformation_Handle(choice(self._pred_trns_ptrns))
+			# Select Words / Create Trans Handle / Add Parameters to Trans Handle
 			for (key, valList) in self._pred_trns_kwargs.iteritems():
 				val = choice(valList)
 				hndl_Trns.set_extra_parameter(key, val)
+			# Select Words / Create Word Handle
 			hndl_Word = EMF_WordSeries_Handle(self.hndl_DB, hndl_Data, hndl_Trns)
+			# Select Words / Ensure Word Validity
+			# Select Words / Ensure Word Validity / Make sure Word Isn't Response Word
+			wordName = str(hndl_Word)
+			if wordName == str(self._resp_word):
+				continue
+			# Select Words / Ensure Word Validity / Make sure Word Isn't Already Taken
+			if wordName in chosen:
+				continue
+			# Select Words / Ensure Word Validity / Make sure Dates Don't Conflict
 			min_challenger = hndl_Word.min_date
 			if min_challenger >= max_date:
 				continue
@@ -220,9 +262,99 @@ class EMF_WordSelector_Handle(object):
 				continue
 			min_date = max(min_date, min_challenger)
 			max_date = min(max_date, max_challenger)
-			wordName = str(hndl_Word)
+			# Select Words / Add Word to Set
 			chosen[wordName] = hndl_Word
 			log.info('WORDSELECT: Predictive Words: Chose {0}'.format(wordName)) # TEST: Delete
-		log.info('WORDSELECT:Predictive Words: Chose {0}'.format(chosen.keys()))
+		log.info('WORDSELECT: Predictive Words: Chose {0}'.format(chosen.keys()))
 		self._pred_words = chosen.values()
+		return self.pred_words
 
+	def select_pred_words_random(self, numWords=None):
+		assert self._resp_word is not None
+		# Add Predictive Words
+		if self._pred_data_tickers is None:
+			self.__add_pred_data_tickers()
+		# Select How Many Words
+		if numWords is None:
+			numWords = geometric(PRED_COUNT_GEOMETRIC_PARAM) + PRED_COUNT_FLOOR
+		log.info('WORDSELECT: Predictive Words: Choosing {0} words'.format(numWords))
+		# Select Words
+		count = 0
+		chosen = {}
+		min_date = self._resp_word.min_date
+		max_date = self._resp_word.max_date
+		while (len(chosen) < numWords) and (count < numWords*10):
+			count += 1 # Avoid Infinite Loops
+			# Select Words / Create Data Handle
+			hndl_Data = EMF_DataSeries_Handle(self.hndl_DB, ticker=choice(self._pred_data_tickers))
+			# Select Words / Create Trans Handle
+			hndl_Trns = EMF_Transformation_Handle(choice(self._pred_trns_ptrns))
+			# Select Words / Create Trans Handle / Add Parameters to Trans Handle
+			for (key, valList) in self._pred_trns_kwargs.iteritems():
+				val = choice(valList)
+				hndl_Trns.set_extra_parameter(key, val)
+			# Select Words / Create Word Handle
+			hndl_Word = EMF_WordSeries_Handle(self.hndl_DB, hndl_Data, hndl_Trns)
+			# Select Words / Ensure Word Validity
+			# Select Words / Ensure Word Validity / Make sure Word Isn't Response Word
+			wordName = str(hndl_Word)
+			if wordName == str(self._resp_word):
+				continue
+			# Select Words / Ensure Word Validity / Make sure Word Isn't Already Taken
+			if wordName in chosen:
+				continue
+			# Select Words / Ensure Word Validity / Make sure Dates Don't Conflict
+			min_challenger = hndl_Word.min_date
+			if min_challenger >= max_date:
+				continue
+			max_challenger = hndl_Word.max_date
+			if max_challenger <= min_date:
+				continue
+			min_date = max(min_date, min_challenger)
+			max_date = min(max_date, max_challenger)
+			# Select Words / Add Word to Set
+			chosen[wordName] = hndl_Word
+			log.info('WORDSELECT: Predictive Words: Chose {0}'.format(wordName)) # TEST: Delete
+		log.info('WORDSELECT: Predictive Words: Chose {0}'.format(chosen.keys()))
+		self._pred_words = chosen.values()
+		return self.pred_words
+
+	def save_word_statistics(self, scores):
+		respID = self.resp_word.wordSeriesID
+		for (hndl_Word, score) in zip(self.pred_words, scores):
+			predID = hndl_Word.wordSeriesID
+			insertStat_WordStatsTable(self.hndl_DB.conn, self.hndl_DB.cursor, 
+									  respID, predID, score)
+
+	def simplify_word_statistics(self):
+		'''
+		'''
+		respID = self.resp_word.wordSeriesID
+		for hndl_Word in self.pred_words:
+			predID = hndl_Word.wordSeriesID
+			results = retrieveStats_WordStatsTable(self.hndl_DB.cursor, respID, predID)
+			if results is not None and len(results) > 1:
+				(mean_, var_, len_) = reduce(COMBINE_VAR, results)
+				replaceStats_WordStatsTable(self.hndl_DB.conn, self.hndl_DB.cursor, 
+											 respID, predID, 
+											 mean_, var_, len_)
+
+	def save_data_statistics(self, scores):
+		respID = self.resp_word.dataSeriesID
+		for (hndl_Word, score) in zip(self.pred_words, scores):
+			predID = hndl_Word.dataSeriesID
+			insertStat_DataStatsTable(self.hndl_DB.conn, self.hndl_DB.cursor, 
+									  respID, predID, score)
+
+	def simplify_data_statistics(self):
+		'''
+		'''
+		respID = self.resp_word.dataSeriesID
+		for ticker in self._pred_data_tickers:
+			predID = retrieve_DataSeriesID(self.hndl_DB.conn, self.hndl_DB.cursor, ticker=ticker)
+			results = retrieveStats_DataStatsTable(self.hndl_DB.cursor, respID, predID)
+			if results is not None and len(results) > 1:
+				(mean_, var_, len_) = reduce(COMBINE_VAR, results)
+				replaceStats_DataStatsTable(self.hndl_DB.conn, self.hndl_DB.cursor, 
+											 respID, predID, 
+											 mean_, var_, len_)

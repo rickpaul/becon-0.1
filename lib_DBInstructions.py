@@ -1,5 +1,5 @@
 # TODO:
-#	Refactor to combine shorter functions
+#	Why do minDate and maxDate exist?
 
 # EMF 		From...Import
 from 	lib_CreateDB 	import DataColumnTableLink, WordColumnTableLink, DataColumnTableLink
@@ -9,14 +9,15 @@ import 	util_DB 			as DB_util
 import 	logging 			as log
 # System 	From...Import
 
-TICKER = 861256 # Random
-ID = 427699 # Random
+TICKER = 'T'
+ID = 'ID'
 
 ####################################### DATA SERIES + METADATA TABLE
 # DATA SERIES TICKER GET FILTERED
 def retrieve_DataSeries_Filtered(	cursor, 
 									column=ID,
 									minDate=None, maxDate=None, 
+									atLeastMinDate=None, atLeastMaxDate=None, 
 									periodicity=None, categorical=None,
 									limit_=None, order_=False):
 	leftTable = 'T_DATA_SERIES'
@@ -34,9 +35,19 @@ def retrieve_DataSeries_Filtered(	cursor,
 	wC = []
 	wV = []
 	wO = []
-	args = [minDate, maxDate, periodicity, categorical]
-	cols = ['dt_min_data_date', 'dt_max_data_date', 'code_local_periodicity', 'bool_data_is_categorical']
-	ops = ['>=', '<=', '=', '=']
+	args = [minDate, 
+			maxDate, 
+			atLeastMinDate, 
+			atLeastMaxDate, 
+			periodicity, 
+			categorical]
+	cols = ['dt_min_data_date', 
+			'dt_max_data_date', 
+			'dt_min_data_date', 
+			'dt_max_data_date', 
+			'code_local_periodicity', 
+			'bool_data_is_categorical']
+	ops = ['>=', '<=', '<=', '>=', '=', '=']
 	for (arg, col, op) in zip(args, cols, ops):
 		if arg is not None:
 			wT.append(DataColumnTableLink[col])
@@ -94,12 +105,12 @@ def __get_insert_DataSeriesID_Statement(name, ticker):
 	columns = ['txt_data_name', 'txt_data_ticker']
 	values = [name, ticker]
 	return DB_util.generateInsertStatement(table, columns, values)
-def __get_insert_DataSeriesID_Metadata(seriesID, periodicity):
+def __get_insert_DataSeriesID_Metadata(seriesID):
 	table = 'T_DATA_SERIES_METADATA'
-	columns = ['int_data_series_ID', 'code_local_periodicity']
-	values = [seriesID, periodicity]
+	columns = ['int_data_series_ID']
+	values = [seriesID]
 	return DB_util.generateInsertStatement(table, columns, values)
-def retrieve_DataSeriesID(conn, cursor, name=None, ticker=None, periodicity=None, insertIfNot=False):
+def retrieve_DataSeriesID(conn, cursor, name=None, ticker=None, insertIfNot=False):
 	'''
 	
 	'''
@@ -111,12 +122,11 @@ def retrieve_DataSeriesID(conn, cursor, name=None, ticker=None, periodicity=None
 		if insertIfNot:
 			assert name is not None
 			assert ticker is not None
-			assert periodicity is not None
 			log.info('DATABASE: Series ID Not Found for %s... Creating.', ticker)
 			statement = __get_insert_DataSeriesID_Statement(name, ticker)
 			(success, rowID_or_Error) = DB_util.commitDBStatement(conn, cursor, statement)
 			if success:
-				statement = __get_insert_DataSeriesID_Metadata(rowID_or_Error, periodicity)
+				statement = __get_insert_DataSeriesID_Metadata(rowID_or_Error)
 				(success, rowID_or_Error) = DB_util.commitDBStatement(conn, cursor, statement)
 				return rowID_or_Error # a row ID
 			else:
@@ -124,6 +134,21 @@ def retrieve_DataSeriesID(conn, cursor, name=None, ticker=None, periodicity=None
 				raise Exception('Series ID Failed to be Created')
 		else:
 			return None
+def __get_retrieve_DataSeriesTicker_Statement(seriesID):
+	table = 'T_DATA_SERIES'
+	sC = ['txt_data_ticker']
+	wC = ['int_data_series_ID']
+	wV = [seriesID]
+	wO = ['=']
+	return DB_util.generateSelectStatement(	table, 
+											whereColumns=wC, 
+											whereValues=wV, 
+											whereOperators=wO,
+											selectColumns=sC)
+def retrieve_DataSeriesTicker(cursor, seriesID):
+	statement = __get_retrieve_DataSeriesTicker_Statement(seriesID)
+	(success, results) = DB_util.retrieveDBStatement(cursor, statement, expectedColumnCount=1, expectedCount=1)
+	return results
 
 ####################################### DATA SERIES METADATA TABLE
 # DATA SERIES METADATA RETRIEVAL/INSERTION
@@ -305,13 +330,136 @@ def getCompleteWordHistory_WordHistoryTable(cursor, seriesID):
 ####################################### WORD STATS TABLE
 
 # WORD STAT INSERTION
-def __get_insertStat_WordStatsTable_Statement(indSeriesID, depSeriesID, depFeatureImportance):
+def __get_insertStat_WordStatsTable_Statement(resp_word_ID, pred_word_ID, pred_feature_importance, stat_variance, stat_count):
 	table = 'T_WORD_STATISTICS'
-	columns = ['int_word_ind_var_id', 'int_word_dep_var_id', 'adj_dep_feature_importance']
-	values = [indSeriesID, depSeriesID, depFeatureImportance]
+	columns = ['int_word_rsp_var_id', 'int_word_prd_var_id', 'adj_prd_feature_importance', 'flt_feat_imp_variance', 'int_feat_imp_count']
+	values = [resp_word_ID, pred_word_ID, pred_feature_importance, stat_variance, stat_count]
 	return DB_util.generateInsertStatement(table, columns, values)
-def insertStat_WordStatsTable(conn, cursor, indSeriesID, depSeriesID, depFeatureImportance):
-	statement = __get_insertStat_WordStatsTable_Statement(indSeriesID, depSeriesID, depFeatureImportance)
+def insertStat_WordStatsTable(conn, cursor, resp_word_ID, pred_word_ID, pred_feature_importance, stat_variance=0, stat_count=1):
+	statement = __get_insertStat_WordStatsTable_Statement(resp_word_ID, pred_word_ID, pred_feature_importance, stat_variance, stat_count)
 	(success, err) = DB_util.commitDBStatement(conn, cursor, statement, failSilently=True)
 	return success
 
+# WORD STAT RETRIEVAL
+def __get_retrieve_Stat_WordStatsTable_Statement(resp_word_ID, pred_word_ID):
+	table = 'T_WORD_STATISTICS'
+	wC = ['int_word_rsp_var_id', 'int_word_prd_var_id']
+	wV = [resp_word_ID, pred_word_ID]
+	wO = ['=']*len(wC)
+	sC = ['adj_prd_feature_importance', 'flt_feat_imp_variance', 'int_feat_imp_count']
+	return DB_util.generateSelectStatement(	table, 
+											whereColumns=wC, 
+											whereValues=wV, 
+											whereOperators=wO,
+											selectColumns=sC)
+def retrieveStats_WordStatsTable(cursor, resp_word_ID, pred_word_ID):
+	statement = __get_retrieve_Stat_WordStatsTable_Statement(resp_word_ID, pred_word_ID)
+	(success, results) = DB_util.retrieveDBStatement(cursor, statement, expectedColumnCount=3, expectedCount=None)
+	return results # Don't care about success. If not successful, will fail with error
+
+
+# WORD STAT REPLACEMENT
+def __get_deleteStats_WordStatsTable_Statement(resp_word_ID, pred_word_ID):
+	table = 'T_WORD_STATISTICS'
+	wC = ['int_word_rsp_var_id', 'int_word_prd_var_id']
+	wV = [resp_word_ID, pred_word_ID]
+	return DB_util.generateDeleteStatement(table, wC, wV)
+def replaceStats_WordStatsTable(conn, cursor, resp_word_ID, pred_word_ID, pred_feature_importance, stat_variance, stat_count):
+	insert_statement = __get_insertStat_WordStatsTable_Statement(resp_word_ID, pred_word_ID, pred_feature_importance, stat_variance, stat_count)
+	delete_statement = __get_deleteStats_WordStatsTable_Statement(resp_word_ID, pred_word_ID)
+	statement = [delete_statement, insert_statement]
+	(success, err) = DB_util.commitDBStatement(conn, cursor, statement, failSilently=True)
+	return success
+
+####################################### MODEL STATS TABLE
+
+# MODEL STAT INSERTION
+def __get_insertStat_ModelStatsTable_Statement(resp_word_ID, model_ID, model_score, stat_variance, stat_count):
+	table = 'T_MODEL_STATISTICS'
+	columns = ['int_word_rsp_var_id', 'int_model_id', 'flt_model_score', 'flt_score_variance', 'int_score_count']
+	values = [resp_word_ID, model_ID, model_score, stat_variance, stat_count]
+	return DB_util.generateInsertStatement(table, columns, values)
+def insertStat_ModelStatsTable(conn, cursor, resp_word_ID, model_ID, model_score, stat_variance=0, stat_count=1):
+	statement = __get_insertStat_ModelStatsTable_Statement(resp_word_ID, pred_word_ID, pred_feature_importance, stat_variance, stat_count)
+	(success, err) = DB_util.commitDBStatement(conn, cursor, statement, failSilently=True)
+	return success
+
+# MODEL STAT RETRIEVAL
+def __get_retrieve_Stat_ModelStatsTable_Statement(resp_word_ID, model_ID):
+	table = 'T_MODEL_STATISTICS'
+	wC = ['int_word_rsp_var_id', 'int_model_id']
+	wV = [resp_word_ID, model_ID]
+	wO = ['=']*len(wC)
+	sC = ['flt_model_score', 'flt_score_variance', 'int_score_count']
+	return DB_util.generateSelectStatement(	table, 
+											whereColumns=wC, 
+											whereValues=wV, 
+											whereOperators=wO,
+											selectColumns=sC)
+def retrieveStats_ModelStatsTable(cursor, resp_word_ID, model_ID):
+	statement = __get_retrieve_Stat_ModelStatsTable_Statement(resp_word_ID, model_ID)
+	(success, results) = DB_util.retrieveDBStatement(cursor, statement, expectedColumnCount=3, expectedCount=None)
+	return results # Don't care about success. If not successful, will fail with error
+
+
+####################################### DATA STATS TABLE
+
+# DATA STAT INSERTION
+def __get_insertStat_DataStatsTable_Statement(resp_data_ID, pred_data_ID, pred_feature_importance, stat_variance, stat_count):
+	table = 'T_DATA_STATISTICS'
+	columns = ['int_data_rsp_var_id', 'int_data_prd_var_id', 'adj_prd_feature_importance', 'flt_feat_imp_variance', 'int_feat_imp_count']
+	values = [resp_data_ID, pred_data_ID, pred_feature_importance, stat_variance, stat_count]
+	return DB_util.generateInsertStatement(table, columns, values)
+def insertStat_DataStatsTable(conn, cursor, resp_data_ID, pred_data_ID, pred_feature_importance, stat_variance=0, stat_count=1):
+	statement = __get_insertStat_DataStatsTable_Statement(resp_data_ID, pred_data_ID, pred_feature_importance, stat_variance, stat_count)
+	(success, err) = DB_util.commitDBStatement(conn, cursor, statement, failSilently=True)
+	return success
+
+# DATA STAT RETRIEVAL
+def __get_retrieve_Stat_DataStatsTable_Statement(resp_data_ID, pred_data_ID):
+	table = 'T_DATA_STATISTICS'
+	wC = ['int_data_rsp_var_id', 'int_data_prd_var_id']
+	wV = [resp_data_ID, pred_data_ID]
+	wO = ['=']*len(wC)
+	sC = ['adj_prd_feature_importance', 'flt_feat_imp_variance', 'int_feat_imp_count']
+	return DB_util.generateSelectStatement(	table, 
+											whereColumns=wC, 
+											whereValues=wV, 
+											whereOperators=wO,
+											selectColumns=sC)
+def retrieveStats_DataStatsTable(cursor, resp_data_ID, pred_data_ID):
+	statement = __get_retrieve_Stat_DataStatsTable_Statement(resp_data_ID, pred_data_ID)
+	(success, results) = DB_util.retrieveDBStatement(cursor, statement, expectedColumnCount=3, expectedCount=None)
+	return results # Don't care about success. If not successful, will fail with error
+
+# DATA STAT REPLACEMENT
+def __get_deleteStats_DataStatsTable_Statement(resp_data_ID, pred_data_ID):
+	table = 'T_DATA_STATISTICS'
+	wC = ['int_data_rsp_var_id', 'int_data_prd_var_id']
+	wV = [resp_data_ID, pred_data_ID]
+	return DB_util.generateDeleteStatement(table, wC, wV)
+def replaceStats_DataStatsTable(conn, cursor, resp_data_ID, pred_data_ID, pred_feature_importance, stat_variance, stat_count):
+	insert_statement = __get_insertStat_DataStatsTable_Statement(resp_data_ID, pred_data_ID, pred_feature_importance, stat_variance, stat_count)
+	delete_statement = __get_deleteStats_DataStatsTable_Statement(resp_data_ID, pred_data_ID)
+	statement = [delete_statement, insert_statement]
+	(success, err) = DB_util.commitDBStatement(conn, cursor, statement, failSilently=True)
+	return success
+
+# DATA STAT RETRIEVAL
+def __get_retrieveAllStats_DataStatsTable_Statement(resp_data_ID):
+	table = 'T_DATA_STATISTICS'
+	wC = ['int_data_rsp_var_id']
+	wV = [resp_data_ID]
+	wO = ['=']
+	sC = ['int_data_prd_var_id', 'adj_prd_feature_importance']
+	oC = (['adj_prd_feature_importance'],'desc')
+	return DB_util.generateSelectStatement(	table, 
+											whereColumns=wC, 
+											whereValues=wV, 
+											whereOperators=wO,
+											selectColumns=sC,
+											order_=oC)
+def retrieveAllStats_DataStatsTable(cursor, resp_data_ID):
+	statement = __get_retrieveAllStats_DataStatsTable_Statement(resp_data_ID)
+	(success, results) = DB_util.retrieveDBStatement(cursor, statement, expectedColumnCount=2, expectedCount=None)
+	return results # Don't care about success. If not successful, will fail with error
