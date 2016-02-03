@@ -22,16 +22,23 @@ class EMF_Testing_Handle:
 		del self.hndl_DB
 		del self.hndl_Log
 
+	def set_seed_override(self, seed=None):
+		if seed is None:
+			seed = np.random.randint(9999)
+		log.warning('Setting Sandom Seed: {0}'.format(seed))
+		np.random.seed(seed=seed)
+
+
 	def insert_test_data(self, dates, values, tickers, periodicity=1, categorical=None):
 		for (i, t) in enumerate(tickers):
 			try:
 				values = values[:,i]
 			except IndexError:
 				values = values
-			hndl_Data = EMF_DataSeries_Handle(self.hndl_DB, name=t, ticker=t, periodicity=periodicity, insertIfNot=True)
+			hndl_Data = EMF_DataSeries_Handle(self.hndl_DB, name=t, ticker=t, insertIfNot=True)
 			if categorical is not None:
-				hndl_Data.set_categorical(categorical[i])	
-			hndl_Data.set_periodicity(periodicity)
+				hndl_Data.is_categorical = categorical[i]
+			hndl_Data.periodicity = periodicity
 			hndl_Data.save_series_db(dates, values)
 
 	def retrieve_test_word(self, ticker, transPattern):
