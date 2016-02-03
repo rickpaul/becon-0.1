@@ -8,8 +8,8 @@
 # 	Get metadata first; only download if necessary
 
 # EMF 		From...Import
-from	util_EMF 		import dt_str_YYYY_MM_DD_to_epoch as YMD_to_epoch
-from	util_EMF 		import str_YYYY_MM_DD_is_end_of_month as YMD_is_EoM
+from	util_TimeSet 	import dt_str_Y_M_D_to_epoch as YMD_to_epoch
+from	util_TimeSet 	import str_Y_M_D_is_end_of_month as YMD_is_EoM
 # EMF 		Import...As
 import 	lib_QuandlAPI 	as lib_quandl
 # System 	Import...As
@@ -51,14 +51,14 @@ class EMF_QuandlAPI_Handle:
 	def get_data(self, columnName=None, saveHistoryLocal=False):
 		'''
 		RETURNS:
-					<NONE>
+					<TUPLE>(dates, values, metadata) 
 		TODO:
 					+How do you know if data is interpolated or forecast?
 					-Add Logging
 		-'''
 		try:
 			# Get Data
-			url = self.__get_parameterized_URL()
+			url = self.__get_parameterized_URL(url=lib_quandl.QuandlURL)
 			queryJSON = self.__retrieve_data(url)
 			# Parse Data
 			metadata = self.__parse_JSON_metadata(queryJSON)
@@ -69,8 +69,34 @@ class EMF_QuandlAPI_Handle:
 			# Return
 			metadata['ERROR'] = self.error
 			return (dates, values, metadata)
-		except:
-			return ([],[], {'ERROR':'UNCAUGHT ERROR'})
+		except Exception, e:
+			log.error('QUANDL: {0}'.format(e))
+			return ([],[], {'ERROR':'UNCAUGHT LOCAL ERROR'})
+
+	def get_metadata(self, saveHistoryLocal=False):
+		'''
+		RETURNS:
+					<NONE>
+		TODO:
+					+How do you know if data is interpolated or forecast?
+					-Add Logging
+		-'''
+		raise NotImplementedError
+		try:
+			# Get Data
+			url = self.__get_parameterized_URL(url=lib_quandl.QuandlMetadataURL)
+			queryJSON = self.__retrieve_data(url)
+			# Parse Data
+			metadata = self.__parse_JSON_metadata(queryJSON)
+			# Save Local
+			if saveHistoryLocal:
+				self.metadata = metadata
+			# Return
+			metadata['ERROR'] = self.error
+			return metadata
+		except Exception, e:
+			log.error('QUANDL: {0}'.format(e))
+			return ({'ERROR':'UNCAUGHT LOCAL ERROR'})
 
 	def __get_parameterized_URL(self, url=lib_quandl.QuandlURL):
 		tempDict = {}
@@ -115,7 +141,7 @@ class EMF_QuandlAPI_Handle:
 		assert numCols > 0
 		if numCols != 2:
 			if (columnName is None) or (columnName not in columns):
-				log.warning('More than one column detected for data download. Using First Column')
+				log.warning('QUANDL: More than one column detected for data download. Using First Column')
 				columnIndex = 1
 				self.error = 'Multiple Column Error'
 			else:
@@ -129,8 +155,8 @@ class EMF_QuandlAPI_Handle:
 		numRows = len(dataset)
 		for row in dataset:
 			if not YMD_is_EoM(row[0]):
-				log.warning('Date {0} not End of Month.'.format(row[0]))
-			dates.append(YMD_to_epoch(row[0], endOfMonth=True))
+				log.warning('QUANDL: Date {0} not End of Month.'.format(row[0]))
+			dates.append(YMD_to_epoch(row[0]))
 			values.append(row[columnIndex])
 		# originalDates = np.asarray(originalDates)
 		dates = np.asarray(dates)
