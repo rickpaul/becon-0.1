@@ -15,6 +15,7 @@ Transformations = {
 	'Level_Future': 		(util_Trns.transform_None, 						util_Trns.timeSeriesTransform_ShiftPast,),
 	'FOD_Past': 			(util_Trns.transform_FOD_BackwardLooking, 		util_Trns.timeSeriesTransform_TruncatePast,),
 	'FOD_Future': 			(util_Trns.transform_FOD_ForwardLooking, 		util_Trns.timeSeriesTransform_TruncateFuture,),
+	# 'Trailing_Vol': 		(util_Trns., 		util_Trns.timeSeriesTransform_TruncatePast,),
 	'NormDistLocation': 	(util_Trns.transform_NormalDistributionZScore, 	util_Trns.timeSeriesTransform_None,),
 }
 TransformationKeys = Transformations.keys()
@@ -60,6 +61,8 @@ TransformationPatterns = {
 	# 'Futr_Acc': 				(19, ('Logarithm', 'FOD_Future'), 'None'),
 	# 'Futr_Acc_Cat': 			(20, ('Logarithm', 'FOD_Future'), 'uniformLengthRange'),
 	# 'Futr_Acc_NormRd':			(21, ('Logarithm', 'FOD_Future','NormDistLocation'), 'Int_Round'),
+
+	# 'High_Vol': 				(22, )
 }
 TransformationPatternsKeys = TransformationPatterns.keys()
 
@@ -77,9 +80,9 @@ TransformationNames = {
 	'Past_Change_Cat': 			util_Trns.transformStr_PastDiffCat,
 	'Past_Change_NormRd': 		util_Trns.transformStr_PastDiffNormRd,
 
-	# 'Past_Acc': 				(4, ('Logarithm', 'FOD_Past'), 'None'),
-	# 'Past_Acc_Cat': 			(5, ('Logarithm', 'FOD_Past'), 'uniformLengthRange'),
-	# 'Past_Acc_NormRd':			(6, ('Logarithm', 'FOD_Past','NormDistLocation'), 'Int_Round'),
+	# 'Past_Acc': 				None,
+	# 'Past_Acc_Cat': 			None,
+	# 'Past_Acc_NormRd':		None,
 
 	'Current_Lvl_Cat': 			util_Trns.transformStr_Cat,
 	'Current_Lvl_NormRd': 		util_Trns.transformStr_NormRd,
@@ -96,9 +99,9 @@ TransformationNames = {
 	'Futr_Change_Cat': 			util_Trns.transformStr_FutrDiffCat,
 	'Futr_Change_NormRd': 		util_Trns.transformStr_FutrDiffNormRd,
 
-	# 'Futr_Acc': 				(19, ('Logarithm', 'FOD_Future'), 'None'),
-	# 'Futr_Acc_Cat': 			(20, ('Logarithm', 'FOD_Future'), 'uniformLengthRange'),
-	# 'Futr_Acc_NormRd':			(21, ('Logarithm', 'FOD_Future','NormDistLocation'), 'Int_Round'),
+	# 'Futr_Acc': 				None,
+	# 'Futr_Acc_Cat': 			None,
+	# 'Futr_Acc_NormRd':		None,
 }
 
 TransformationReversals = {
@@ -119,10 +122,27 @@ TimeTransformationReversals = {
 	util_Trns.timeSeriesTransform_TruncateFuture: 	util_Trns.timeSeriesTransform_ShiftFuture,
 }
 
+TransformationDescs = {
+	'None': 					(util_Trns.gen_desc_None, util_Trns.spec_desc_None),
+	
+	'Past_Change': 				(util_Trns.gen_desc_PastDiff, util_Trns.spec_desc_PastDiff),
+	'Past_Change_Cat': 			(util_Trns.gen_desc_PastDiffCat, util_Trns.spec_desc_PastDiffCat),
+	'Past_Change_NormRd': 		(util_Trns.gen_desc_PastDiffNormRd, util_Trns.spec_desc_PastDiffNormRd),
+
+	'Current_Lvl_Cat': 			(util_Trns.gen_desc_Cat, util_Trns.spec_desc_Cat),
+	'Current_Lvl_NormRd': 		(util_Trns.gen_desc_NormRd, util_Trns.spec_desc_NormRd),
+
+	'Past_Lvl': 				(util_Trns.gen_desc_PastLvl, util_Trns.spec_desc_PastLvl),
+	'Past_Lvl_Cat': 			(util_Trns.gen_desc_PastLvlCat, util_Trns.spec_desc_PastLvlCat),
+	'Past_Lvl_NormRd': 			(util_Trns.gen_desc_PastLvlNormRd, util_Trns.spec_desc_PastLvlNormRd),
+
+	'Futr_Lvl': 				(util_Trns.gen_desc_FutrLvl, util_Trns.spec_desc_FutrLvl),
+	'Futr_Lvl_Cat': 			(util_Trns.gen_desc_FutrLvlCat, util_Trns.spec_desc_FutrLvlCat),
+	'Futr_Lvl_NormRd': 			(util_Trns.gen_desc_FutrLvlNormRd, util_Trns.spec_desc_FutrLvlNormRd),
+	
+	'Futr_Change': 				(util_Trns.gen_desc_FutrDiff, util_Trns.spec_desc_FutrDiff),
+	'Futr_Change_Cat': 			(util_Trns.gen_desc_FutrDiffCat, util_Trns.spec_desc_FutrDiffCat),
+	'Futr_Change_NormRd': 		(util_Trns.gen_desc_FutrDiffNormRd, util_Trns.spec_desc_FutrDiffNormRd),
+}
 
 
-# HASHING CONSTANTS
-# MAX_NUM_TRANSFORMATIONS = 100 	# power of 10 for easy hashing
-# MAX_NUM_CATEGORIZATIONS = 100	# power of 10 for easy hashing
-# TRANSFORMATION RANDOMIZATION CONSTANTS
-# MAX_TRANSFORMATIONS = 5

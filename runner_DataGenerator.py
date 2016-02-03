@@ -1,16 +1,21 @@
 #TODO:
 #	This is kind of a stand-in until we get the transformations fully developed.
+#	Change this into a util/main
 
 # EMF 		From...Import
 from 	handle_DataSeries		import EMF_DataSeries_Handle
 from 	handle_WordSeries 		import EMF_WordSeries_Handle
 from 	util_Transformation 	import transform_TimeSinceValue, transform_TimeToValue
+from 	util_Transformation 	import TIME_SINCE_VALUE, TIME_TO_VALUE, DATA_KEY
 from 	lib_EMF					import TEMP_MODE, TEST_MODE
 from 	util_DB 	 			import connect_to_DB
 
 class EMF_DataGenerator_Runner:
 	def __init__(self, DBHandle):
 		self.hndl_DB = DBHandle
+
+	def insert_time_to_peak(self):
+		raise NotImplementedError
 
 	def insert_time_to_recession(self):
 		# Get Data Read
@@ -23,24 +28,24 @@ class EMF_DataGenerator_Runner:
 												insertIfNot=True)
 		data = hndl_Data_Read.get_series_values()
 		dates = hndl_Data_Read.get_series_dates()
-		trns_Data = transform_TimeToValue(data, {'value': 1})
+		trns_Data = transform_TimeToValue(data, {TIME_TO_VALUE: 1})[DATA_KEY]
 		count = self.find_time_to_recession_limits(trns_Data)
 		trns_Data = trns_Data[:-count]
 		trns_Dates = dates[:-count]
 		hndl_Data_Wrte.save_series_db(trns_Dates, trns_Data)
-
+		hndl_Data_Wrte.periodicity = hndl_Data_Read.periodicity
 		# Insert Time Since
-
 		hndl_Data_Wrte = EMF_DataSeries_Handle(	self.hndl_DB, 
 												name='Months since Last Recession', 
 												ticker='US_TimeSinceRec',
 												insertIfNot=True)
 		
-		trns_Data = transform_TimeSinceValue(data, {'value': 1})
+		trns_Data = transform_TimeSinceValue(data, {TIME_SINCE_VALUE: 1})[DATA_KEY]
 		count = self.find_time_since_recession_limits(trns_Data)
 		trns_Data = trns_Data[count:]
 		trns_Dates = dates[count:]
 		hndl_Data_Wrte.save_series_db(trns_Dates, trns_Data)		
+		hndl_Data_Wrte.periodicity = hndl_Data_Read.periodicity
 
 	def find_time_since_recession_limits(self, data):
 		count = 0

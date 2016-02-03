@@ -1,3 +1,6 @@
+# TODO:
+# 		This shouldn't be a handle. Fold into util_Test
+
 # EMF 		From...Import
 from 	lib_JSON			import DATA_SERIES_TO_JSON
 from 	lib_JSON			import JSON_DATE_KEY, JSON_VALUE_KEY, JSON_MODEL_ID
@@ -10,6 +13,7 @@ from 	util_JSON			import save_to_JSON
 # EMF 		Import...As
 import 	util_Testing 		as util_Tst
 # System 	Import...As
+import 	util_Transformation as utl_Trns
 # System 	From...Import
 from 	math 				import sqrt
 from 	numpy 				import std as np_std
@@ -30,7 +34,7 @@ class EMF_TestDataGenerator:
 		vals = series['data']
 		json_history = [DATA_SERIES_TO_JSON(d,v) for (d,v) in zip(dt, vals)]
 		# Generate Predictions
-		std = np_std(transform_FOD_BackwardLooking(vals,{'PeriodDiff':1}))
+		std = np_std(transform_FOD_BackwardLooking(vals,{utl_Trns.FIRST_ORDER_DIFF_TIME:1}))
 		end_val = vals[-1,0]
 		def get_random_prediction_values(per_fd):
 			numPreds = 40
