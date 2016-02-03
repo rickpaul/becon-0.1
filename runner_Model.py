@@ -1,5 +1,8 @@
 # TODO:
 # 	Implement multiprocessing
+# 	Compare Regression Coefficients (rolling basis) for __evaluate model
+# 	Compare Mean Var Statistics (rolling basis) for __evaluate model
+# 	Find way to compare peak/trough times for __evaluate model
 
 # EMF 		From...Import
 from 	handle_Results	 		import EMF_Results_Handle
@@ -10,7 +13,7 @@ from 	lib_Model 				import AvailableModels
 from 	lib_Runner_Model		import MIN_BATCH_SIZE, MAX_BATCH_SIZE, MODEL_RETENTION_THRESHHOLD
 from 	lib_Runner_Model 		import PredictorTransformationKeys, ResponseTransformationKeys
 # EMF 		Import...As
-import 	util_Testing 			as utl_Tst # Delete
+import 	util_Runner_Model 		as utl_RnM
 # System 	From...Import
 from 	random 					import choice, randint
 # System 	Import...As
@@ -63,44 +66,54 @@ class EMF_Model_Runner(object):
 
 	def train_model_batch(self):
 		# Choose Model at Random
-		hndl_Model = choice(self.models)(self.hndl_WordSet)
-		# Choose Response Word at Random
-		# Add Response Word to WordSet
-		self.hndl_WrdSlct.select_resp_word_random()
-		self.hndl_WordSet.resp_word = self.hndl_WrdSlct.resp_word
+		self.hndl_Model = choice(self.models)(self.hndl_WordSet)
+		# Choose Response Word at Random and Add Response Word to WordSet
+		self.hndl_WordSet.resp_word = self.hndl_WrdSlct.select_resp_word_random()
 		# Add Response Word to WordSet
 		self.hndl_Res.set_response_word(self.hndl_WordSet.resp_word)
 		# Run Batches
 		for i in xrange(randint(MIN_BATCH_SIZE, MAX_BATCH_SIZE)):
 			# Add Predictive Words to WordSet
-			self.hndl_WrdSlct.select_pred_words_random()
-			self.hndl_WordSet.pred_words = self.hndl_WrdSlct.pred_words
+			# self.hndl_WordSet.pred_words = self.hndl_WrdSlct.select_pred_words_random()
+			self.hndl_WordSet.pred_words = self.hndl_WrdSlct.select_pred_words_effectiveness()
 			# Run Model
-			hndl_Model.train_model()
-			log.info(hndl_Model.train_score) #TEST: Delete
-			log.info(hndl_Model.feature_importances()) #TEST: Delete
-			predictions = hndl_Model.get_series_values() #TEST: Delete
-			dates = hndl_Model.get_series_dates() #TEST: Delete
-			self.__save_model_results(hndl_Model)
-			utl_Tst.plot_data_series(self.hndl_WordSet.resp_word.hndl_Data, hndl_Model)  #TEST: Delete
+			self.hndl_Model.train_model()
+			self.__save_model_results()
 			# Prepare WordSet for Next Run (Not Really Nec. Safety First?)
 			del self.hndl_WrdSlct.pred_words
 			del self.hndl_WordSet.pred_words
+		# Prepare ModelRunner for Next Run (Safety First)
+		del self.hndl_Model
 		return self.hndl_Res
 
-	def __save_model_results(self, hndl_Model):
-		score = hndl_Model.test_model()
+	def __save_model_results(self):
+		self.hndl_WordSet.save_predictions(self.hndl_Model)
+		self.hndl_WordSet.plot_values()
+		score = self.__evaluate_model()
 		if score >= MODEL_RETENTION_THRESHHOLD:
 			log.info('MODEL: Model accepted with score {0}'.format(score))
-			self.hndl_Res.add_model(hndl_Model)
+			self.hndl_Res.add_model(self.hndl_Model, self.hndl_WordSet.pred_dates, self.hndl_WordSet.pred_values, score)
 		else:
 			log.info('MODEL: Model rejected with score {0}'.format(score))
-		# Put stats in db
-		respID = self.hndl_WordSet.resp_word.wordSeriesID
-		conn = self.hndl_DB.conn
-		cursor = self.hndl_DB.cursor
-		for (hndl_Word, score) in zip(self.hndl_WordSet.pred_words, hndl_Model.adjusted_feat_scores):
-			predID = hndl_Word.wordSeriesID
-			insertStat_WordStatsTable(conn, cursor, respID, predID, score)
-		# if bad model, register dataSeries and transformations as not-helpful
-		# if good model, register dataSeries and transformations as helpful 
+		# Put Word Statistics In DB
+		self.hndl_WrdSlct.save_word_statistics(score*self.hndl_Model.adjusted_feat_scores)
+		# Put Data Statistics In DB
+		self.hndl_WrdSlct.save_data_statistics(score*self.hndl_Model.adjusted_feat_scores)
+		# Put Model Statistics In DB
+		# Not Implemented
+
+	def __evaluate_model(self):
+		(smoothed, pred, raw, res) = self.hndl_WordSet.get_residual_data()
+		score = self.hndl_Model.test_model() # Need this for word statistics
+		# Compare Predicted Levels
+		score_3 = abs(utl_RnM.level_outlier_proportion(smoothed, pred, check_fn=utl_RnM.more_than_three)-.003)
+		score_2 = abs(utl_RnM.level_outlier_proportion(smoothed, pred, check_fn=utl_RnM.more_than_two)-.05)
+		score_1 = abs(utl_RnM.level_outlier_proportion(smoothed, pred, check_fn=utl_RnM.more_than_one)-.32)
+		score -= (score_3+score_2+score_1)
+		# Compare Predicted Changes
+		score_3 = abs(utl_RnM.change_outlier_proportion(smoothed, pred, check_fn=utl_RnM.more_than_three)-.003)
+		score_2 = abs(utl_RnM.change_outlier_proportion(smoothed, pred, check_fn=utl_RnM.more_than_two)-.05)
+		score_1 = abs(utl_RnM.change_outlier_proportion(smoothed, pred, check_fn=utl_RnM.more_than_one)-.32)
+		score -= (score_3+score_2+score_1)
+		return score
+

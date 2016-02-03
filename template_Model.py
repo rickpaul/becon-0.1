@@ -1,7 +1,8 @@
-from abc import ABCMeta, abstractmethod
+from abc import ABCMeta, abstractmethod, abstractproperty
 
 class EMF_Model_Template:
 	__metaclass__ = ABCMeta
+
 
 	@abstractmethod
 	def train_model(self):
@@ -12,13 +13,17 @@ class EMF_Model_Template:
 		pass
 
 	@abstractmethod
-	def feature_importances(self):
-		pass
-
-	@abstractmethod
 	def save_model(self):
 		pass
 
 	@abstractmethod
-	def evaluate_model(self):
+	def model_stats(self):
+		pass
+
+	@abstractproperty
+	def feature_importances(self):
+		pass
+
+	@abstractproperty
+	def desc(self):
 		pass

@@ -2,21 +2,26 @@
 from 	lib_TimeSet		 	import DAYS, WEEKS, MONTHS, QUARTERS, YEARS
 # EMF 		Import...As
 import 	lib_Transformation 	as lib_Trns
+import 	util_Transformation as utl_Trns
+# System 	From...Import
+from 	copy 				import deepcopy
 
 # When creating random transformations,
 # create n from geomdist where p = _ (mean=1/p)
-WORD_COUNT_GEOMETRIC_PARAM = 0.75
-MIN_WORD_COUNT = 3
+PRED_COUNT_GEOMETRIC_PARAM	= 0.75
+PRED_COUNT_FLOOR 			= 3
+RESP_COUNT_GEOMETRIC_PARAM	= 0.75
+RESP_COUNT_FLOOR 			= 0
 
-MIN_BATCH_SIZE = 4
-MAX_BATCH_SIZE = 4
+MIN_BATCH_SIZE 				= 10
+MAX_BATCH_SIZE 				= 20
 
-MODEL_RETENTION_THRESHHOLD = 0.3
-BOOTSTRAP_MULTIPLIER = 1
+MODEL_RETENTION_THRESHHOLD 	= 0.3
+BOOTSTRAP_MULTIPLIER 		= 1
 
-TRAINING = 927610 # Random
-PREDICTION = 176092 # Random
-PREDICTION_DEPENDENT = 290761 # Random. # Will probably be deleted. Nec. for current spaghetti
+TRAINING 					= 'T'
+PREDICTION_INDEPENDENT 		= 'PI'
+PREDICTION_DEPENDENT 		= 'PD'
 
 PredictorTransformationKeys = lib_Trns.PredictorTransformationKeys
 PredictorTransformationKeys = [x for x in PredictorTransformationKeys if not x.endswith(lib_Trns.PATTERN_SUFFIX_NORM_STRAT)]
@@ -32,39 +37,15 @@ try:
 except ValueError:
 	pass # Value not found
 
-TimeToRecTemplate = {
-	'responseTicker' : ['US_TimeUntilRec'],
-	'responseTrns' : ['None', 'Futr_Lvl'],
-	'responseKwargs': {
-		'PeriodDiff': [1,3,6,9,12],
-		'numRanges': [5]
-	},
-	# 'predictorTrns' : [ 'RateOfChange'],
-	'predictorKwargs': {
-		'PeriodDiff': [1,3,6,9,12],
-	},
-	'models' : ['RegrDecisionTree'],
-	'predictorCriteria' : {
-		# 'interpolatePredictorData' : False,
-		# 'matchResponsePeriodicity' : True,
-		'periodicity' : MONTHS,
-		# 'categorical' : False
-	}
-}
-
-SP500Template = {
-	'responseTicker' : ['SP500_RealPrice'],
-	'responseTrns' : ['None', 'Futr_Lvl'],
-	'responseKwargs': {
-		'PeriodDiff': [1,3,6,9,12],
-		'numRanges': [5]
-	},
+TemplateDefaults = {
 	'responseCanPredict' : True,
+	'responseTrns' : ['None', 'Futr_Lvl', 'Futr_Change'],
+	'responseKwargs': {
+		utl_Trns.FIRST_ORDER_DIFF_TIME: [1,3,6,9,12,18,24],
+		utl_Trns.PERIODS_AWAY: [1,3,6,9,12,18,24],
+		utl_Trns.NUM_RANGES: [5]
+	},	
 	# 'predictorTrns' : [ 'RateOfChange'],
-	'predictorKwargs': {
-		'PeriodDiff': [1,3,6,9,12],
-	},
-	'models' : ['RegrDecisionTree'],
 	'predictorCriteria' : {
 		# 'matchResponsePeriodicity' : True,
 		'periodicity' : MONTHS,
@@ -73,6 +54,20 @@ SP500Template = {
 		'maxDate' : None,
 	}
 }
+
+
+TimeToRecTemplate = deepcopy(TemplateDefaults)
+TimeToRecTemplate.update({
+	'responseTicker' : ['US_TimeUntilRec'],
+	# 'responseTrns' : ['None', 'Futr_Lvl'],
+	'models' : ['LinearRegression'],
+})
+
+SP500Template = deepcopy(TemplateDefaults)
+SP500Template.update({
+	'responseTicker' : ['SP500_RealPrice'],
+	'models' : ['RegrDecisionTree'],
+})
 
 
 
