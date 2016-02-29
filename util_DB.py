@@ -3,7 +3,6 @@ from 	handle_DB		import EMF_Database_Handle
 from 	lib_EMF		 	import TEMP_MODE
 from 	util_EMF		import get_EMF_settings
 # System 	Import...As
-import 	sqlite3 		as sq
 import 	logging 		as log
 # System 	From...Import
 from 	string 			import join

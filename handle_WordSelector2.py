@@ -228,6 +228,13 @@ class EMF_WordSelector_Handle2(object):
 		return locals()
 	resp_data_is_categorical = property(**resp_data_is_categorical())
 
+	def __create_random_trns_params(self, kwargs_list=None):
+		if kwargs_list is None:
+			kwargs_list = self.resp_trns_kwargs
+		params = {}
+		for (key, valList) in kwargs_list.iteritems():
+			params[key] = choice(valList)
+		return params
 
 	def select_resp_words_random(self, numWords=None):
 		# Add Response Words
@@ -252,9 +259,7 @@ class EMF_WordSelector_Handle2(object):
 			# Select Words / Create Trans Handle
 			hndl_Trns = EMF_Transformation_Handle(choice(self._resp_trns_ptrns))
 			# Select Words / Create Trans Handle / Add Parameters to Trans Handle
-			for (key, valList) in self._resp_trns_kwargs.iteritems():
-				val = choice(valList)
-				hndl_Trns.set_extra_parameter(key, val)
+			hndl_Trns.parameters = self.__create_random_trns_params()
 			# Select Words / Create Word Handle
 			hndl_Word = EMF_WordSeries_Handle(self.hndl_DB, hndl_Data, hndl_Trns)
 			# Select Words / Ensure Word Validity
@@ -314,10 +319,8 @@ class EMF_WordSelector_Handle2(object):
 		hndl_Trns = EMF_Transformation_Handle(trns_ptrn)
 		if trns_kwargs is None:
 			trns_kwargs = self.pred_trns_kwargs
-		for (key, valList) in trns_kwargs.iteritems():
-			val = choice(valList)
-			hndl_Trns.set_extra_parameter(key, val)
-		log.info('WORDSELECT: Predictive Words: Chose {0} Pattern'.format(hndl_Trns))
+		hndl_Trns.parameters = self.__create_random_trns_params(kwargs_list=trns_kwargs)
+		log.info('WORDSELECT: Predictive Words: Chose {0} Transformation'.format(hndl_Trns))
 		for ticker in self._pred_data_tickers:
 			hndl_Data = EMF_DataSeries_Handle(self.hndl_DB, ticker=ticker)
 			hndl_Word = EMF_WordSeries_Handle(self.hndl_DB, hndl_Data, hndl_Trns)
@@ -346,10 +349,8 @@ class EMF_WordSelector_Handle2(object):
 			hndl_Data = EMF_DataSeries_Handle(self.hndl_DB, ticker=ticker)
 			# Select Words / Create Trans Handle
 			hndl_Trns = EMF_Transformation_Handle(choice(self._pred_trns_ptrns))
-			# Select Words / Create Trans Handle / Add Parameters to Trans Handle
-			for (key, valList) in self._pred_trns_kwargs.iteritems():
-				val = choice(valList)
-				hndl_Trns.set_extra_parameter(key, val)
+			# Select Words / Create Trans Handle / Add Parameters to Trans Handle		
+			hndl_Trns.parameters = self.__create_random_trns_params()
 			# Select Words / Create Word Handle
 			hndl_Word = EMF_WordSeries_Handle(self.hndl_DB, hndl_Data, hndl_Trns)
 			# Select Words / Ensure Word Validity

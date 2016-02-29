@@ -17,13 +17,13 @@ def testTransformationHandle():
 	assert str(hndl_Trns) == 'raw'
 	# Test Past
 	hndl_Trns = EMF_Transformation_Handle('Past_Lvl')
-	hndl_Trns.set_extra_parameter('PeriodDiff', 10)
+	hndl_Trns.set_extra_parameter(PERIODS_AWAY, 10)
 	assert hndl_Trns.transform_data(data).shape == (190,1)
 	assert np.all(hndl_Trns.transform_time(dt) == np.arange(10,n))
 	assert str(hndl_Trns) == 'PastLvl.10'
 	# Test Future
 	hndl_Trns = EMF_Transformation_Handle('Futr_Change')
-	hndl_Trns.set_extra_parameter('PeriodDiff', 20)
+	hndl_Trns.set_extra_parameter(FIRST_ORDER_DIFF_TIME, 20)
 	assert hndl_Trns.transform_data(data).shape == (180,1)
 	assert np.all(hndl_Trns.transform_time(dt) == np.arange(n-20))
 	assert str(hndl_Trns) == 'FutrDiff.20'
@@ -55,7 +55,7 @@ def testTransformationReversal_Past_Lvl(data, dt, hndl_Srs_Original):
 	assert np.all(data_rvrs == data[:-10])
 
 def testTransformationReversal_Past_FoD(data, dt, hndl_Srs_Original):
-	trnsKwargs={'PeriodDiff': 10}
+	trnsKwargs={FIRST_ORDER_DIFF_TIME: 10}
 	hndl_Trns = EMF_Transformation_Handle('Past_Change', trnsKwargs=trnsKwargs)
 	dt_trns = hndl_Trns.transform_time(dt)
 	data_trns = hndl_Trns.transform_data(data)
@@ -75,7 +75,7 @@ def testTransformationReversal_Past_FoD(data, dt, hndl_Srs_Original):
 	# assert np.all(data_rvrs == data[:-10])
 
 def testTransformationReversal_Future_FoD(data, dt, hndl_Srs_Original):
-	trnsKwargs={'PeriodDiff': 10}
+	trnsKwargs={FIRST_ORDER_DIFF_TIME: 10}
 	hndl_Trns = EMF_Transformation_Handle('Futr_Change', trnsKwargs=trnsKwargs)
 	dt_trns = hndl_Trns.transform_time(dt)
 	data_trns = hndl_Trns.transform_data(data)

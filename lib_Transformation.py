@@ -11,8 +11,8 @@ Transformations = {
 	'None':					(util_Trns.transform_None, 						util_Trns.timeSeriesTransform_None,),
 	'Logarithm': 			(util_Trns.transform_Logarithm, 				util_Trns.timeSeriesTransform_None,),
 	'Absolute': 			(util_Trns.transform_AbsoluteValue, 			util_Trns.timeSeriesTransform_None,),
-	'Level_Past': 			(util_Trns.transform_None, 						util_Trns.timeSeriesTransform_ShiftFuture,),
-	'Level_Future': 		(util_Trns.transform_None, 						util_Trns.timeSeriesTransform_ShiftPast,),
+	'Level_Past': 			(util_Trns.transform_None, 						util_Trns.timeSeriesTransform_ShiftFuture_Level,),
+	'Level_Future': 		(util_Trns.transform_None, 						util_Trns.timeSeriesTransform_ShiftPast_Level,),
 	'FOD_Past': 			(util_Trns.transform_FOD_BackwardLooking, 		util_Trns.timeSeriesTransform_TruncatePast,),
 	'FOD_Future': 			(util_Trns.transform_FOD_ForwardLooking, 		util_Trns.timeSeriesTransform_TruncateFuture,),
 	# 'Trailing_Vol': 		(util_Trns., 		util_Trns.timeSeriesTransform_TruncatePast,),
@@ -52,7 +52,7 @@ TransformationPatterns = {
 
 	'Futr_Lvl': 				(13, ('Level_Future',), 'None'),
 	'Futr_Lvl_Cat': 			(14, ('Level_Future',), 'uniformLengthRange'),
-	'Futr_Lvl_NormRd': 			(15, ('Level_Future', 'NormDistLocation',), 'Int_Round'),
+	'Futr_Lvl_NormR d': 			(15, ('Level_Future', 'NormDistLocation',), 'Int_Round'),
 	
 	'Futr_Change': 				(16, ('FOD_Future',), 'None'),
 	'Futr_Change_Cat': 			(17, ('FOD_Future',), 'uniformLengthRange'),
@@ -115,11 +115,11 @@ IndependentTransformationReversals = [
 ]
 
 TimeTransformationReversals = {
-	util_Trns.timeSeriesTransform_None: 			util_Trns.transform_None,
-	util_Trns.timeSeriesTransform_ShiftPast: 		util_Trns.timeSeriesTransform_ShiftFuture,
-	util_Trns.timeSeriesTransform_ShiftFuture: 		util_Trns.timeSeriesTransform_ShiftPast,
-	util_Trns.timeSeriesTransform_TruncatePast: 	util_Trns.timeSeriesTransform_ShiftPast,
-	util_Trns.timeSeriesTransform_TruncateFuture: 	util_Trns.timeSeriesTransform_ShiftFuture,
+	util_Trns.timeSeriesTransform_None: 				util_Trns.transform_None,
+	util_Trns.timeSeriesTransform_ShiftPast_Level: 		util_Trns.timeSeriesTransform_ShiftFuture_Level,
+	util_Trns.timeSeriesTransform_ShiftFuture_Level: 	util_Trns.timeSeriesTransform_ShiftPast_Level,
+	util_Trns.timeSeriesTransform_TruncatePast: 		util_Trns.timeSeriesTransform_ShiftPast_Change,
+	util_Trns.timeSeriesTransform_TruncateFuture: 		util_Trns.timeSeriesTransform_ShiftFuture_Change,
 }
 
 TransformationDescs = {

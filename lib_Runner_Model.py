@@ -1,3 +1,7 @@
+# TODO:
+# 	Create check to make sure all keys are correct
+# 		e.g. what if there are repeats in responseTicker, Trns, etc?
+
 # EMF 		From...Import
 from 	lib_TimeSet		 	import DAYS, WEEKS, MONTHS, QUARTERS, YEARS
 # EMF 		Import...As
@@ -16,16 +20,18 @@ RESP_COUNT_FLOOR 			= 0
 MIN_BATCH_SIZE 				= 10
 MAX_BATCH_SIZE 				= 20
 
-MODEL_RETENTION_THRESHHOLD 	= 0.3
+MODEL_RETENTION_THRESHHOLD 	= -1.5
 BOOTSTRAP_MULTIPLIER 		= 1
 
 TRAINING 					= 'T'
 PREDICTION_INDEPENDENT 		= 'PI'
 PREDICTION_DEPENDENT 		= 'PD'
 
+MODEL_SCORE					= 'MS'
+
 PredictorTransformationKeys = lib_Trns.PredictorTransformationKeys
-PredictorTransformationKeys = [x for x in PredictorTransformationKeys if not x.endswith(lib_Trns.PATTERN_SUFFIX_NORM_STRAT)]
-PredictorTransformationKeys = [x for x in PredictorTransformationKeys if not x.endswith(lib_Trns.PATTERN_SUFFIX_STRAT)]
+# PredictorTransformationKeys = [x for x in PredictorTransformationKeys if not x.endswith(lib_Trns.PATTERN_SUFFIX_NORM_STRAT)]
+# PredictorTransformationKeys = [x for x in PredictorTransformationKeys if not x.endswith(lib_Trns.PATTERN_SUFFIX_STRAT)]
 
 ResponseTransformationKeys = lib_Trns.ResponseTransformationKeys
 ResponseTransformationKeys = [x for x in ResponseTransformationKeys if  x.startswith(lib_Trns.PATTERN_PREFIX_FUTURE)]
@@ -43,9 +49,12 @@ TemplateDefaults = {
 	'responseKwargs': {
 		utl_Trns.FIRST_ORDER_DIFF_TIME: [1,3,6,9,12,18,24],
 		utl_Trns.PERIODS_AWAY: [1,3,6,9,12,18,24],
-		utl_Trns.NUM_RANGES: [5]
 	},	
-	# 'predictorTrns' : [ 'RateOfChange'],
+	'predictorKwargs': {
+		utl_Trns.FIRST_ORDER_DIFF_TIME: [1,3,6,9,12,18,24],
+		utl_Trns.PERIODS_AWAY: [1,3,6,9,12,18,24],
+		utl_Trns.NUM_RANGES: [2,3,5,10]
+	},	
 	'predictorCriteria' : {
 		# 'matchResponsePeriodicity' : True,
 		'periodicity' : MONTHS,
@@ -58,15 +67,15 @@ TemplateDefaults = {
 
 TimeToRecTemplate = deepcopy(TemplateDefaults)
 TimeToRecTemplate.update({
-	'responseTicker' : ['US_TimeUntilRec'],
-	# 'responseTrns' : ['None', 'Futr_Lvl'],
-	'models' : ['LinearRegression'],
+	'responseTicker' : ['US_TimeUntilRec', 'US_TimeSinceRec'],
+	'responseTrns' : ['Futr_Lvl'],
+	'models' : ['LinearRegression', 'RegrDecisionTree'],
 })
 
 SP500Template = deepcopy(TemplateDefaults)
 SP500Template.update({
 	'responseTicker' : ['SP500_RealPrice'],
-	'models' : ['RegrDecisionTree'],
+	'models' : ['LinearRegression', 'RegrDecisionTree'],
 })
 
 

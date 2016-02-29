@@ -1,5 +1,8 @@
 # TODO:
 #	Change Doc Strings
+# 	make resp_word_names one time calculation
+# 	make resp_word_ids and pred_word_ids one time calculation
+# 		for use in save_data_stats
 
 # EMF 		From...Import
 from 	handle_DataSeries		import EMF_DataSeries_Handle
@@ -8,10 +11,10 @@ from 	handle_WordSeries		import EMF_WordSeries_Handle
 from 	lib_DBInstructions		import TICKER, retrieve_DataSeries_Filtered, retrieve_DataSeries_All
 from 	lib_DBInstructions		import insertStat_DataStatsTable, retrieveStats_DataStatsTable
 from 	lib_DBInstructions		import insertStat_WordStatsTable, retrieveStats_WordStatsTable
-from 	lib_DBInstructions		import replaceStats_DataStatsTable, replaceStats_WordStatsTable
 from 	lib_DBInstructions		import retrieve_DataSeriesTicker, retrieve_DataSeriesID, retrieveAllStats_DataStatsTable
 from 	lib_Runner_Model		import PRED_COUNT_GEOMETRIC_PARAM, PRED_COUNT_FLOOR
-from 	util_Stats				import combined_variance, combined_mean, COMBINE_VAR
+from 	lib_WordSelector		import SHUFFLED_KEYS, COMBINED_KEYS
+from 	util_Stats				import simplify_data_stats_db, simplify_word_stats_db
 from 	util_Stats				import weighted_choice
 # System 	Import...As
 import 	logging 				as log
@@ -19,22 +22,23 @@ import 	numpy	 				as np
 import 	pandas	 				as pd
 # System 	From...Import
 from 	numpy.random 			import geometric
-from 	random 					import choice
-
-
+from 	random 					import choice, shuffle
 
 class EMF_WordSelector_Handle(object):
 	def __init__(self, hndl_DB):
 		self.hndl_DB = hndl_DB
 		#
-		self._resp_data_tickers = []
+		self._resp_data_tickers = None
+		self._resp_data_ids = None
 		self._resp_trns_ptrns = []
 		self._resp_trns_kwargs = {}
 		#
-		self._resp_word = None
+		self._resp_words = None
+		self._resp_word_ids = None
 		self._pred_words = None
 		#
 		self._pred_data_tickers = None
+		self._pred_data_ids = None
 		self._pred_data_eff_array = None
 		self._pred_trns_ptrns = []
 		self._pred_trns_kwargs = {}
@@ -64,6 +68,7 @@ class EMF_WordSelector_Handle(object):
 			return self._resp_data_tickers
 		def fset(self, value):
 			self._resp_data_tickers = value
+			self._resp_data_ids = [retrieve_DataSeriesID(self.hndl_DB.conn, self.hndl_DB.cursor, ticker=t) for t in self._resp_data_tickers]
 		return locals()
 	resp_data_tickers = property(**resp_data_tickers())
 
@@ -110,6 +115,7 @@ class EMF_WordSelector_Handle(object):
 		def fset(self, value):
 			if value != self._pred_data_periodicity:
 				self._pred_data_tickers = None
+				self._pred_data_ids = None
 			self._pred_data_periodicity = value
 		def fdel(self):
 			self._pred_data_periodicity = None
@@ -123,6 +129,7 @@ class EMF_WordSelector_Handle(object):
 		def fset(self, value):
 			if value != self._pred_data_min_date:
 				self._pred_data_tickers = None
+				self._pred_data_ids = None
 			self._pred_data_min_date = value
 		def fdel(self):
 			self._pred_data_min_date = None
@@ -136,6 +143,7 @@ class EMF_WordSelector_Handle(object):
 		def fset(self, value):
 			if value != self._pred_data_max_date:
 				self._pred_data_tickers = None
+				self._pred_data_ids = None
 			self._pred_data_max_date = value
 		def fdel(self):
 			self._pred_data_max_date = None
@@ -152,6 +160,7 @@ class EMF_WordSelector_Handle(object):
 		def fset(self, value):
 			if value != self._pred_data_is_categorical:
 				self._pred_data_tickers = None
+				self._pred_data_ids = None
 			self._pred_data_is_categorical = value
 		def fdel(self):
 			self._pred_data_is_categorical = None
@@ -168,15 +177,16 @@ class EMF_WordSelector_Handle(object):
 		return locals()
 	pred_words = property(**pred_words())
 
-	def resp_word():
-		doc = 'Response Word'
+	def resp_words():
+		doc = 'Response Word Array'
 		def fget(self):
-			return self._resp_word
+			return self._resp_words
 		def fdel(self):
-			log.info('WORDSELECT: Removing Response Word')
-			self._resp_word = None
+			log.info('WORDSELECT: Removing Response Words')
+			self._resp_words = None
+			self._resp_word_ids = None
 		return locals()
-	resp_word = property(**resp_word())
+	resp_words = property(**resp_words())
 
 	def __add_pred_data_tickers(self):
 		self._pred_data_tickers = retrieve_DataSeries_Filtered(	self.hndl_DB.cursor, 
@@ -185,6 +195,7 @@ class EMF_WordSelector_Handle(object):
 																maxDate=self._pred_data_max_date, 
 																periodicity=self._pred_data_periodicity, 
 																categorical=self._pred_data_is_categorical)
+		self._pred_data_ids = [retrieve_DataSeriesID(self.hndl_DB.conn, self.hndl_DB.cursor, ticker=t) for t in self._pred_data_tickers]
 		if not self.resp_can_predict:
 			for t in self.resp_data_tickers:
 				self.__remove_pred_data_ticker(t)
@@ -196,41 +207,82 @@ class EMF_WordSelector_Handle(object):
 		except ValueError:
 			pass # Value not found
 
-	def select_resp_word_random(self):
-		hndl_Data = EMF_DataSeries_Handle(self.hndl_DB, ticker=choice(self.resp_data_tickers))
-		hndl_Trns = EMF_Transformation_Handle(choice(self.resp_trns_ptrns))
+	def __create_random_trns_params_resp(self):
+		params = {}
 		for (key, valList) in self.resp_trns_kwargs.iteritems():
-			val = choice(valList)
-			hndl_Trns.set_extra_parameter(key, val)
-		self._resp_word = EMF_WordSeries_Handle(self.hndl_DB, hndl_Data, hndl_Trns)
-		log.info('WORDSELECT: Response Word: Chose {0}.'.format(self._resp_word))
-		return self.resp_word
+			params[key] = choice(valList)
+		return params
+		
+	def __create_random_trns_params_pred(self):
+		params = {}
+		for (key, valList) in self.pred_trns_kwargs.iteritems():
+			params[key] = choice(valList)
+		return params
+
+	def select_resp_words_random(self):
+		trns_pattern = choice(self.resp_trns_ptrns)
+		trns_params = self.__create_random_trns_params_resp()
+		self._resp_words = []
+		self._resp_word_ids = []
+		for ticker in self.resp_data_tickers:
+			hndl_Data = EMF_DataSeries_Handle(self.hndl_DB, ticker=ticker)
+			hndl_Trns = EMF_Transformation_Handle(trns_pattern, trnsKwargs=trns_params)
+			hndl_Word = EMF_WordSeries_Handle(self.hndl_DB, hndl_Data, hndl_Trns)
+			self._resp_words.append(hndl_Word)
+			self._resp_word_ids.append(hndl_Word.wordSeriesID)
+		log.info('WORDSELECT: Response Word: Chose {0}.'.format([str(w) for w in self.resp_words]))
+		return self.resp_words
+
+	def create_data_sorting_array(self, method=SHUFFLED_KEYS):
+		'''
+		This whole thing is sloppy.
+		Rename function
+		Rename data array
+		'''
+		if self._pred_data_eff_array is not None:
+			return
+		self.simplify_data_statistics()
+		self._pred_data_eff_array = pd.DataFrame(index=self._pred_data_ids)
+		keys = []
+		for hndl_Word in self._resp_words:
+			key_ = 'eff.'+str(hndl_Word)
+			keys.append(key_)
+			stats = retrieveAllStats_DataStatsTable(self.hndl_DB.cursor, hndl_Word.dataSeriesID) # should be n by 2 (seriesID, effectiveness)
+			if stats is None:
+				new_vals = pd.DataFrame({key_: []}, index=[])
+			else:
+				effectiveness = np.array(stats)
+				new_vals = pd.DataFrame({key_: effectiveness[:,1]}, index=effectiveness[:,0])
+			self._pred_data_eff_array = pd.concat([self._pred_data_eff_array, new_vals], axis=1, ignore_index=False)
+		if method==SHUFFLED_KEYS:
+			shuffle(keys)
+			self._pred_data_eff_array = self._pred_data_eff_array.sort_values(keys, axis=0, ascending=False, na_position='first')
+			len_ = len(self._pred_data_eff_array)
+		elif method==COMBINED_KEYS:
+			self._pred_data_eff_array = self._pred_data_eff_array[keys].sum(axis=1, skipna=False)
+			self._pred_data_eff_array = self._pred_data_eff_array.sort_values(keys, axis=0, ascending=False, na_position='first')
+		else: 
+			raise NameError
+		self._pred_data_eff_array['prob'] = xrange(len_,0,-1)
+		self._total_prob = (len_)*(len_+1)/2
+		for key_ in keys:
+			del self._pred_data_eff_array[key_]
 
 	def select_pred_words_effectiveness(self, numWords=None):
-		assert self._resp_word is not None
+		assert self.resp_words is not None
 		# Add Predictive Words
 		if self._pred_data_tickers is None:
 			self.__add_pred_data_tickers()
-		# Add Sorting Array. This whole thing is sloppy.
-		if self._pred_data_eff_array is None:
-			self.simplify_data_statistics()
-			id_list = [retrieve_DataSeriesID(self.hndl_DB.conn, self.hndl_DB.cursor, ticker=t) for t in self._pred_data_tickers] # so sloppy.
-			effectiveness = np.array(retrieveAllStats_DataStatsTable(self.hndl_DB.cursor, self._resp_word.dataSeriesID)) # should be n by 2 (seriesID, effectiveness)
-			self._pred_data_eff_array = pd.DataFrame(index=id_list)
-			new_vals = pd.DataFrame({'eff': effectiveness[:,1]}, index=effectiveness[:,0])
-			self._pred_data_eff_array = pd.concat([self._pred_data_eff_array, new_vals], axis=1, ignore_index=False)
-			self._pred_data_eff_array = self._pred_data_eff_array.sort_values(['eff'], axis=0, ascending=False, na_position='first')
-			len_ = len(self._pred_data_eff_array)
-			self._pred_data_eff_array['prob'] = xrange(len_,0,-1)
-			self._total_prob = (len_)*(len_+1)/2
+		self.create_data_sorting_array()
 		# Select How Many Words
 		if numWords is None:
 			numWords = geometric(PRED_COUNT_GEOMETRIC_PARAM) + PRED_COUNT_FLOOR
 		# Select Words
 		count = 0
 		chosen = {}
-		min_date = self._resp_word.min_date
-		max_date = self._resp_word.max_date
+		resp_word_names = [str(w) for w in self.resp_words]
+		min_date = max([w.min_date for w in self.resp_words])
+		max_date = min([w.max_date for w in self.resp_words])
 		while (len(chosen) < numWords) and (count < numWords*10):
 			count += 1 # Avoid Infinite Loops
 			# Select Words / Create Data Handle
@@ -240,15 +292,13 @@ class EMF_WordSelector_Handle(object):
 			# Select Words / Create Trans Handle
 			hndl_Trns = EMF_Transformation_Handle(choice(self._pred_trns_ptrns))
 			# Select Words / Create Trans Handle / Add Parameters to Trans Handle
-			for (key, valList) in self._pred_trns_kwargs.iteritems():
-				val = choice(valList)
-				hndl_Trns.set_extra_parameter(key, val)
+			hndl_Trns.parameters = self.__create_random_trns_params_pred()
 			# Select Words / Create Word Handle
 			hndl_Word = EMF_WordSeries_Handle(self.hndl_DB, hndl_Data, hndl_Trns)
 			# Select Words / Ensure Word Validity
 			# Select Words / Ensure Word Validity / Make sure Word Isn't Response Word
 			wordName = str(hndl_Word)
-			if wordName == str(self._resp_word):
+			if wordName in resp_word_names:
 				continue
 			# Select Words / Ensure Word Validity / Make sure Word Isn't Already Taken
 			if wordName in chosen:
@@ -281,8 +331,9 @@ class EMF_WordSelector_Handle(object):
 		# Select Words
 		count = 0
 		chosen = {}
-		min_date = self._resp_word.min_date
-		max_date = self._resp_word.max_date
+		resp_word_names = [str(w) for w in self.resp_words] # TODO: Can make this a one-time calculation to avoid repitition
+		min_date = max([w.min_date for w in self.resp_words])
+		min_date = min([w.max_date for w in self.resp_words])
 		while (len(chosen) < numWords) and (count < numWords*10):
 			count += 1 # Avoid Infinite Loops
 			# Select Words / Create Data Handle
@@ -290,15 +341,13 @@ class EMF_WordSelector_Handle(object):
 			# Select Words / Create Trans Handle
 			hndl_Trns = EMF_Transformation_Handle(choice(self._pred_trns_ptrns))
 			# Select Words / Create Trans Handle / Add Parameters to Trans Handle
-			for (key, valList) in self._pred_trns_kwargs.iteritems():
-				val = choice(valList)
-				hndl_Trns.set_extra_parameter(key, val)
+			hndl_Trns.parameters = self.__create_random_trns_params_pred()
 			# Select Words / Create Word Handle
 			hndl_Word = EMF_WordSeries_Handle(self.hndl_DB, hndl_Data, hndl_Trns)
 			# Select Words / Ensure Word Validity
 			# Select Words / Ensure Word Validity / Make sure Word Isn't Response Word
 			wordName = str(hndl_Word)
-			if wordName == str(self._resp_word):
+			if wordName in resp_word_names:
 				continue
 			# Select Words / Ensure Word Validity / Make sure Word Isn't Already Taken
 			if wordName in chosen:
@@ -314,13 +363,12 @@ class EMF_WordSelector_Handle(object):
 			max_date = min(max_date, max_challenger)
 			# Select Words / Add Word to Set
 			chosen[wordName] = hndl_Word
-			log.info('WORDSELECT: Predictive Words: Chose {0}'.format(wordName)) # TEST: Delete
 		log.info('WORDSELECT: Predictive Words: Chose {0}'.format(chosen.keys()))
 		self._pred_words = chosen.values()
 		return self.pred_words
 
-	def save_word_statistics(self, scores):
-		respID = self.resp_word.wordSeriesID
+	def save_word_statistics(self, scores, hndl_Word):
+		respID = hndl_Word.wordSeriesID
 		for (hndl_Word, score) in zip(self.pred_words, scores):
 			predID = hndl_Word.wordSeriesID
 			insertStat_WordStatsTable(self.hndl_DB.conn, self.hndl_DB.cursor, 
@@ -329,18 +377,13 @@ class EMF_WordSelector_Handle(object):
 	def simplify_word_statistics(self):
 		'''
 		'''
-		respID = self.resp_word.wordSeriesID
-		for hndl_Word in self.pred_words:
-			predID = hndl_Word.wordSeriesID
-			results = retrieveStats_WordStatsTable(self.hndl_DB.cursor, respID, predID)
-			if results is not None and len(results) > 1:
-				(mean_, var_, len_) = reduce(COMBINE_VAR, results)
-				replaceStats_WordStatsTable(self.hndl_DB.conn, self.hndl_DB.cursor, 
-											 respID, predID, 
-											 mean_, var_, len_)
+		for respID in self._resp_word_ids:
+			for hndl_Word in self.pred_words:
+				predID = hndl_Word.wordSeriesID
+				simplify_word_stats_db(self.hndl_DB.conn, self.hndl_DB.cursor, respID, predID)
 
-	def save_data_statistics(self, scores):
-		respID = self.resp_word.dataSeriesID
+	def save_data_statistics(self, scores, hndl_Word):
+		respID = hndl_Word.dataSeriesID
 		for (hndl_Word, score) in zip(self.pred_words, scores):
 			predID = hndl_Word.dataSeriesID
 			insertStat_DataStatsTable(self.hndl_DB.conn, self.hndl_DB.cursor, 
@@ -349,12 +392,6 @@ class EMF_WordSelector_Handle(object):
 	def simplify_data_statistics(self):
 		'''
 		'''
-		respID = self.resp_word.dataSeriesID
-		for ticker in self._pred_data_tickers:
-			predID = retrieve_DataSeriesID(self.hndl_DB.conn, self.hndl_DB.cursor, ticker=ticker)
-			results = retrieveStats_DataStatsTable(self.hndl_DB.cursor, respID, predID)
-			if results is not None and len(results) > 1:
-				(mean_, var_, len_) = reduce(COMBINE_VAR, results)
-				replaceStats_DataStatsTable(self.hndl_DB.conn, self.hndl_DB.cursor, 
-											 respID, predID, 
-											 mean_, var_, len_)
+		for respID in self._resp_data_ids:
+			for predID in self._pred_data_ids:
+				simplify_data_stats_db(self.hndl_DB.conn, self.hndl_DB.cursor, respID, predID)

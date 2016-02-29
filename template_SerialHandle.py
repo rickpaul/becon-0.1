@@ -1,7 +1,6 @@
 from abc import ABCMeta, abstractproperty
 
-
-class EMF_Serial_Handle(object):
+class EMF_Series_Template(object):
 	__metaclass__ = ABCMeta
 
 	@abstractproperty

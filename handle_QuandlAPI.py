@@ -12,6 +12,8 @@ from	util_TimeSet 	import dt_str_Y_M_D_to_epoch as YMD_to_epoch
 from	util_TimeSet 	import str_Y_M_D_is_end_of_month as YMD_is_EoM
 # EMF 		Import...As
 import 	lib_QuandlAPI 	as lib_quandl
+# System 	From...Import
+from 	copy 			import copy
 # System 	Import...As
 import 	urllib2
 import 	json
@@ -99,10 +101,9 @@ class EMF_QuandlAPI_Handle:
 			return ({'ERROR':'UNCAUGHT LOCAL ERROR'})
 
 	def __get_parameterized_URL(self, url=lib_quandl.QuandlURL):
-		tempDict = {}
 		for key in self.extraParameters:
 			url += '&' + lib_quandl.URLParameterFormats[key]
-		tempDict.update(self.parameters)
+		tempDict = copy(self.parameters)
 		tempDict.update(self.extraParameters)
 		return url.format(**tempDict)
 

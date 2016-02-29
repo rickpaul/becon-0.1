@@ -3,7 +3,7 @@
 
 # EMF 		From...Import
 from 	lib_WordSeries	 		import DATE_COL, VALUE_COL, WORD_HISTORY_DTYPE
-from 	template_SerialHandle 	import EMF_Serial_Handle
+# from 	template_SerialHandle 	import EMF_Serial_Handle
 from 	util_DB					import typify
 from 	util_TimeSet			import dt_now_as_epoch
 from 	util_WordSeries			import generate_Word_Series_name, generate_Word_Series_generic_desc
@@ -40,6 +40,8 @@ class EMF_WordSeries_Handle(object):
 
 	def __str__(self):
 		return generate_Word_Series_name(self.hndl_Data, self.hndl_Trns)
+		
+	__repr__ = __str__
 
 	def wordSeriesID():
 		doc = "The wordSeriesID property."
@@ -77,7 +79,7 @@ class EMF_WordSeries_Handle(object):
 	data_name = property(**data_name())
 
 	def data_ticker():
-		doc = "The data_name property."
+		doc = "The data_ticker property."
 		def fget(self):
 			return self.hndl_Data.ticker
 		return locals()
@@ -123,7 +125,7 @@ class EMF_WordSeries_Handle(object):
 		return locals()
 	values = property(**values())
 
-	# Is this sloppy?
+	# Is this sloppy? Yes.
 	def hndl_Time():
 		doc = "Time Handle"
 		def fget(self):
@@ -133,6 +135,14 @@ class EMF_WordSeries_Handle(object):
 			return self._hndl_Time
 		return locals()
 	hndl_Time = property(**hndl_Time())
+
+	# Is this sloppy? Yes.
+	def hndl_Time_Raw():
+		doc = "Time Handle"
+		def fget(self):
+			return self.hndl_Data.hndl_Time
+		return locals()
+	hndl_Time_Raw = property(**hndl_Time_Raw())
 
 	def category(): #Necessary?
 		doc = "The category property."

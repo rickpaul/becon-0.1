@@ -1,7 +1,9 @@
-# EMF 		From...Import
-from 	template_SerialHandle 	import EMF_Serial_Handle
+# TODO:
 
-class EMF_TestSeries_Handle(EMF_Serial_Handle):
+# EMF 		From...Import
+from 	template_SerialHandle 	import EMF_Series_Template
+
+class EMF_TestSeries_Handle(EMF_Series_Template):
 	def __init__(self):
 		self._values = None
 		self._dates = None

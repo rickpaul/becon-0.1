@@ -1,20 +1,21 @@
 
 CURRENTLY:
-	+ Create canonical dates functions to make sure dates line up
-	+ Create Interpolator
-		+ Interpolate using last known value
-		+ Interpolate linearly
-		+ Interpolate using PCE/other matrix factorization methods
-	+ Create 2D Map with Descriptors
-
+	+ Make Decision Tree Explanation
+	+ Implement Theoretical Inputter (i.e. how do we put in fall in china growth -> high oil prices)
+	
 PRIORITY 1:
+	+ Make Parallel Coordinates Categorical
+	+ Change from working on SQLite to working on MySQL
 	+ Data Download
-		+ How do we make sure dates are end of month/line up?
+		+ Create canonical dates functions to make sure dates line up
+			+ How do we make sure dates are end of month/line up?
 	+ Non-Random Model Selection
 		+ Model Evaluator
 			+ Correlation
 			+ ANOVA Stats
 			+ PCE Comparison?
+		+ Smart Model Picker
+			+ Not uni-dimensional; bayesian, contextual.
 	+ Model Description
 		+ Transformation Pattern Description
 			+ Transformations and Categorizations return values
@@ -25,29 +26,37 @@ PRIORITY 1:
 	+ Implement Test/Training Sampling
 		+ Implement bootstrapping
 	+ Implement Pre-processing (normalization/de-normalization)
+	+ Create Interpolator
+		+ Interpolate using last known value
+		+ Interpolate linearly
+		+ Interpolate using PCE/other matrix factorization methods
+	+ Create 2D Map with Descriptors
 
 PRIORITY 2:
-	+ Migrate over testing library from other library
-	+ Consider changing transformations from set of three to unbounded list
+	+ Save Model Graphs for review (save by score, maybe?)
+	+ Migrate over testing library from other library (huh?)
 	+ Add to list of transformations
-		+ Above Average
+		+ Above/Below Average
 		+ High Volatility
 	+ Add to list of categorizations
 	+ Add complexity scores to models (idea of how long they run, for budgeting)
+	+ Save models so you can re-run at any time (e.g. if you change scoring system.)
 
 PRIORITY 3:
 	+ Define program in packages
 	+ Need a comprehensive Error Strategy
 		+ Define specific errors
 	+ Need a comprehensive Logging Strategy
-		+ Log Channeling (i.e. separate db debugging)
+		+ Log Channeling (i.e. separate db)
+	+ Change BCM to use Cython (speed up)
 
 PRIORITY 4:
-	+ Remove assert statements
-
+	+ (Busy) Fix/Add Doc Strings to all properties, methods, and classes
+	+ (Busy) Make sure no overlapping keys in 
+	+ (Consider) Remove assert statements
 
 LONG-TERM:
-	+ Implement Theoretical Inputter (i.e. how do we put in fall in china growth -> high oil prices)
+	+ Implement DecisionTree that splits along time-axis
 
 http://www.nytimes.com/2016/01/10/your-money/one-market-prediction-is-sure-wall-street-will-be-wrong.html
 inverted yield curve -> expected recession
@@ -58,7 +67,6 @@ interest rates -> market returns over short term
 geopolitical worries
 troubles in chinese markets
 
-
 Rising USD -> Low manufacturing employment
 Low Oil Price -> Low manufacturing employment
 Quantitative Easing (Probably needs to be broken down) -> low bond yields
@@ -67,20 +75,80 @@ Low expected volatility of inflation -> low bond yields
 Low commodity prices -> low bond yields
 Low bond yields -> less investor demand for bonds
 
+Rising Growth Stocks/Fall in Defensive Stocks -> Growing Investor Risk Appetite
+Fall in Growth Stocks/Rise in Defensive Stocks -> Falling Investor Risk Appetite
+Falling Equity Pries, Rising CD Rates, Rising Money Market Rate -> Flight to Safety
+Falling Treasury Bill Yield -> Flight to Safety
+Lower T-Bill Yields, Higher T-Bill Yields, High TED Spread, higher Commercial Paper money Market Issuance, Higher Commercial Paper Yield, Higher HY Bond Yield -> Flight to Safety
+Strong Currency, Low Global Demand =? Manufacturing Challenge-
+
+GENERAL:
+	+ Create JSON CHECKER to look-at/read JSON files
+	+ Add Tests Everywhere
+	+ 
+
+COLUMN ARRAY HANDLE:
+	+ Make saving atomic. That involves saving as a backup. Then rolling back if save fails
+	+ Make check for whether same columns are present in metadata and column array
+	+ Create COLUMN ARRAY CHECKER to look-at/read Column Arrays
+	+ Make Casting System. All Column Keys are Strings.
 
 DATA HANDLE:
-	+ (Easy) Make it so data series can take series ID, as well as name and ticker 
+	+ (Easy) Make it so data series init can take series ID, as well as name and ticker 
 
+DB INSTRUCTIONS LIB:
+	+ (Easy) Make retrieveAllStats_DataStatsTable limit to 1, order-by count
+		+ The idea is that we can avoid running simplify data stats every time. 
+		+ It will be less effective, but quicker
+
+MODEL HANDLE:
+	+ Make it take Serial Handle Template Again
+	+ Make it take Model Template Again
+	+ Store/Read Model Stats
+	+ Read Word Stats
+	+ Store/Read Transformation Stats
+	+ (Easy) Create required data inputs and forbidden data inputs in Templates (See RUNNER MODEL LIB)
+	+ Build out stats (similar trailing mean/std dev)
+	+ Build out stats (how much time is covered?)
+	+ (Easy) In Descriptions, round down values to 2 decimals
+	+ (Easy) In Descriptions, don't include feature in desc if less than ___ (1%?)
+
+RESULTS HANDLE:
+	+ Make sure when you load metadata and pickle, that same models are represented in both.
+		+ Make saving atomic. It won't save unless both/all files save successfully
+	+ (Easy) Delete model_info property (just use col_metadata)
+	+ Restore Delete Models
+
+RUNNER MODEL LIB:
+	+ (Busy) Create check for inputs (everything necessary filled in?, no dupes?)
+	+ (Easy) Create required data inputs and forbidden data inputs in Templates
+	+ (Hard) Make model acceptance threshhold dynamic
+
+SERIES TEMPLATE:
+	+ (Easy) Rename to template_SeriesHandle
+
+TEST SERIES HANDLE:
+	+ (Easy) Rename to handle_Series
+	+ (Easy) Make parent of wordSeries, dataSeries
+
+TESTING UTIL:
+	+ (Easy) Make generators return time handles, not arrays
 
 TIME HANDLE:
 	+ Time Handle can read data and figure out its own periodicity/range
 	+ Time Handle doesn't have to be end of month 
 	+ Time Handle only holds one type of data (e.g. datetime object or epoch)
 
+TRANS HANDLE:
+	+ (Easy) Rename set_extra_parameter to set_parameter
+	+ (Easy) Make sure parameters in test code are named constants, not strings
 
-MODEL HANDLE:
-	+ Make it take Serial Handle Template Again
-	+ Make it take Model Template Again
+WORD SELECTOR HANDLE:
+	+ Move simplifyDataSeries/simplifyWordSeries Call/Methods to other function (runs only periodically)
 
-RESULTS HANDLE:
-	+ Make sure when you lead metadata and pickle, that same models are represented in both.
+WORD SERIES HANDLE:
+	+ (Easy) Simplify function names for name/desc generators. Should they even be here? Why not just in handle_WordSeries?
+
+WORD SERIES UTIL:
+	+ Raw word key name strips off transformation
+		+ make sure doesn't have any follow-on effects

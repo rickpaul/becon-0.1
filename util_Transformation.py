@@ -309,22 +309,28 @@ def categorize_UniformLengthRange(data, kwargs):
 	TODOS:
 	Seems inefficient. Can we do this better?
 	'''
-	key = 'numRanges'
+	key = NUM_RANGES
 	numRanges = kwargs.get(key, kwargDefaults[key])
 	out = np.zeros(data.shape)
 	splits = np.linspace(min(data), max(data), numRanges+1)
 	for split in splits[1:]:
 		out += data>split
 	return {DATA_KEY: out,
-			}
+			SPLITS_KEY: splits}
 
 def categorize_QuantileRange(data, kwargs):
 	'''
 	returns quantile data
 	'''
-	key = 'numQuartiles'
-	numQuartiles = kwargs.get(key, kwargDefaults[key])
-	raise NotImplementedError
+	key = NUM_QUARTILES
+	numQuantiles = kwargs.get(key, kwargDefaults[key])
+	out = np.zeros(data.shape)
+	quantiles = [i*100.0/numQuantiles for i in xrange(numQuantiles)]
+	splits = [np.percentile(data, q) for q in quantiles]
+	for split in splits[1:]:
+		out += data>split
+	return {DATA_KEY: out,
+			SPLITS_KEY: splits}
 
 def categorize_MoreThanAmount(data, kwargs):
 	raise NotImplementedError
@@ -353,12 +359,22 @@ def timeSeriesTransform_TruncateFuture(timeHandle, kwargs):
 	delta = kwargs.get(key, kwargDefaults[key])
 	timeHandle.truncate_end(delta)
 
-def timeSeriesTransform_ShiftFuture(timeHandle, kwargs):
+def timeSeriesTransform_ShiftFuture_Change(timeHandle, kwargs):
+	key = FIRST_ORDER_DIFF_TIME
+	delta = kwargs.get(key, kwargDefaults[key])
+	timeHandle.shift_forward(delta)
+
+def timeSeriesTransform_ShiftPast_Change(timeHandle, kwargs):
+	key = FIRST_ORDER_DIFF_TIME
+	delta = kwargs.get(key, kwargDefaults[key])
+	timeHandle.shift_backward(delta)
+
+def timeSeriesTransform_ShiftFuture_Level(timeHandle, kwargs):
 	key = PERIODS_AWAY
 	delta = kwargs.get(key, kwargDefaults[key])
 	timeHandle.shift_forward(delta)
 
-def timeSeriesTransform_ShiftPast(timeHandle, kwargs):
+def timeSeriesTransform_ShiftPast_Level(timeHandle, kwargs):
 	key = PERIODS_AWAY
 	delta = kwargs.get(key, kwargDefaults[key])
 	timeHandle.shift_backward(delta)
@@ -409,7 +425,7 @@ def transformStr_PastLvlCat(kwargs):
 	return 'PastLvl.{0}->Cat.{1}'.format(periodDelta, numCats)
 
 def transformStr_PastLvlNormRd(kwargs):
-	key = PAST_LEVEL
+	key = PERIODS_AWAY
 	periodDelta = kwargs.get(key, kwargDefaults[key])
 	return 'PastLvl.{0}->NormRd'.format(periodDelta)
 

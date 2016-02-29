@@ -1,14 +1,13 @@
 # TODOS:
 #	we insert but we don't retrieve isInterpolated, isForecast
-# CONSIDER:
-#	Make periodicity a required field for insertion? (NO. We need to query it.)
+
 
 
 # EMF 		From...Import
 from 	handle_TimeSet 			import EMF_TimeSet_Handle, verify_date_series
 from 	lib_DataSeries			import DATE_COL, VALUE_COL, DATA_HISTORY_DTYPE
 from 	lib_JSON				import JSONRepository, DATA_SERIES_TO_JSON
-from 	template_SerialHandle 	import EMF_Serial_Handle
+# from 	template_SerialHandle 	import EMF_Serial_Handle
 from 	util_DB					import typify
 from	util_TimeSet			import dt_now_as_epoch
 # EMF 		Import...As
@@ -22,6 +21,10 @@ from 	json 					import dumps as json_dump
 
 class EMF_DataSeries_Handle(object):
 	def __init__(self, dbHandle, name=None, ticker=None, insertIfNot=False):
+		'''
+		CONSIDER:
+					Make periodicity a required field for insertion? (NO.)
+		'''
 		self._hndl_DB = dbHandle
 		self._hndl_Time = None
 		self.stored_series = None

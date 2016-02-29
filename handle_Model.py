@@ -1,3 +1,10 @@
+# TODO:
+# 	Remove WordSet from this.
+# 	Reduce Template Necessities
+# 	Make Dependency on Template
+# 	Figure out why I can't get NotFittedError
+# 	Figure out where we planned on using data_importances, or remove
+
 # EMF 		Import...As
 from 	lib_Runner_Model		import TRAINING, PREDICTION_DEPENDENT, PREDICTION_INDEPENDENT
 # from 	template_SerialHandle 	import EMF_Serial_Handle
@@ -8,7 +15,10 @@ import 	logging 				as log
 from 	string 					import join
 # from 	sklearn.exceptions 		import NotFittedError
 
+FEAT_IMP_MIN = 0.005 # Importance at which model decides not to describe (50bps)
+
 class EMF_Model_Handle(object):
+
 	def __init__(self, hndl_WordSet):
 		self.hndl_WordSet = hndl_WordSet
 		# self._predictions = None
@@ -16,7 +26,7 @@ class EMF_Model_Handle(object):
 		self._train_score = None
 
 	def __str__(self):
-		respVars = [str(hndl) for hndl in [self.hndl_WordSet.resp_word]]
+		respVars = [str(hndl) for hndl in self.hndl_WordSet.resp_words]
 		respVars = join(respVars, '|')
 		predVars = [str(hndl) for hndl in self.hndl_WordSet.pred_words]
 		predVars = join(predVars, '|')
@@ -28,7 +38,13 @@ class EMF_Model_Handle(object):
 		Probably should be overwritten by sub-modules
 		'''
 		def fget(self):
-			resp_desc = self.hndl_WordSet.resp_word.desc
+			resp_desc = [hndl.desc for hndl in self.hndl_WordSet.resp_words]
+			if len(resp_desc) > 2:
+				resp_desc = join(resp_desc[:-1], ', ') + ', and ' + resp_desc[-1]
+			elif len(resp_desc) == 2:
+				resp_desc = '{0} and {1}'.format(resp_desc[0], resp_desc[1])
+			else:
+				resp_desc = resp_desc[0]
 			feature_importances = self.feature_importances
 			if feature_importances is not None:
 				pred_desc = []
@@ -47,23 +63,29 @@ class EMF_Model_Handle(object):
 		return locals()
 	desc = property(**desc())
 
-
 	def cat_desc():
 		def fget(self):
-			resp_desc = self.hndl_WordSet.resp_word.desc
+			# Get Response Description
+			resp_desc = [hndl.desc for hndl in self.hndl_WordSet.resp_words]
+			if len(resp_desc) > 2:
+				resp_desc = join(resp_desc[:-1], ', ') + ', and ' + resp_desc[-1]
+			elif len(resp_desc) == 2:
+				resp_desc = '{0} and {1}'.format(resp_desc[0], resp_desc[1])
+			else:
+				resp_desc = resp_desc[0]
+			# Get Predictor Description
 			pred_desc = []
 			for (key, val) in self.category_importances.iteritems():
-				pred_desc.append(key + ' ({0}%)'.format(val))
+				pred_desc.append(key + ' ({0:.1f}%)'.format(val*100))
 			if len(pred_desc) > 2:
 				pred_desc = join(pred_desc[:-1], ', ') + ', and ' + pred_desc[-1]
-				return 'The {0} together describe the {1}'.format(pred_desc, resp_desc)
+				return '{0} together describe the {1}'.format(pred_desc, resp_desc)
 			elif len(pred_desc) == 2:
-				return 'The {0} and {1} describe the {2}'.format(pred_desc[0], pred_desc[1], resp_desc)
+				return '{0} and {1} describe the {2}'.format(pred_desc[0], pred_desc[1], resp_desc)
 			else:
-				return 'The {0} describes the {1}'.format(pred_desc, resp_desc)
+				return '{0} describes the {1}'.format(pred_desc, resp_desc)
 		return locals()
 	cat_desc = property(**cat_desc())
-
 
 	def feature_importances():
 		doc = "The feature_importances property."
@@ -82,19 +104,31 @@ class EMF_Model_Handle(object):
 		doc = "The category_importances property."
 		def fget(self):
 			cat_imp = {}
-			for (feat_imp, hndl) in zip(self.feature_importances, self.hndl_WordSet.pred_words):
-				if feat_imp > 0:
-					cat_imp[hndl.cat_desc] = cat_imp.get(hndl.cat_desc,0.0) + feat_imp
+			for (feat_imp, hndl_Word) in zip(self.feature_importances, self.hndl_WordSet.pred_words):
+				if feat_imp > FEAT_IMP_MIN:
+					cat_imp[hndl_Word.category] = cat_imp.get(hndl_Word.category, 0.0) + feat_imp
 			return cat_imp
 		return locals()
 	category_importances = property(**category_importances())
 
+	def category_desc_importances():
+		doc = "The category_desc_importances property."
+		def fget(self):
+			cat_imp = {}
+			for (feat_imp, hndl_Word) in zip(self.feature_importances, self.hndl_WordSet.pred_words):
+				if feat_imp > FEAT_IMP_MIN:
+					cat_imp[hndl_Word.cat_desc] = cat_imp.get(hndl_Word.cat_desc,0.0) + feat_imp
+			return cat_imp
+		return locals()
+	category_desc_importances = property(**category_desc_importances())
+
+	# This is not used
 	def data_importances():
 		doc = "The data_importances property."
 		def fget(self):
 			data_imp = {}
-			for (feat_imp, hndl) in zip(self.feature_importances, self.hndl_WordSet.pred_words):
-				dataID = hndl.dataSet.seriesID
+			for (feat_imp, hndl_Word) in zip(self.feature_importances, self.hndl_WordSet.pred_words):
+				dataID = hndl_Word.dataSet.seriesID
 				if feat_imp > 0:
 					data_imp[dataID] = data_imp.get(dataID,0.0) + feat_imp
 			return data_imp
@@ -125,46 +159,7 @@ class EMF_Model_Handle(object):
 		return locals()
 	test_score = property(**test_score())
 
-	# def predictions():
-	# 	doc = "Predictions."
-	# 	def fget(self):
-	# 		predictions = self.model.predict(self.hndl_WordSet.get_word_arrays(mode=PREDICTION)[0])
-	# 		predictions = predictions.reshape(-1, 1)
-	# 		self._predictions = self.hndl_WordSet.get_prediction_values(predictions=predictions)
-	# 		return self._predictions
-	# 	return locals()
-	# predictions = property(**predictions())
-
-	def add_keyword_argument(self, kwarg, kwargValue):
-		origValue = self.kwargs.get(kwarg, None)
-		self.kwargs[kwarg] = kwargValue
-		return origValue
-
-	def remove_keyword_argument(self, kwarg):
-		if kwarg in self.kwargs:
-			origValue = self.kwargs[kwarg]
-			del self.kwargs[kwarg]
-			return origValue
-		else:
-			return None
-
-	def __evaluate_run_readiness(self):
-		'''
-		TODOS:
-					change from returning bool to raising value error
-		'''
-		if not self.hndl_WordSet.predictor_words_are_set(): 
-			raise AttributeError
-		if not self.hndl_WordSet.response_word_is_set():
-			raise AttributeError
-		for type_ in self.hndl_WordSet.get_response_word_types():
-			if type_ not in self.allowed_respVar_types:
-				raise AttributeError
-		for type_ in self.hndl_WordSet.get_predictor_word_types():
-			if type_ not in self.allowed_predVar_types:
-				raise AttributeError
-
-	def train_model(self):
+	def train_model(self, pred_array, resp_array, sample_weights=None):
 		'''
 		IMPLEMENTATION OF MODEL TEMPLATE
 		Runs the model
@@ -173,21 +168,17 @@ class EMF_Model_Handle(object):
 				change way we assert run readiness
 				assert minDate<maxDate
 		'''
-		# Make Sure We're Ready (Don't Love This)
-		self.__evaluate_run_readiness()
-		(pred_array, resp_array) = self.hndl_WordSet.get_word_arrays(mode=TRAINING, bootstrap=True)
 		# Run Model
-		if self.hndl_WordSet.sample_weights is not None:
-			self.model.fit(pred_array, resp_array, self.hndl_WordSet.sample_weights)
+		if sample_weights is not None:
+			self.model.fit(pred_array, resp_array, sample_weights)
 		else:
 			self.model.fit(pred_array, resp_array)
 		# Save Scores
 		self.train_score = self.determine_accuracy(pred_array, resp_array)
 		self.adjusted_feat_scores = self.feature_importances*self.train_score
 
-	def test_model(self):
-		(pred_array, resp_array) = self.hndl_WordSet.get_word_arrays(mode=TRAINING, bootstrap=False)
-		self.test_score = self.determine_accuracy(pred_array, resp_array)
+	def test_model(self, pred_array, resp_array, sample_weights=None):
+		self.test_score = self.determine_accuracy(pred_array, resp_array, sample_weights=sample_weights)
 		self.adjusted_feat_scores = self.feature_importances*self.test_score
 		return self.test_score
 
@@ -196,8 +187,8 @@ class EMF_Model_Handle(object):
 		IMPLEMENTATION OF MODEL TEMPLATE
 		Perfectly accurate is 1, perfectly inaccurate is 0
 		'''
-		if self.hndl_WordSet.sample_weights is not None:
-			return self.model.score(test_predVars, test_respVars, self.hndl_WordSet.sample_weights)
+		if sample_weights is not None:
+			return self.model.score(test_predVars, test_respVars, sample_weights)
 		else:
 			return self.model.score(test_predVars, test_respVars)
 
@@ -226,3 +217,30 @@ class EMF_Model_Handle(object):
 
 	def get_save_location(self):
 		raise NotImplementedError
+
+
+
+	# def predictions():
+	# 	doc = "Predictions."
+	# 	def fget(self):
+	# 		predictions = self.model.predict(self.hndl_WordSet.get_word_arrays(mode=PREDICTION)[0])
+	# 		predictions = predictions.reshape(-1, 1)
+	# 		self._predictions = self.hndl_WordSet.get_prediction_values(predictions=predictions)
+	# 		return self._predictions
+	# 	return locals()
+	# predictions = property(**predictions())
+
+	# def add_keyword_argument(self, kwarg, kwargValue):
+	# 	origValue = self.kwargs.get(kwarg, None)
+	# 	self.kwargs[kwarg] = kwargValue
+	# 	return origValue
+
+	# def remove_keyword_argument(self, kwarg):
+	# 	if kwarg in self.kwargs:
+	# 		origValue = self.kwargs[kwarg]
+	# 		del self.kwargs[kwarg]
+	# 		return origValue
+	# 	else:
+	# 		return None
+
+

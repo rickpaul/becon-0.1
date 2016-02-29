@@ -1,1 +1,2 @@
-maxNumModels = 100
+MAX_MODELS = 100
+

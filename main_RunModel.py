@@ -7,14 +7,11 @@ from 	util_DB				import connect_to_DB
 # EMF 		Import...As
 import 	lib_EMF
 import 	lib_Runner_Model
-# System 	From...Import
-from 	numpy.random 		import seed # TEST
 
 ######################## CURRENT RUN PARAMS
 CURRENT_MODE 	= lib_EMF.TEST_MODE
-CURRENT_MODEL 	= lib_Runner_Model.TimeToRecTemplate
-NUM_TRAIN_RUNS 	= 1
-seed(0) # TEST: Delete
+CURRENT_MODEL 	= lib_Runner_Model.SP500Template
+NUM_TRAIN_RUNS 	= 10
 
 def main():
 	hndl_Log = EMF_Logging_Handle(mode=CURRENT_MODE)

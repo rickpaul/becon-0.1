@@ -1,0 +1,83 @@
+
+def gen_desc_None(kwargs, name, value, splits):
+	return 'Value of {0}'.format(name)
+
+def gen_desc_Cat(kwargs, name, value, splits):
+	key = NUM_RANGES
+	numCats = kwargs.get(key, kwargDefaults[key])
+	return 'Value of {0} in {1} categories'.format(name, numCats)
+
+def gen_desc_NormRd(kwargs, name, value, splits):
+	return 'Number of standard deviations above/below long-term mean of {0}'.format(name)
+
+def gen_desc_PastDiff(kwargs, name, value, splits):
+	key = FIRST_ORDER_DIFF_TIME
+	numPeriods = kwargs.get(key, kwargDefaults[key])
+	return 'Change in {0} since {1} periods ago'.format(name, numPeriods)
+
+def gen_desc_PastDiffCat(kwargs, name, value, splits):
+	key = FIRST_ORDER_DIFF_TIME
+	periodDelta = kwargs.get(key, kwargDefaults[key])
+	key = NUM_RANGES
+	numCats = kwargs.get(key, kwargDefaults[key])
+	return 'Change in {0} since {1} periods ago in {2} categories'.format(name, numPeriods, numCats)
+
+def gen_desc_PastDiffNormRd(kwargs, name, value, splits):
+	key = FIRST_ORDER_DIFF_TIME
+	periodDelta = kwargs.get(key, kwargDefaults[key])	
+	return 'Change in {0} since {1} (Number of standard deviations above/below mean)'.format(name, periodDelta)
+
+def gen_desc_PastLvl(kwargs, name, value, splits):
+	key = FIRST_ORDER_DIFF_TIME
+	numPeriods = kwargs.get(key, kwargDefaults[key])
+	return 'Value of {0} {1} periods ago'.format(name, numPeriods)
+
+def gen_desc_PastLvlCat(kwargs, name, value, splits):
+	key = FIRST_ORDER_DIFF_TIME
+	numPeriods = kwargs.get(key, kwargDefaults[key])
+	key = NUM_RANGES
+	numCats = kwargs.get(key, kwargDefaults[key])
+	return 'Value of {0} {1} periods ago (in {2} categories)'.format(name, numPeriods, numCats)
+
+def gen_desc_PastLvlNormRd(kwargs, name, value, splits):
+	key = FIRST_ORDER_DIFF_TIME
+	numPeriods = kwargs.get(key, kwargDefaults[key])
+	return 'Value of {0} {1} periods ago (Number of standard deviations above/below mean)'.format(name, numPeriods)
+
+def gen_desc_FutrDiff(kwargs, name, value, splits):
+	key = FIRST_ORDER_DIFF_TIME
+	numPeriods = kwargs.get(key, kwargDefaults[key])
+	return 'Change in {0} {1} periods ahead'.format(name, numPeriods)
+
+def gen_desc_FutrDiffCat(kwargs, name, value, splits):
+	key = FIRST_ORDER_DIFF_TIME
+	periodDelta = kwargs.get(key, kwargDefaults[key])
+	key = NUM_RANGES
+	numCats = kwargs.get(key, kwargDefaults[key])
+	return 'Change in {0} {1} periods ahead in {2} categories'.format(name, numPeriods, numCats)
+
+def gen_desc_FutrDiffNormRd(kwargs, name, value, splits):
+	key = FIRST_ORDER_DIFF_TIME
+	periodDelta = kwargs.get(key, kwargDefaults[key])
+	key = NUM_RANGES
+	numCats = kwargs.get(key, kwargDefaults[key])
+	return 'Change in {0} {1} periods ahead (Number of standard deviations above/below mean)'.format(name, numPeriods)
+
+def gen_desc_FutrLvl(kwargs, name, value, splits):
+	key = FIRST_ORDER_DIFF_TIME
+	numPeriods = kwargs.get(key, kwargDefaults[key])
+	return 'Value of {0} {1} periods ahead'.format(name, numPeriods)
+
+def gen_desc_FutrLvlCat(kwargs, name, value, splits):
+	key = FIRST_ORDER_DIFF_TIME
+	numPeriods = kwargs.get(key, kwargDefaults[key])
+	key = NUM_RANGES
+	numCats = kwargs.get(key, kwargDefaults[key])
+	return 'Value of {0} {1} periods ago (in {2} categories)'.format(name, numPeriods, numCats)
+	
+def gen_desc_FutrLvlNormRd(kwargs, name, value, splits):
+	key = FIRST_ORDER_DIFF_TIME
+	numPeriods = kwargs.get(key, kwargDefaults[key])
+	return 'Value of {0} {1} periods ahead (Number of standard deviations above/below mean)'.format(name, numPeriods)
+
+

@@ -28,9 +28,9 @@ def test_transformations():
 	# hndl_Trns = EMF_Transformation_Handle('Past_Lvl_NormRd',trnsKwargs)
 	# hndl_Word_Acc = EMF_WordSeries_Handle(hndl_Test.hndl_DB, hndl_Data, hndl_Trns)
 	plot_data_series(hndl_Data, hndl_Word_Chng)
-	hndl_Word_Chng.hndl_Trns.reverse_transform_time(hndl_Time)
-	hndl_Word_Chng.hndl_Trns.reverse_transform_data(hndl_Data.values, hndl_Word_Chng.values)
-	plot_data_series(hndl_Data, hndl_Word_Chng)
+	# hndl_Word_Chng.hndl_Trns.reverse_transform_time(hndl_Word_Chng.)
+	# hndl_Word_Chng.hndl_Trns.reverse_transform_data(hndl_Data.values, hndl_Word_Chng.values)
+	# plot_data_series(hndl_Data, hndl_Word_Chng)
 
 def test_descriptions():
 	hndl_Test = EMF_Testing_Handle(mode=TEMP_MODE)

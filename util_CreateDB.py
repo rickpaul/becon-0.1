@@ -6,7 +6,6 @@ from 	handle_DB	import EMF_Database_Handle
 # EMF 		Import...As
 import 	lib_CreateDB	as createDB_lib
 # System 	Import...As
-import 	sqlite3 		as sq
 import 	logging 		as log
 # System 	From...Import
 from 	os.path 	import isfile, exists, dirname
@@ -70,6 +69,8 @@ def create_or_connect_to_DB(mode=TEMP_MODE, manualOverride=False):
 	
 	RETURNS:
 				DB Location
+	TODO:
+				dbExists variable is not used...
 	'''
 	# Get Settings
 	settings = get_EMF_settings(mode)

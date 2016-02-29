@@ -35,7 +35,6 @@ class EMF_Quandl_Runner:
 		'''
 		TODOS:
 					Only Download data that's necessary (i.e. after latest insert) (checking for updates)
-					
 		'''
 		# Set Data Handle
 		max_date = hndl_Data.max_date

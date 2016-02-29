@@ -1,5 +1,6 @@
 # TODO:
 # 	Create some model of transformation complexity? (i.e. O(n))
+# 	Rename set_extra_parameter to set_parameter
 
 # EMF 		Import...As
 import lib_Transformation 	as lib_Trns
@@ -29,7 +30,9 @@ class EMF_Transformation_Handle:
 		self._trnsKwargs = copy(trnsKwargs) 
 
 	def __str__(self):
-		return lib_Trns.TransformationNames[self._trnsName](self._trnsKwargs)
+		return lib_Trns.TransformationNames[self._trnsName](self.parameters)
+
+	__repr__ = __str__
 
 	def name():
 		doc = "The name property."
@@ -46,9 +49,11 @@ class EMF_Transformation_Handle:
 	code = property(**code())
 
 	def parameters():
-		doc = "The code property."
+		doc = "The transformation parameters."
 		def fget(self):
 			return self._trnsKwargs
+		def fset(self, value):
+			self._trnsKwargs.update(value)
 		return locals()
 	parameters = property(**parameters())
 

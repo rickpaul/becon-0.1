@@ -1,4 +1,6 @@
-
+# EMF       Import...As
+from    lib_DBInstructions      import retrieveStats_DataStatsTable, retrieveStats_WordStatsTable
+from    lib_DBInstructions      import replaceStats_DataStatsTable, replaceStats_WordStatsTable
 # System    Import...As
 import  random
 # System    From...Import
@@ -25,6 +27,22 @@ def combined_variance(mean_y, var_y, len_y, mean_x, var_x, len_x):
 COMBINE_VAR = lambda (mean_y, var_y, len_y), (mean_x, var_x, len_x): \
 				combined_variance(mean_y, var_y, len_y, mean_x, var_x, len_x)
 
+def simplify_data_stats_db(conn, cursor, respID, predID):
+    results = retrieveStats_DataStatsTable(cursor, respID, predID)
+    if results is not None and len(results) > 1:
+        (mean_, var_, len_) = reduce(COMBINE_VAR, results)
+        replaceStats_DataStatsTable(conn, cursor, 
+                                    respID, predID, 
+                                    mean_, var_, len_)
+
+
+def simplify_word_stats_db(conn, cursor, respID, predID):
+    results = retrieveStats_WordStatsTable(cursor, respID, predID)
+    if results is not None and len(results) > 1:
+        (mean_, var_, len_) = reduce(COMBINE_VAR, results)
+        replaceStats_WordStatsTable(conn, cursor, 
+                                    respID, predID, 
+                                    mean_, var_, len_)
 
 def weighted_choice(choices_iter, total):
     '''

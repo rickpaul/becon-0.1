@@ -8,6 +8,9 @@ __website/*.json
 # SSH Files
 .ssh/*
 
+# Website Files
+__website/*
+
 # Deprecated Files
 deprecated/*
 _del_*

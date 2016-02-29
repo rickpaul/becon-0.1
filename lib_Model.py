@@ -3,6 +3,7 @@
 #		(suppose we want to get 2% of data set size for min_samples_split)
 # 	We're not using kwargDefaults
 #	VERIFY THAT DEC TREE CAN ACCEPT CATEGORICAL VARIABLES!
+# 	Instead of using Categorical Bounded, we should have Categorical Ordered
 
 # EMF 		From...Import
 from template_Model 	import EMF_Model_Template
@@ -10,6 +11,7 @@ from handle_Model 		import EMF_Model_Handle
 # System 	From...Import
 from math 				import log
 from string 			import join
+
 kwargDefaults = {
 	'max_depth':			3,
 	'min_samples_split':	10,
@@ -67,7 +69,7 @@ EMF_RegressionDecisionTree_Info = {
 		'continuous',
 	],
 	'kwargs': {
-		'max_depth':				3,
+		'max_depth':				4,
 		# 'min_samples_split':		10,
 		# 'min_samples_leaf':		20,
 		'min_weight_fraction_leaf': .01,
@@ -87,7 +89,7 @@ class EMF_RegressionDecisionTree(EMF_Model_Handle, EMF_Model_Template):
 
 EMF_OLSRegression_Info = {
 	'model_ID': 3,
-	'model_short_name': 'RegrTree',
+	'model_short_name': 'OLSLinearRegression',
 	'supervised': True,
 	# 'computational_cost_construction': lambda numSamples, numFeatures: (numSamples*log(numSamples)*numFeatures),
 	# 'computational_cost_query': lambda numSamples, numFeatures: (log(numSamples)),
