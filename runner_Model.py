@@ -63,9 +63,6 @@ class EMF_Model_Runner(object):
 
 	def train_model_batch(self):
 		'''
-		TODOS:
-					Make random/effectiveness word selection a param
-					Sloppy.
 		'''
 		# Choose Model at Random
 		self.hndl_Model = choice(self.models)(self.hndl_WordSet)

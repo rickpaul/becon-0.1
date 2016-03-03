@@ -21,4 +21,3 @@ JSON_MODEL_CATS = 'm_cat'
 # LAMBDAS
 DATA_SERIES_TO_JSON = lambda d, v: {JSON_DATE_KEY: dt_epoch_to_str_Y_M_D(d), JSON_VALUE_KEY: float(v)}
 # WORD_SERIES_TO_JSON = lambda (dt, data_vl, word_vl): {'dt': dt_epoch_to_str_Y_M_D(dt), 'raw_val': float(data_vl), 'proc_val': float(word_vl)}
-

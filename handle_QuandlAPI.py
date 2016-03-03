@@ -22,9 +22,9 @@ import	numpy			as 	np
 
 class EMF_QuandlAPI_Handle:
 	'''
-	CONSIDER:
-				Use Quandl package (NO)
-				Use Requests package instead of urllib2 (NO)
+	We decided to keep this in urllib2. 
+	There is a Quandl package we are not using.
+	We are also not using requests.
 	TODOS:
 				Save off metadata
 	'''

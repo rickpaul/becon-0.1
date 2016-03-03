@@ -1,6 +1,5 @@
 # TODO:
 #	Implement file versioning system for backups (somehow)
-# 	Move test to other file!
 
 # EMF 		From...Import
 import 	UnicodeCSV
