@@ -2,7 +2,7 @@
 from 	lib_EMF		 		import 	TEMP_MODE, TEST_MODE, QA_MODE, PROD_MODE
 # EMF 		Import...As
 import 	lib_DB
-import 	lib_Logging
+import 	lib_Logging 		as lib_Log
 import 	lib_QuandlAPI
 # System 	Import...As
 import 	logging as log
@@ -11,50 +11,62 @@ import 	logging as log
 def get_EMF_settings(mode=TEMP_MODE):
 	if mode==TEMP_MODE:
 		return {
-			'dbLoc':		lib_DB.TempDBFilePath,
+			# SQLite DB
+			'dbLoc':		lib_DB.TempDB_SQLite,
 			'overwriteDB':	True,
 			'deleteDB':		True,
-			'logLoc':		lib_Logging.TempLogFilePath,
+			# Log
+			'logLoc':		lib_Log.TempLogFilePath,
 			'recordLog':	False,
 			'recordLevel':	log.INFO,
 			'deleteLog':	None,
 			'logAppend':	True,
+			# CSV
 			'QuandlCSVLoc': lib_QuandlAPI.TempQuandlCSV,
 		}
 	elif mode==TEST_MODE:
 		return {
-			'dbLoc':		lib_DB.TestDBFilePath,
+			# SQLite DB
+			'dbLoc':		lib_DB.TestDB_SQLite,
 			'overwriteDB':	True,
 			'deleteDB':		False,
-			'logLoc':		lib_Logging.TestLogFilePath,
+			# Log
+			'logLoc':		lib_Log.TestLogFilePath,
 			'recordLog':	False,
 			'recordLevel':	log.DEBUG,
 			'deleteLog':	None,
 			'logAppend':	False,
+			# CSV
 			'QuandlCSVLoc': lib_QuandlAPI.TestQuandlCSV,
 		}
 	elif mode==QA_MODE:
 		return {
-			'dbLoc':		lib_DB.QADBFilePath,
+			# SQLite DB
+			'dbLoc':		lib_DB.QADB_SQLite,
 			'overwriteDB':	False,
 			'deleteDB':		False,
-			'logLoc':		lib_Logging.QALogFilePath,
+			# Log
+			'logLoc':		lib_Log.QALogFilePath,
 			'recordLog':	True,
 			'recordLevel':	log.INFO,
 			'deleteLog':	False,
 			'logAppend':	True,
+			# CSV
 			'QuandlCSVLoc': lib_QuandlAPI.QAQuandlCSV,
 		}
 	elif mode==PROD_MODE:
 		return {
-			'dbLoc':		lib_DB.ProdDBFilePath,
+			# SQLite DB
+			'dbLoc':		lib_DB.ProdDB_SQLite,
 			'overwriteDB':	False,
 			'deleteDB':		False,
-			'logLoc':		lib_Logging.ProdLogFilePath,
+			# Log
+			'logLoc':		lib_Log.ProdLogFilePath,
 			'recordLog':	True,
 			'recordLevel':	log.WARNING,
 			'deleteLog':	False,
 			'logAppend':	True,
+			# CSV
 			'QuandlCSVLoc': lib_QuandlAPI.ProdQuandlCSV,
 		}
 	else:
