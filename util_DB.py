@@ -109,6 +109,7 @@ def retrieveDBStatement(cursor, statement, expectedColumnCount=1, expectedCount=
 	Messy. Clean up (need a comprehensive error strategy)
 	'''	
 	log.debug('DATABASE: Attempting %s ...', statement)
+	# Try to retrieve results
 	try:
 		cursor.execute(statement)
 		results = cursor.fetchall()
@@ -116,24 +117,26 @@ def retrieveDBStatement(cursor, statement, expectedColumnCount=1, expectedCount=
 		log.error('DATABASE: %s Failed!', statement)
 		log.error('%s', e)
 		raise e
-
+	# Check Something Retrieved
 	if len(results) == 0:
 		return (False, None)
-
-	# Check Count if successful
+	# Check Count Matches Expected Count
 	if (expectedCount is not None) and (len(results) != expectedCount):
 		log.error('DATABASE: %s Had unexpected number of rows (%d expected; %d retrieved)', statement, expectedCount, len(results))
 		raise Exception('Unexpected number of rows for query')
-
+	# Check Columns Matches Expected Columns
 	if len(results[0]) != expectedColumnCount:
 		log.error('DATABASE: %s Had unexpected number of columns (%d expected; %d retrieved)', statement, expectedColumnCount, len(results[0]))
 		raise Exception('Unexpected number of columns for query')
-
+	# Simplify Returns...
 	if expectedColumnCount == 1:
+		# Simplify Returns / If One Row, One Column, Return Single Result
 		if expectedCount == 1:
 			return (True, results[0][0])
+		# Simplify Returns / If One Column, Return Single List
 		else:
 			return (True, [row[0] for row in results])
+	# ...Or Just Return
 	else:
 		return (True, results)
 
@@ -152,6 +155,7 @@ def commitDBStatement(conn, cursor, statement, failSilently=False):
 
 	TODO:
 				Separate returns to not have ambiguity in return
+				Implement Rollback
 	'''
 	log.debug('DATABASE: Attempting %s ...', statement)
 	try:
