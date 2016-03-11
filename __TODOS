@@ -1,11 +1,12 @@
 
 CURRENTLY:
-	+ Make Decision Tree Explanation
+	+ Make Quandl DB/Dataset name part of the code.
 	+ Implement Theoretical Inputter (i.e. how do we put in fall in china growth -> high oil prices)
 	
 PRIORITY 1:
 	+ Make Parallel Coordinates Categorical
 	+ Change from working on SQLite to working on MySQL
+	+ Atomic Save for Pickle and JSON
 	+ Data Download
 		+ Create canonical dates functions to make sure dates line up
 			+ How do we make sure dates are end of month/line up?
@@ -85,7 +86,6 @@ Strong Currency, Low Global Demand =? Manufacturing Challenge-
 GENERAL:
 	+ Create JSON CHECKER to look-at/read JSON files
 	+ Add Tests Everywhere
-	+ 
 
 COLUMN ARRAY HANDLE:
 	+ Make saving atomic. That involves saving as a backup. Then rolling back if save fails
