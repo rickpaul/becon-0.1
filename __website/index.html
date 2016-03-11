@@ -1,261 +1,49 @@
 <!DOCTYPE html>
-<meta charset='utf-8'>
-<style>
-svg {
-  font: 10px sans-serif;
-}
+<html>
+<head>
+	<meta charset='utf-8'>
+	<!-- title and favicon -->
+	<title>Becon Economics</title>
+	<link rel='shortcut icon' href='img/favicon.png' width='32px' height='64px'/>
+	<!-- Bootstrap -->
+	<link rel='stylesheet' type='text/css' href='css/bootstrap.min.css'>
 
-path.background {
-  fill: none;
-  stroke: #ddd;
-  shape-rendering: crispEdges;
-}
-
-path.foreground {
-  fill: none;
-  stroke: steelblue;
-}
-
-circle.background  {
-  fill: #ddd;
-  stroke: none;
-  shape-rendering: crispEdges;
-}
-
-circle.foreground {
-  fill: none;
-  stroke: steelblue;
-}
-
-path.history{
-  fill: none;
-  stroke: steelblue;
-  stroke-width: 1px; 
-}
-
-.brush .extent {
-  fill-opacity: .3;
-  stroke: #fff;
-  shape-rendering: crispEdges;
-}
-
-.axis line,
-.axis path {
-  fill: none;
-  stroke: #000;
-  shape-rendering: crispEdges;
-}
-
-.pcaxis line,
-.pcaxis path {
-  fill: none;
-  stroke: #999;
-  shape-rendering: crispEdges;
-}
-
-.axis text {
-  text-shadow: 0 1px 0 #fff, 1px 0 0 #fff, 0 -1px 0 #fff, -1px 0 0 #fff;
-}
-</style>
-<body>
-
-  <!--<script src="https://cdnjs.cloudflare.com/ajax/libs/queue-async/1.0.7/queue.min.js"></script>-->
-  <!--<script src='https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.12/d3.min.js'></script>-->
-  <script src='d3/d3.v3.min.js'></script>
-  <script src='queue/queue.min.js'></script>
-  <script type='text/javascript'>
-    var filePrefix = 'SP500_RealPrice';
-    console.log('Loading Predictive Points Script')
-    
-    var parseDate = d3.time.format('%Y-%m-%d').parse;
-
-    var svg_margin = {top: 10, right: 20, bottom: 100, left: 40};
-    var svg_width = 960 - svg_margin.right - svg_margin.left; 
-    var svg_height = 500 - svg_margin.top - svg_margin.bottom;
-
-    var pc_margin = {top: 0, right: 50, bottom: 40, left: 400};
-    var pc_width  = svg_width - pc_margin.right - pc_margin.left;
-    var pc_height = svg_height - pc_margin.top - pc_margin.bottom;
-
-    var ln_margin = {top: 0, right: 500, bottom: 40, left: 0};
-    var ln_width  = svg_width - ln_margin.right - ln_margin.left;
-    var ln_height = svg_height - ln_margin.top - ln_margin.bottom;
-
-    var ln_x_scale = d3.time.scale().range([0, ln_width]);
-    var pc_x_scale = d3.time.scale().range([0, pc_width]);
-    var y_scale = d3.scale.linear().range([ln_height, 0]);
-
-    var ln_y_axis = d3.svg.axis().scale(y_scale).orient('left');
-    var ln_y_axis2 = d3.svg.axis().scale(y_scale).orient('right').tickSize(0).tickValues([]);;
-    var ln_x_axis = d3.svg.axis().scale(ln_x_scale).orient('bottom');
-    var pc_y_axis = d3.svg.axis().scale(y_scale).orient('left').tickSize(0).tickValues([]);
-    var pc_x_axis = d3.svg.axis().scale(pc_x_scale).orient('bottom').tickFormat(d3.time.format("%m-%Y"));
-
-    var line = null;
-    // axis = d3.svg.axis().orient("left"),
-    // background,
-    // foreground;
-
-    var svg = d3.select("body").append("svg")
-        .attr("width", svg_width)
-        .attr("height", svg_height)
-      .append("g")
-        .attr("transform", "translate("+svg_margin.left+","+svg_margin.top+")");
-
-    var ln_area = svg.append('g')
-      .attr('class', 'ln-area')
-      .attr("width", ln_width)
-      .attr("height", ln_height)
-      .attr('transform', 'translate(' + ln_margin.left + ',' + ln_margin.top + ')');
-
-    var pc_area = svg.append('g')
-      .attr('class', 'pc-area')
-      .attr("width", pc_width)
-      .attr("height", pc_height)
-      .attr('transform', 'translate(' + pc_margin.left + ',' + pc_margin.top + ')');
-
-    var ln_vl_terminus = null;
-    var ln_dt_terminus = null;
-    var ln_data = null;
-    var pc_data = null;
-    var md_data = null;
-
-    function define_ln_x_scale(){
-      ln_x_scale.domain(d3.extent(ln_data.map(function(d){return d.date;})));
-    };
-
-    function define_pc_x_scale(){
-      pc_x_scale.domain([ln_dt_terminus, d3.max(pc_data.map(function(d){return d.date;}))]);
-    };
-
-    function define_y_scale(){
-      y_scale.domain(
-        d3.extent(
-          ln_data.map(function(d){return d.value;}).concat(
-          pc_data.map(function(d){return d.value;}))
-        )
-      );
-    }
-
-    function add_ln_data(){
-      console.log('Plotting Line Data');
-
-      ln_area.append('g')
-        .attr('class', 'x axis')
-        .attr('transform', 'translate(0,' + ln_height + ')')
-        .call(ln_x_axis);
-
-      ln_area.append('g')
-        .attr('class', 'y axis')
-        .call(ln_y_axis);
-    
-      // ln_area.append('g')
-      //   .attr('class', 'y axis')
-      //   .call(ln_y_axis2)
-      //   .attr('transform', 'translate(' + ln_width + ')')
-
-      line = d3.svg.line()
-        .interpolate('linear')
-        .x(function(d) { return ln_x_scale(d.date); })
-        .y(function(d) { return y_scale(d.value); });
-      ln_area.append('path')
-        .datum(ln_data)
-        .attr('class', 'history')
-        .attr('d', line);
-    };
-    function add_pc_data(){
-      console.log('Plotting PC Data');
-      // Get Unique Dates
-      var pc_dates = {};
-      pc_data.forEach(function(d){
-        pc_dates[d.dt_str] = d.date;
-      });
-      var pc_vals = Object.keys(pc_dates).map(function(d){return pc_dates[d]});
-      // Put Lines on Unique Dates
-      var g = pc_area.selectAll('.dimension')
-          .data(pc_vals)
-        .enter().append('g')
-          .attr('class', 'dimension')
-          .attr('transform', function(d) {return 'translate('+pc_x_scale(d)+')';});
-
-      g.append('g')
-          .attr('class', 'pcaxis')
-          .each(function(d){d3.select(this).call(pc_y_axis);})
-      // Add X Axis
-      pc_x_axis
-          .tickValues(pc_vals);
-
-      pc_area.append('g')
-        .attr('class', 'x axis')
-        .attr('transform', 'translate('+0+',' + pc_height + ')')
-        .call(pc_x_axis);
-
-      pc_area.selectAll('.dot')
-          .data(pc_data)
-        .enter().append('circle')
-          .attr('class', 'background')
-          .attr('r', 3.5)
-          .attr('cx', function(d){return pc_x_scale(d.date);})
-          .attr('cy', function(d){return y_scale(d.value);})
-    };
-
-
-    function load_predictive_data(callback){
-      console.log('Loading Predictive Data...');
-      d3.json(filePrefix+'predictions.json', function(error, data){
-        if (error) callback(error, false);
-        pc_data = data;
-        pc_data.forEach(function(d) {
-              d.id      = d.model_id;
-              d.dt_str  = d.dt;
-              d.date    = parseDate(d.dt);
-              d.value   = +d.vl;
-        });
-        console.log('...Loaded Predictive Data');
-        callback(null, true);        
-      });
-    };
-    function load_model_metadata(callback){
-      console.log('Loading Model Metadata...');
-      d3.json(filePrefix+'metadata.json', function(error, data){
-        if (error) callback(error, false);
-        md_data = data;
-        console.log('...Loaded Model Metadata');
-        callback(null, true);
-      });
-    };
-    function load_historical_data(callback){
-      console.log('Loading Historical Data');
-      d3.json(filePrefix+'history.json', function(error, data){
-        if (error) callback(error, false);
-        // if (error) throw error;
-        ln_data = data;
-        ln_data.forEach(function(d) {
-          d.date      = parseDate(d.dt);
-          d.value     = +d.vl;
-        });
-        console.log('...Loaded Historical Data');
-        callback(null, true);
-      });
-    };
-    function all_true(l){return l.reduce(function(a,b){return a&b})};
-    function on_load(error, results){
-      if (all_true(results)){console.log('Load Successful');}
-      // Define Terminus Values
-      var lastIndex = ln_data.length-1;
-      ln_dt_terminus = parseDate(ln_data[lastIndex].dt);
-      ln_vl_terminus = +ln_data[lastIndex].vl;
-      define_ln_x_scale();
-      define_pc_x_scale();
-      define_y_scale();
-      add_ln_data();
-      add_pc_data();
-    };
-
-    queue()
-      .defer(load_predictive_data)
-      .defer(load_historical_data)
-      .defer(load_model_metadata)
-      .awaitAll(on_load)
-  </script>
+	<!-- Optional theme -->
+	<link rel='stylesheet' type='text/css' href='css/bootstrap-theme.min.css'>
+	
+	<!-- custom css -->
+	<link rel='stylesheet' type='text/css' href='css/d3_pca.css'>
+	<link rel='stylesheet' type='text/css' href='css/custom.css'>
+</head>
+<body data-spy='scroll' data-target='.navbar-collapse'>
+	<div class='navbar navbar-default navbar-fixed-top  navOp'>
+		<div class='container'>
+			<div class='navbar-header'>
+				<button class='navbar-toggle' data-toggle='collapse' data-target='.navbar-collapse'>
+					<span class='icon-bar'></span>
+					<span class='icon-bar'></span>
+					<span class='icon-bar'></span>
+				</button>
+				<div id='cd-logo'><a href='#0'><img src='img/cd-logo.svg' class='img-responsive' alt='Logo'></a>
+				</div>
+			</div>
+            <div class='collapse navbar-collapse'>
+				<form class='navbar-form navbar-right'>
+					<!-- link to home / check MySQL -->
+					<button type='submit' name='sub' value='Home' class='btn btn-success'>Log Out</button>
+				</form>
+			</div>
+		</div>
+	</div>
+	<div class='container contentContainer' id='d3container'>
+		<div class='row'>
+			<div class='col-md-12 marginTop' id='topRow'>
+			</div>
+		</div>
+	</div>
+	<!--<script src="https://cdnjs.cloudflare.com/ajax/libs/queue-async/1.0.7/queue.min.js"></script>-->
+	<!--<script src='https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.12/d3.min.js'></script>-->
+	<script src='js/d3/d3.v3.min.js'></script>
+	<script src='js/queue/queue.min.js'></script>
+	<script src='js/pca.js'></script>
 </body>
