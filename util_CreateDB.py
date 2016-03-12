@@ -8,9 +8,7 @@ import 	lib_CreateDB	as createDB_lib
 # System 	Import...As
 import 	logging 		as log
 # System 	From...Import
-from 	os.path 	import isfile, exists, dirname
-from 	os 			import makedirs
-
+from 	os.path 	import isfile
 
 def __table_exists(conn, cursor, tableName):
 	'''
@@ -43,7 +41,7 @@ def __drop_table(conn, cursor, tableName):
 	statement = 'drop table if exists {0};'.format(tableName)
 	return commitDBStatement(conn, cursor, statement)
 
-def __db_exists(DBFilePath):
+def db_exists(DBFilePath):
 	return isfile(DBFilePath)
 
 def __create_table(conn, cursor, tableName, instruction, force=False):
@@ -68,9 +66,7 @@ def create_or_connect_to_DB(mode=TEMP_MODE, manualOverride=False):
 				force | <bool> | should we delete/overwrite existing tables?
 	
 	RETURNS:
-				DB Location
-	TODO:
-				dbExists variable is not used...
+				DB Handle
 	'''
 	# Get Settings
 	settings = get_EMF_settings(mode)
@@ -83,11 +79,9 @@ def create_or_connect_to_DB(mode=TEMP_MODE, manualOverride=False):
 	else:
 		tableCreationInstructions = createDB_lib.creationInstructions
 	# Create DB if necessary
-	if __db_exists(dbLocation):
-		dbExists = True
+	if db_exists(dbLocation):
 		log.info('DB {0} found.'.format(dbLocation))
 	else:
-		dbExists = False
 		log.info('DB {0} not found. Will be created.'.format(dbLocation))
 	# Hook To DB
 	hndl_DB = EMF_Database_Handle(dbLocation, deleteDB=deleteDB)
