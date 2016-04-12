@@ -2,6 +2,8 @@
 #	Why do minDate and maxDate exist?
 
 # EMF 		From...Import
+from 	handle_EMF					import EMF_Settings_Handle
+from 	lib_DB					import SQLITE_MODE, MYSQL_MODE
 from 	lib_CreateDB 	import DataColumnTableLink, WordColumnTableLink, DataColumnTableLink
 # EMF 		Import...As
 import 	util_DB 			as DB_util
@@ -112,7 +114,10 @@ def __get_insert_DataSeriesID_Metadata(seriesID):
 	return DB_util.generateInsertStatement(table, columns, values)
 def retrieve_DataSeriesID(conn, cursor, name=None, ticker=None, insertIfNot=False):
 	'''
-	
+	TODO:
+				Incorporate idea of rollbacks. 
+				rowID_or_Error working differently in mySQL.
+				This got messy with fixes.
 	'''
 	statement = __get_retrieve_DataSeriesID_Statement(name=name, ticker=ticker)
 	(success, results) = DB_util.retrieveDBStatement(cursor, statement, expectedColumnCount=1, expectedCount=1)
@@ -127,11 +132,12 @@ def retrieve_DataSeriesID(conn, cursor, name=None, ticker=None, insertIfNot=Fals
 			(success, rowID_or_Error) = DB_util.commitDBStatement(conn, cursor, statement)
 			if success:
 				statement = __get_insert_DataSeriesID_Metadata(rowID_or_Error)
-				(success, rowID_or_Error) = DB_util.commitDBStatement(conn, cursor, statement)
-				return rowID_or_Error # a row ID
-			else:
-				log.error('DATABASE: Series ID Not Created for %s. Error:\n%s', ticker, rowID_or_Error)
-				raise Exception('Series ID Failed to be Created')
+				(success, junk_last_id) = DB_util.commitDBStatement(conn, cursor, statement) # mySQL doesn't return good lastrowid when no autoincrement.
+				if success:
+					return rowID_or_Error # a row ID
+		if not success:
+			log.error('DATABASE: Series ID Not Created for %s. Error:\n%s', ticker, rowID_or_Error)
+			raise Exception('Series ID Failed to be Created')
 		else:
 			return None
 def __get_retrieve_DataSeriesTicker_Statement(seriesID):
@@ -188,16 +194,34 @@ def update_DataSeriesMetaData(conn, cursor, columnName, value, seriesID):
 	return success
 
 ####################################### DATA HISTORY TABLE
-
+def __get_insertOrUpdateDataPoint_DataHistoryTable_Statement(seriesID, date, value, interpolated, forecast):
+	table = 'T_DATA_HISTORY'
+	insert_columns = ['int_data_series_ID', 'dt_date_time', 'flt_data_value', 'bool_is_interpolated', 'bool_is_forecast']
+	insert_values = [seriesID, date, value, int(interpolated), int(forecast)]
+	update_columns = ['flt_data_value', 'bool_is_interpolated', 'bool_is_forecast']
+	update_values = [value, int(interpolated), int(forecast)]
+	return DB_util.generateInsertOrUpdateStatement_MySQL(table, insert_columns, insert_values, update_columns, update_values)
+def insertDataPoint_DataHistoryTable_MySQL(conn, cursor, seriesID, date, value, interpolated=False, forecast=False):
+	statement = __get_insertOrUpdateDataPoint_DataHistoryTable_Statement(seriesID, date, value, interpolated, forecast)
+	(success, err) = DB_util.commitDBStatement(conn, cursor, statement, failSilently=True)
+	return success
 def __get_insertDataPoint_DataHistoryTable_Statement(seriesID, date, value, interpolated, forecast):
 	table = 'T_DATA_HISTORY'
 	columns = ['int_data_series_ID', 'dt_date_time', 'flt_data_value', 'bool_is_interpolated', 'bool_is_forecast']
 	values = [seriesID, date, value, int(interpolated), int(forecast)]
 	return DB_util.generateInsertStatement(table, columns, values)
-def insertDataPoint_DataHistoryTable(conn, cursor, seriesID, date, value, interpolated=False, forecast=False):
+def insertDataPoint_DataHistoryTable_SQLite(conn, cursor, seriesID, date, value, interpolated=False, forecast=False):
 	statement = __get_insertDataPoint_DataHistoryTable_Statement(seriesID, date, value, interpolated, forecast)
 	(success, err) = DB_util.commitDBStatement(conn, cursor, statement, failSilently=True)
 	return success
+def insertDataPoint_DataHistoryTable(conn, cursor, seriesID, date, value, interpolated=False, forecast=False):
+	settings = EMF_Settings_Handle()
+	if settings.DB_MODE == SQLITE_MODE:
+		return insertDataPoint_DataHistoryTable_SQLite(conn, cursor, seriesID, date, value, interpolated=False, forecast=False)
+	elif settings.DB_MODE == MYSQL_MODE:
+		return insertDataPoint_DataHistoryTable_MySQL(conn, cursor, seriesID, date, value, interpolated=False, forecast=False)
+	else:
+		raise NameError('Database Mode not recognized.')
 
 def __get_completeDataHistory_DataHistoryTable_Statement(seriesID, selectCount=False):
 	table = 'T_DATA_HISTORY'
@@ -463,3 +487,26 @@ def retrieveAllStats_DataStatsTable(cursor, resp_data_ID):
 	statement = __get_retrieveAllStats_DataStatsTable_Statement(resp_data_ID)
 	(success, results) = DB_util.retrieveDBStatement(cursor, statement, expectedColumnCount=2, expectedCount=None)
 	return results # Don't care about success. If not successful, will fail with error
+
+####################################### DATA ATTRIBUTES TABLE
+
+def __get_retrieveAllStats_DataStatsTable_Statement(resp_data_ID):
+	table = 'T_DATA_STATISTICS'
+	wC = ['int_data_rsp_var_id']
+	wV = [resp_data_ID]
+	wO = ['=']
+	sC = ['int_data_prd_var_id', 'adj_prd_feature_importance']
+	oC = (['adj_prd_feature_importance'],'desc')
+	return DB_util.generateSelectStatement(	table, 
+											whereColumns=wC, 
+											whereValues=wV, 
+											whereOperators=wO,
+											selectColumns=sC,
+											order_=oC)
+def retrieveAllStats_DataStatsTable(cursor, resp_data_ID):
+	statement = __get_retrieveAllStats_DataStatsTable_Statement(resp_data_ID)
+	(success, results) = DB_util.retrieveDBStatement(cursor, statement, expectedColumnCount=2, expectedCount=None)
+	return results # Don't care about success. If not successful, will fail with error
+
+
+

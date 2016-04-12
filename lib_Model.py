@@ -54,6 +54,9 @@ class EMF_ClassificationDecisionTree(EMF_Model_Handle, EMF_Model_Template):
 		from sklearn.tree import DecisionTreeClassifier
 		self.model = DecisionTreeClassifier(**self.kwargs)
 
+	def save_model_attributes(self, pred_words, resp_word):
+		pass
+
 EMF_RegressionDecisionTree_Info = {
 	'model_ID': 1,
 	'model_short_name': 'RegrTree',
@@ -85,6 +88,28 @@ class EMF_RegressionDecisionTree(EMF_Model_Handle, EMF_Model_Template):
 		from sklearn.tree import DecisionTreeRegressor
 		self.model = DecisionTreeRegressor(**self.kwargs)
 
+	def save_model_attributes(self, pred_words, resp_word):
+		raise NotImplementedError
+		left = self.model.tree_.children_left
+		right = self.model.tree_.children_right
+		threshold = self.model.tree_.threshold
+		value = self.model.tree_.value
+		features  = [str(pred_words[i]) for i in self.model.tree_.feature]
+
+		def recurse(left, right, threshold, features, node):
+			if (threshold[node] != -2):
+				print "if ( " + features[node] + " <= " + str(threshold[node]) + " ) {"
+				if left[node] != -1:
+					 recurse (left, right, threshold, features,left[node])
+				print "} else {"
+				if right[node] != -1:
+					recurse (left, right, threshold, features,right[node])
+				print "}"
+			else:
+				print "return " + str(value[node])
+	 	recurse(left, right, threshold, features, 0)
+
+
 ############# LINEAR REGRESSION
 
 EMF_OLSRegression_Info = {
@@ -112,6 +137,9 @@ class EMF_OLSRegression(EMF_Model_Handle, EMF_Model_Template):
 		super(EMF_OLSRegression, self).__init__(hndl_WordSet)
 		from sklearn.linear_model import LinearRegression
 		self.model = LinearRegression(**self.kwargs)
+
+	def save_model_attributes(self, pred_words, resp_word):
+		pass
 
 AvailableModels = {
 	'BCM': None,

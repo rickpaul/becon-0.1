@@ -7,6 +7,7 @@
 from 	template_ColumnArray 	import EMF_ColumnArray_Template
 from 	util_JSON 				import save_to_JSON, load_from_JSON
 # System 	Import...As
+import 	collections
 import 	logging 				as log
 import 	numpy	 				as np
 import 	pandas	 				as pd
@@ -137,6 +138,38 @@ class EMF_ColumnArray_Handle(EMF_ColumnArray_Template):
 			self.col_metadata[key] = metadata
 			log.info('{0}: Added {1} to Column Metadata.'.format(self.log_prefix, key))
 
+	def check_columns(self):
+		'''
+		Checks if same columns are present in both Column Metadata and the Column Array.
+		'''
+		# Get all metadata keys
+		metadata_keys = self.col_metadata.keys()
+		# Get all column keys
+		column_array_keys = self.col_array.columns
+		# Check if all column keys and metadata keys are same
+		if (set(metadata_keys) == set(column_array_keys)):
+			log.debug('{0}: All keys match in Column Array and Metadata Dict.'.format(self.log_prefix))
+			return True
+		else:
+			log.warning('{0}: Keys don\'t match in Column Array and Metadata Dict.'.format(self.log_prefix))
+			diff_ = self.list_diff(metadata_keys, column_array_keys)
+			if len(diff_):
+				log.warning('{0}: Keys {1} in Column Array are not in Metadata Dict.'.format(self.log_prefix, diff_))
+			diff_ = self.list_diff(column_array_keys, metadata_keys)
+			if len(diff_):
+				log.warning('{0}: Keys {1} in Metadata Dict are not in Column Array.'.format(self.log_prefix, diff_))
+			return False
+
+	def list_diff(self, sub, SUP):
+		'''
+		Check if all elements (el) in superset (SUP) are in subset (sub)
+
+		TODO:
+					Move to util library?
+		'''
+		sub = set(sub)
+		return [el for el in SUP if el not in sub]
+
 	################################ Delete Columns
 	def delete_column(self, col_key, expect_metadata=True):
 		try:
@@ -212,12 +245,29 @@ class EMF_ColumnArray_Handle(EMF_ColumnArray_Template):
 
 	def save(self):
 		'''
+		Save the column array and the column metadata. 
+		It is done atomically with array and metadata.
+			1) Copy array and metadata to bak files
+			2) Try to save
+			3) Check save success
+			4) Roll back if necessary
 		TODO:
 					Can we make this save atomic? I.e. it rolls back save if not happy/fails for error?
 		'''
 		if self.save_to_file:
 			self.save_array()
 			self.save_metadata()
+
+
+	def pre_check_save(self):
+		raise NotImplementedError
+
+	def check_save(self):
+		raise NotImplementedError
+
+	def copy_existing_file(self, old_filename, new_filename):
+		raise NotImplementedError
+
 
 	def load_array(self):
 		try:
@@ -262,3 +312,5 @@ class EMF_ColumnArray_Handle(EMF_ColumnArray_Template):
 			log.warning(e)
 			log.warning('{0}: File path was: {1}'.format(self.log_prefix, self.metadata_file_path))
 			raise e
+
+	

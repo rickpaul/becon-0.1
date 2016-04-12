@@ -8,7 +8,10 @@
 # 	Get metadata first; only download if necessary
 
 # EMF 		From...Import
+from 	lib_QuandlAPI	import USE_DEFAULT
+from	util_QuandlAPI	import codify_periodicity, stringify_periodicity
 from	util_TimeSet 	import dt_str_Y_M_D_to_epoch as YMD_to_epoch
+from	util_TimeSet 	import dt_epoch_to_str_Y_M_D as epoch_to_YMD
 from	util_TimeSet 	import str_Y_M_D_is_end_of_month as YMD_is_EoM
 # EMF 		Import...As
 import 	lib_QuandlAPI 	as lib_quandl
@@ -20,7 +23,7 @@ import 	json
 import	logging 		as 	log
 import	numpy			as 	np
 
-class EMF_QuandlAPI_Handle:
+class EMF_QuandlAPI_Handle(object):
 	'''
 	We decided to keep this in urllib2. 
 	There is a Quandl package we are not using.
@@ -37,66 +40,76 @@ class EMF_QuandlAPI_Handle:
 			'api': lib_quandl.QuandlAPIKey
 		}
 		self._dnld_parameters = lib_quandl.URLParameterDefaults
-		self.error = None
-		self._Instr_Collapse = None 
-		self._Instr_Transform = None
-		self._Instr_Col_Idx = None
-		self._Instr_Start_Date = None
+		self._error = None
 
 	def Instr_Collapse():
 		doc = "The Collapse Instruction for Quandl Downloads."
 		def fget(self):
-			return self._Instr_Collapse
+			return self.get_download_parameter('collapse')
+		def fdel(self):
+			self.rmv_download_parameter('collapse')
+			log.debug('QUANDL: Removing Periodicity override')
 		def fset(self, value):
 			if value is None:
 				self.rmv_download_parameter('collapse')
+				log.debug('QUANDL: Removing Periodicity override')
+			elif value is USE_DEFAULT:
+				pass
 			else:
 				self.set_download_parameter('collapse', value)
-			log.info('QUANDL: Periodicity override is now: {0}'.format(value))
-			self._Instr_Collapse = value
+				log.debug('QUANDL: Periodicity override is now: {0}'.format(value))
 		return locals()
 	Instr_Collapse = property(**Instr_Collapse())
 
 	def Instr_Transform():
 		doc = "The Transformation Instruction for Quandl Downloads."
-		def fget(self):
-			return self._Instr_Transform
+		def fdel(self):
+			self.rmv_download_parameter('transform')
+			log.debug('QUANDL: Removing Transformation override')
 		def fset(self, value):
 			if value is None:
 				self.rmv_download_parameter('transform')
+				log.debug('QUANDL: Removing Transformation override')
+			elif value is USE_DEFAULT:
+				pass
 			else:
 				self.set_download_parameter('transform', value)
-			log.info('QUANDL: Transformation override is now: {0}'.format(value))
-			self._Instr_Transform = value
+				log.debug('QUANDL: Transformation override is now: {0}'.format(value))
 		return locals()
 	Instr_Transform = property(**Instr_Transform())
 
 	def Instr_Col_Idx():
 		doc = "The Column Index Instruction for Quandl Downloads."
-		def fget(self):
-			return self._Instr_Col_Idx
+		def fdel(self):
+			self.rmv_download_parameter('column_index')
+			log.debug('QUANDL: Removing Column Index override')
 		def fset(self, value):
 			if value is None:
 				self.rmv_download_parameter('column_index')
+				log.debug('QUANDL: Removing Column Index override')
+			elif value is USE_DEFAULT:
+				pass
 			else:
 				self.set_download_parameter('column_index', value)
-			log.info('QUANDL: Column Index override is now: {0}'.format(value))
-			self._Instr_Col_Idx = value
+			log.debug('QUANDL: Column Index override is now: {0}'.format(value))
 		return locals()
 	Instr_Col_Idx = property(**Instr_Col_Idx())
 
 	def Instr_Start_Date():
 		doc = "The Start-Date Instruction for Quandl Downloads."
-		def fget(self):
-			return self._Instr_Start_Date
+		def fdel(self):
+			self.rmv_download_parameter('start_date')
+			log.debug('QUANDL: Removing Start Date override')
 		def fset(self, value):
-			self._Instr_Start_Date = value
 			if value is None:
 				self.rmv_download_parameter('start_date')
+				log.debug('QUANDL: Removing Start Date override')
+			elif value is USE_DEFAULT:
+				pass
 			else:
 				value = dt_epoch_to_str_Y_M_D(value)
 				self.set_download_parameter('start_date', value)
-			log.info('QUANDL: Start Date override is now: {0}'.format(value))
+				log.debug('QUANDL: Start Date override is now: {0}'.format(value))
 		return locals()
 	Instr_Start_Date = property(**Instr_Start_Date())
 
@@ -177,6 +190,31 @@ class EMF_QuandlAPI_Handle:
 		return locals()
 	Data_Chosen_Column = property(**Data_Chosen_Column())
 
+	def Data_Periodicity():
+		doc = "The Data_Periodicity."
+		def fget(self):
+			return stringify_periodicity(
+				max(	codify_periodicity(self.Instr_Collapse), 
+						codify_periodicity(self.Quandl_Periodicity)
+					)
+				)
+		return locals()
+	Data_Periodicity = property(**Data_Periodicity())
+
+	def Data_Earliest_Date():
+		doc = "The Data_Earliest_Date."
+		def fget(self):
+			return self._Data_Earliest_Date
+		return locals()
+	Data_Earliest_Date = property(**Data_Earliest_Date())
+
+	def Data_Latest_Date():
+		doc = "The Data_Latest_Date."
+		def fget(self):
+			return self._Data_Latest_Date
+		return locals()
+	Data_Latest_Date = property(**Data_Latest_Date())
+
 	def dates():
 		doc = "The data dates."
 		def fget(self):
@@ -195,14 +233,14 @@ class EMF_QuandlAPI_Handle:
 		return locals()
 	values = property(**values())
 
-	def metadata():
-		doc = "The data metadata."
-		def fget(self):
-			return self._metadata
-		def fset(self, value):
-			self._metadata = value
-		return locals()
-	metadata = property(**metadata())
+	# def metadata():
+	# 	doc = "The data metadata."
+	# 	def fget(self):
+	# 		return self._metadata
+	# 	def fset(self, value):
+	# 		self._metadata = value
+	# 	return locals()
+	# metadata = property(**metadata())
 
 	def error():
 		doc = "The data's error."
@@ -247,6 +285,20 @@ class EMF_QuandlAPI_Handle:
 		except KeyError as e:
 			pass
 
+	def get_download_parameter(self, param_name):
+		'''
+		PARAMETERS:
+					<string>	param_name
+		RETURNS: 	
+					<NONE>
+		TODOS:
+					--Implement Parameter Checking (e.g. dates in correct format, order =asc or desc)
+		'''
+		try:
+			return self._dnld_parameters[param_name]
+		except KeyError as e:
+			pass
+
 	def get_data(self, columnName=None):
 		'''
 		RETURNS:
@@ -257,16 +309,18 @@ class EMF_QuandlAPI_Handle:
 		-'''
 		try:
 			# Get Data
+			log.info('QUANDL: Retrieving Quandl API Data')
 			url = self.__get_parameterized_URL(lib_quandl.QuandlURL)
-			log.debug('QUANDL: Retrieving Quandl API Data from {0}'.format(url))
 			queryJSON = self.__retrieve_raw_json(url)
 			# Parse Metadata
-			self.metadata = self.__parse_JSON_metadata(queryJSON)
+			log.info('QUANDL: Parsing Quandl API Metadata')
+			self.__parse_JSON_metadata(queryJSON)
 			# Parse Data List
-			(self.dates, self.values) = self.__parse_JSON_data_history(queryJSON, columnName=columnName)
+			log.info('QUANDL: Parsing Quandl Data History')
+			self.__parse_JSON_data_history(queryJSON, columnName=columnName)
 		except Exception, e:
 			log.error('QUANDL: Uncaught Error')
-			log.error('QUANDL: ' + e)
+			log.error('QUANDL: {0}'.format(e))
 			self.error = 'Uncaught Error'
 
 	def __retrieve_raw_json(self, url):
@@ -276,18 +330,18 @@ class EMF_QuandlAPI_Handle:
 					-Add Logging
 		'''
 		try:
-			log.debug('QUANDL: Attempting Download from:\n{0}'.format(url))
+			log.debug('QUANDL: Attempting Download from:\n\t\t{0}'.format(url))
 			response = urllib2.urlopen(url)
 			rawData = response.read()
 			log.debug('QUANDL: Download Successful')
 		except urllib2.HTTPError as e:
 			log.error('QUANDL: Download Failed')
-			log.error('QUANDL: ' + e)
+			log.error('QUANDL: {0}'.format(e))
 			self.error = 'HTTP Error: ' + response.getcode()
 			log.error('QUANDL: ' + self.error)
 		except Exception as e:
 			log.error('QUANDL: Download Failed')
-			log.error('QUANDL: ' + e)
+			log.error('QUANDL: {0}'.format(e))
 		# Parse and Return
 		return json.loads(rawData)['dataset']
 
@@ -316,21 +370,21 @@ class EMF_QuandlAPI_Handle:
 				columnIndex = columns.index(columnName)
 		else:
 			columnIndex = 1
+		self._Data_Chosen_Column = columns[columnIndex]
+		log.info('QUANDL: Reading Column ({0})'.format(self.Data_Chosen_Column))
 		# Fill Dates and Value Arrays
-		# originalDates = []
 		dates = []
 		values = []
-		numRows = len(dataset)
 		for row in dataset:
 			if not YMD_is_EoM(row[0]):
 				log.warning('QUANDL: Date {0} not End of Month.'.format(row[0]))
 			dates.append(YMD_to_epoch(row[0]))
 			values.append(row[columnIndex])
-		# originalDates = np.asarray(originalDates)
-		dates = np.asarray(dates)
-		values = np.asarray(values)
-		# Return
-		return (dates, values)
+		# Save Data
+		self._Data_Earliest_Date = epoch_to_YMD(min(dates))
+		self._Data_Latest_Date = epoch_to_YMD(max(dates))
+		# Save Values
+		(self.dates, self.values) =  (np.asarray(dates), np.asarray(values))
 
 	def __parse_JSON_metadata(self, queryJSON):
 		'''
@@ -350,8 +404,6 @@ class EMF_QuandlAPI_Handle:
 		#
 		self._Data_Num_Points 		= len(queryJSON['data'])
 		self._Data_Num_Columns 		= len(queryJSON['column_names'])
-		# metadata['Q_EARLIEST_DATE'] = queryJSON['start_date']
-		# metadata['Q_LATEST_DATE'] = queryJSON['end_date']
 
 
 	# def get_metadata(self, saveHistoryLocal=False):

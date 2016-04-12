@@ -75,9 +75,9 @@ def create_or_connect_to_DB(mode=TEMP_MODE, manualOverride=False):
 	deleteDB  = settings['deleteDB']
 	# Get Table Instruction
 	if manualOverride:
-		tableCreationInstructions = createDB_lib.creationInstructionsOverride
+		tableCreationInstructions = createDB_lib.create_instr_SQLite_Override
 	else:
-		tableCreationInstructions = createDB_lib.creationInstructions
+		tableCreationInstructions = createDB_lib.create_instr_SQLite
 	# Create DB if necessary
 	if db_exists(dbLocation):
 		log.info('DB {0} found.'.format(dbLocation))

@@ -17,6 +17,10 @@ class EMF_Model_Template:
 		pass
 
 	@abstractmethod
+	def save_model_attributes(self, pred_words, resp_word):
+		pass
+
+	@abstractmethod
 	def model_stats(self):
 		pass
 

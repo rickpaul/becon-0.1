@@ -1,4 +1,9 @@
+# TODO:
+#	Finish.
+# 	Move out main().
+
 # EMF 		From...Import
+from 	handle_EMF					import EMF_Settings_Handle
 from 	handle_DataSeries		import EMF_DataSeries_Handle
 from 	handle_Logging 			import EMF_Logging_Handle
 from 	handle_Interpolator 	import EMF_Interpolator_Handle
@@ -7,8 +12,10 @@ from 	handle_WordSelector2 	import EMF_WordSelector_Handle2
 from 	lib_DBInstructions		import retrieve_DataSeries_All, TICKER
 from 	lib_Runner_Model 		import PredictorTransformationKeys, ResponseTransformationKeys # should come from lib_runner_pca?
 from 	lib_Runner_PCA 			import LINEAR, LAST_VALUE, NEAREST, IS_INTERPOLATED
+# from 	lib_DB					import SQLITE_MODE, MYSQL_MODE
+# from 	lib_EMF					import TEMP_MODE, TEST_MODE, QA_MODE, PROD_MODE
 from 	lib_TimeSet 			import DAYS, WEEKS, MONTHS, QUARTERS, YEARS, SECONDS
-from 	util_DB					import connect_to_DB
+from 	util_EMF				import get_DB_Handle
 # EMF 		Import...As
 import 	lib_EMF
 import 	lib_Runner_PCA
@@ -50,16 +57,20 @@ class EMF_Interpolation_Runner(object):
 	# def add_target_data(self, data):
 	# 	self._hndl_WrdSlct.select_pred_words_all_tickers()
 
-CURRENT_MODE = lib_EMF.TEST_MODE
-CURRENT_DATA_SERIES = ''
+######################## CURRENT RUN PARAMS
+settings = EMF_Settings_Handle()
+#
+CURRENT_TEMPLATE = lib_Runner_PCA.BusCycleTemplate
 
-def main(hndl_DB):
+def main():
+	DB_MODE = settings.DB_MODE
+	EMF_MODE = settings.EMF_MODE
+	hndl_Log = EMF_Logging_Handle(mode=EMF_MODE)
+	hndl_DB = get_DB_Handle(EMF_mode=EMF_MODE, DB_mode=DB_MODE)
 	runner_Intrp = EMF_Interpolation_Runner(hndl_DB)
 	# runner_Intrp.set_model_from_template(CURRENT_TEMPLATE)
 	# runner_Intrp.add_data()
 	runner_Intrp.interpolate_missing_db_values()
 
 if __name__ == '__main__':
-	hndl_Log = EMF_Logging_Handle(mode=CURRENT_MODE)
-	hndl_DB = connect_to_DB(mode=CURRENT_MODE)
-	main(hndl_DB)
+	main()

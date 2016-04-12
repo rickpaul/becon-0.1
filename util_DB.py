@@ -1,19 +1,10 @@
-# EMF 		From...Import
-from 	handle_DB		import EMF_Database_Handle
-from 	lib_EMF		 	import TEMP_MODE
-from 	util_EMF		import get_EMF_settings
 # System 	Import...As
-import 	logging 		as log
+import 	logging 			as log
 # System 	From...Import
-from 	string 			import join
-from 	numpy 			import int64, float64
+from 	string 				import join
+from 	numpy 				import int64, float64
 
-SQL_NULL = 'NULL' # Sqlite null
-
-def connect_to_DB(mode=TEMP_MODE):
-	settings = get_EMF_settings(mode)
-	dbLocation = settings['dbLoc']
-	return EMF_Database_Handle(dbLocation)	
+SQL_NULL = 'NULL' # Sqlite and MySQL null
 
 ########################################Generic Query Construction Code / Helper Code
 def stringify(value_):
@@ -24,6 +15,8 @@ def stringify(value_):
 	elif type(value_) == int64 or type(value_) == float64:
 		return str(value_)
 	elif value_ is None:
+		return SQL_NULL
+	elif value_ == '' or value_ == u'':
 		return SQL_NULL
 	elif (value_ == SQL_NULL) or (value_[0] is '"') or (value_[0] is "'"):
 		return value_
@@ -37,6 +30,14 @@ def typify(type_, value_):
 		return bool(int(value_))
 	else:
 		return type_(value_)
+
+########################################Generic Query Construction Code / Insert or Update Code
+def generateInsertOrUpdateStatement_MySQL(table, columns, values, setColumns, setValues):
+	columnsString = ' ( ' + join(columns,', ') + ' ) '
+	valuesString = ' ( ' + join([stringify(v) for v in values],', ') + ' ) '
+	setStatements = [(a + '=' + stringify(b)) for (a,b) in zip(setColumns,setValues)]
+	setString = join(setStatements,' , ')
+	return 'insert into {0} {1} values {2} on duplicate key update {3};'.format(table, columnsString, valuesString, setString)
 
 ########################################Generic Query Construction Code / Insert Code
 def generateInsertStatement(table, columns, values):
@@ -97,7 +98,7 @@ def retrieveDBStatement(cursor, statement, expectedColumnCount=1, expectedCount=
 	Performs a select
 
 	PARAMETERS:
-	cursor <sqlite3 connection> 
+	cursor <sqlite3 or mysql cursor> 
 	statement <string> an instruction to perform
 	expectedCount <int> a count of expected results
 	expectedColumnCount <bool> a count of expected results

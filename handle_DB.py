@@ -10,18 +10,7 @@ class EMF_Database_Handle(object):
 		CONSIDER:
 					__conn and _cursor aren't passed by copy. Are they actually protected?
 		'''
-		self._dbLoc = dbLoc
-		self._conn = sq.connect(dbLoc)
-		self._cursor = self._conn.cursor()
-		self._deleteDB = deleteDB
-		log.info('Database %s opened.', self._dbLoc)
-
-	def __del__(self):
-		self._conn.close()
-		log.info('Database %s closed.', self._dbLoc)
-		if self._deleteDB:
-			remove(self._dbLoc)
-			log.warning('Database %s deleted.', self._dbLoc)
+		raise Exception('This is not a usable handle. Connect using the MySQL or SQLite Handles.')
 
 	def conn():
 		doc = "The conn property."
@@ -36,10 +25,3 @@ class EMF_Database_Handle(object):
 			return self._cursor
 		return locals()
 	cursor = property(**cursor())
-
-	def dbLoc():
-		doc = "The dbLoc property."
-		def fget(self):
-			return self._dbLoc
-		return locals()
-	dbLoc = property(**dbLoc())

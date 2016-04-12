@@ -189,13 +189,17 @@ class EMF_WordSelector_Handle(object):
 	resp_words = property(**resp_words())
 
 	def __add_pred_data_tickers(self):
+		'''
+		TODO:
+					Change how pred_data_ids are stored.
+		'''
 		self._pred_data_tickers = retrieve_DataSeries_Filtered(	self.hndl_DB.cursor, 
 																column=TICKER,
 																minDate=self._pred_data_min_date, 
 																maxDate=self._pred_data_max_date, 
 																periodicity=self._pred_data_periodicity, 
 																categorical=self._pred_data_is_categorical)
-		self._pred_data_ids = [retrieve_DataSeriesID(self.hndl_DB.conn, self.hndl_DB.cursor, ticker=t) for t in self._pred_data_tickers]
+		self._pred_data_ids = [retrieve_DataSeriesID(self.hndl_DB.conn, self.hndl_DB.cursor, ticker=t) for t in self._pred_data_tickers] # Inefficient way to retrieve this...
 		if not self.resp_can_predict:
 			for t in self.resp_data_tickers:
 				self.__remove_pred_data_ticker(t)
@@ -320,7 +324,7 @@ class EMF_WordSelector_Handle(object):
 		return self.pred_words
 
 	def select_pred_words_random(self, numWords=None):
-		assert self._resp_word is not None
+		assert self.resp_words is not None
 		# Add Predictive Words
 		if self._pred_data_tickers is None:
 			self.__add_pred_data_tickers()
@@ -333,7 +337,7 @@ class EMF_WordSelector_Handle(object):
 		chosen = {}
 		resp_word_names = [str(w) for w in self.resp_words] # TODO: Can make this a one-time calculation to avoid repitition
 		min_date = max([w.min_date for w in self.resp_words])
-		min_date = min([w.max_date for w in self.resp_words])
+		max_date = min([w.max_date for w in self.resp_words])
 		while (len(chosen) < numWords) and (count < numWords*10):
 			count += 1 # Avoid Infinite Loops
 			# Select Words / Create Data Handle

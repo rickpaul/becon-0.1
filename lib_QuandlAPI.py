@@ -8,7 +8,7 @@ from lib_EMF import HomeDirectory
 ######################### CSV CODE
 
 CSVRepository = HomeDirectory + 'csv/'
-TempQuandlCSV = CSVRepository + 'KansasCityFed.csv'
+TempQuandlCSV = CSVRepository + '_test_dataset_1.csv'
 TestQuandlCSV = CSVRepository + 'dataset1.csv'
 QAQuandlCSV = CSVRepository + 'QuandlDataSeries.csv'
 ProdQuandlCSV = CSVRepository + 'QuandlDataSeries.csv'
@@ -58,7 +58,17 @@ QuandlEditableColumns = [
 	'ERROR'
 ]
 
+# CSV Download Instruction Columns
+QuandlDnldCols = [	'Q_DATABASE_CODE',
+					'Q_DATASET_CODE', 
+					'Q_COLUMN_NUM', 
+					'Q_COLLAPSE_INSTR', 
+					'Q_TRANSFORM_INSTR']
+# CSV Download Instruction Column Indexes
+QuandlDnldColIdxs = [QuandlCSVColumns[x] for x in QuandlDnldCols]
+
 ######################### API CODE
+
 QuandlAPIKey = 'pmM4BUFqzx1FetXxbj1x'
 
 QuandlDataURL = 'https://www.quandl.com/api/v3/datasets/{db}/{ds}/data.json?api_key={api}'
@@ -82,3 +92,5 @@ URLParameterDefaults = {
 	'collapse': 'monthly',
 	'start_date': '1960-01-01'
 }
+
+USE_DEFAULT = u'' # Note this is what would come in from an un-filled CSV Column

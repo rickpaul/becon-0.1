@@ -1,6 +1,8 @@
 
 CURRENTLY:
-	+ Make Quandl DB/Dataset name part of the code.
+	+ Test MySQL RunThrough
+		+ How to deal with insert or update
+	+ Post handleTimeSet job
 	+ Implement Theoretical Inputter (i.e. how do we put in fall in china growth -> high oil prices)
 	
 PRIORITY 1:

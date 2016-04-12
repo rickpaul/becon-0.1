@@ -142,6 +142,9 @@ class EMF_WordSet_Handle(EMF_ColumnArray_Handle):
 		return (pred_array, resp_array)
 
 	def save_predictions(self, hndl_Model, hndl_Word):
+		'''
+		Create the model predictions and store them in the array.
+		'''
 		if hndl_Word.prediction_requires_raw_data():
 			filter_ = self.get_model_filter(mode=PREDICTION_DEPENDENT)
 			raw_key = raw_word_key(hndl_Word)
@@ -189,6 +192,10 @@ class EMF_WordSet_Handle(EMF_ColumnArray_Handle):
 		return self.get_values_by_col(prd_key, filter_nulls=True)
 
 	def plot_values(self, hndl_Word):
+		'''
+		Plot the raw data, predicted data, and smoothed data
+		(For testing)
+		'''
 		from util_Testing import plot_data_series
 		from handle_TestSeries import EMF_TestSeries_Handle
 		raw_key = raw_word_key(hndl_Word)

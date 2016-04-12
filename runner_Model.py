@@ -21,10 +21,10 @@ from 	random 					import choice, randint
 import 	logging 				as log
 
 class EMF_Model_Runner(object):
-	def __init__(self, DBHandle):
-		self.hndl_DB = DBHandle
-		self.hndl_WordSet = EMF_WordSet_Handle(self.hndl_DB)
-		self.hndl_WrdSlct = EMF_WordSelector_Handle(self.hndl_DB)
+	def __init__(self, hndl_DB):
+		self._hndl_DB = hndl_DB
+		self.hndl_WordSet = EMF_WordSet_Handle(self._hndl_DB)
+		self.hndl_WrdSlct = EMF_WordSelector_Handle(self._hndl_DB)
 		self.hndl_Res = EMF_Results_Handle()
 		self.models = []
 
@@ -103,6 +103,7 @@ class EMF_Model_Runner(object):
 			log.info('MODEL: Model accepted with score {0}'.format(score))
 			(dates, values) = self.hndl_WordSet.get_prediction_series(hndl_Word)
 			self.hndl_Res.add_model(self.hndl_Model, dates, values, score)
+			self.__save_model_attributes(hndl_Word)
 		else:
 			log.info('MODEL: Model rejected with score {0}'.format(score))
 		# Put Word Statistics In DB
@@ -111,6 +112,24 @@ class EMF_Model_Runner(object):
 		self.hndl_WrdSlct.save_data_statistics(score*self.hndl_Model.adjusted_feat_scores, hndl_Word)
 		# Put Model Statistics In DB
 		# Not Implemented
+
+	def __save_model_metadata(self, hndl_Word, idx):
+		'''
+		We save metadata for use in content attribute selections
+		'''
+		# Linear Series Attributes
+		(smoothed, pred, raw, res) = self.hndl_WordSet.get_residual_data(hndl_Word)
+		# Linear Series Attributes / Mean, Std (for various time periods)
+
+		# Linear Series Attributes / Biggest Jumps (Top 1, 2, 3)
+		# Linear Series Attributes / Start Time, End Time
+		# Linear Series Attributes / Model Attributes
+		# Linear Series Attributes / Categories, Geographies, etc.
+		raise NotImplementedError
+
+
+	def __save_model_attributes(self, hndl_Word):
+		self.hndl_Model.save_model_attributes(self.hndl_WordSet.pred_words, hndl_Word)
 
 	def __evaluate_model(self, hndl_Word, idx):
 		'''
@@ -144,8 +163,7 @@ class EMF_Model_Runner(object):
 
 	def __evaluate_run_readiness(self):
 		'''
-		TODOS:
-					is this even necessary?
+		Checks to make sure the model is compatible with the chosen words
 		'''
 		if not self.hndl_WordSet.predictor_words_are_set(): 
 			raise AttributeError

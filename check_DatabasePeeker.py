@@ -3,8 +3,9 @@
 # 		If we wnt to. The whole point of this is to be able to do stuff like that.
 
 # EMF 		From...Import
+from lib_DB			import SQLITE_MODE, MYSQL_MODE
 from lib_EMF		import TEMP_MODE, TEST_MODE, QA_MODE, PROD_MODE
-from util_DB		import connect_to_DB
+from util_EMF		import get_DB_Handle
 # System	From...Import
 from string 		import find, join, lower
 from pprint 		import pprint
@@ -73,18 +74,26 @@ def __peekTable(hndl_DB, tableName, displayPragma=False, limit=10):
 	print columnNames
 	pprint(firstFew)
 
-def __databasePicker(mode=TEMP_MODE):
+def __databasePicker():
 	errorCount = 10
 	while errorCount >= 0:
 		try:
+			# Choose DB Mode
+			print '\n\nChoose Database: (1)SQLITE (2)MYSQL'
+			choice = raw_input('\tPlease enter a database number if you desire, or "!q" to quit:  ')
+			if choice == '!q':
+				return None
+			modes = [SQLITE_MODE, MYSQL_MODE]
+			DB_mode = modes[int(choice)-1]
+			# Choose EMF Mode
 			print '\n\nChoose Database: (1)TEMP (2)TEST (3)QA (4)PROD'
-			print '\tCurrent Database is {0}'.format(mode)
-			db = raw_input('\tPlease enter a database number if you desire, or "!q" to quit:  ')
-			if db == '!q':
+			choice = raw_input('\tPlease enter a database number if you desire, or "!q" to quit:  ')
+			if choice == '!q':
 				return None
 			modes = [TEMP_MODE, TEST_MODE, QA_MODE, PROD_MODE]
-			mode = modes[int(db)-1]
-			return connect_to_DB(mode=mode)
+			EMF_mode = modes[int(choice)-1]
+			# Connect and Return
+			return get_DB_Handle(EMF_mode=EMF_mode, DB_mode=DB_mode, allow_delete=False)
 		except Exception as e:
 			print 'ERROR: '
 			print e

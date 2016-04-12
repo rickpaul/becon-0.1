@@ -1,10 +1,22 @@
 
 from lib_EMF import HomeDirectory
 
+# DB Modes
+SQLITE_MODE = 'SQLITE'
+MYSQL_MODE = 'MYSQL'
+
+# SQLite DB Directories
 DBRepository = HomeDirectory + 'database/'
+ProdDB_SQLite = DBRepository + 'prod_economicData.db'
+QADB_SQLite = DBRepository + 'qa_economicData.db'
+TestDB_SQLite = DBRepository + 'test_economicData.db'
+TempDB_SQLite = DBRepository + 'delete_me.db'
 
-ProdDBFilePath = DBRepository + 'prod_economicData.db'
-QADBFilePath = DBRepository + 'qa_economicData.db'
-TestDBFilePath = DBRepository + 'test_economicData.db'
-
-TempDBFilePath = DBRepository + 'delete_me.db'
+# MySQL DB Parameters
+username='root'
+password='[]{}[]'
+host='localhost'
+ProdDB_MySQL = 'EMF_prod'
+QADB_MySQL   = 'EMF_qa'
+TestDB_MySQL = 'EMF_test'
+TempDB_MySQL = 'EMF_temp'

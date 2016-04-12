@@ -6,7 +6,6 @@
 # EMF 		From...Import
 from 	handle_TimeSet 			import EMF_TimeSet_Handle, verify_date_series
 from 	lib_DataSeries			import DATE_COL, VALUE_COL, DATA_HISTORY_DTYPE
-from 	lib_JSON				import JSONRepository, DATA_SERIES_TO_JSON
 # from 	template_SerialHandle 	import EMF_Serial_Handle
 from 	util_DB					import typify
 from	util_TimeSet			import dt_now_as_epoch
@@ -17,7 +16,6 @@ import 	logging 				as log
 import 	numpy 					as np
 # System 	From...Import
 from 	sys 					import maxint
-from 	json 					import dumps as json_dump
 
 class EMF_DataSeries_Handle(object):
 	def __init__(self, dbHandle, name=None, ticker=None, insertIfNot=False):
@@ -160,6 +158,24 @@ class EMF_DataSeries_Handle(object):
 			return typify(int, self.__load_metadata('dt_last_updated_history'))
 		return locals()
 	last_update = property(**last_update())
+
+	def Quandl_dataset():
+		doc = "The Quandl_dataset property."
+		def fget(self):
+			return typify(int, self.__load_metadata('txt_Quandl_dataset'))
+		def fset(self, value):
+			self.__save_metadata('txt_Quandl_dataset', value)
+		return locals()
+	Quandl_dataset = property(**Quandl_dataset())
+
+	def Quandl_database():
+		doc = "The Quandl_database property."
+		def fget(self):
+			return typify(int, self.__load_metadata('txt_Quandl_database'))
+		def fset(self, value):
+			self.__save_metadata('txt_Quandl_database', value)
+		return locals()
+	Quandl_database = property(**Quandl_database())
 
 	def __set_last_update(self):
 		self.__save_metadata('dt_last_updated_history', dt_now_as_epoch())

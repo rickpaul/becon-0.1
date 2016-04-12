@@ -2,18 +2,23 @@
 #	This is kind of a stand-in until we get the transformations fully developed.
 #	Change this into a util/main
 # 	Add categories to US_TimeSince/UntilRecession
+# Move out Main
+# connect_to_db? -> from 	util_EMF import get_DB_Handle
 
 # EMF 		From...Import
+from 	handle_EMF					import EMF_Settings_Handle
+from 	handle_Logging 			import EMF_Logging_Handle
 from 	handle_DataSeries		import EMF_DataSeries_Handle
 from 	handle_WordSeries 		import EMF_WordSeries_Handle
+# from 	lib_DB					import SQLITE_MODE, MYSQL_MODE
+# from 	lib_EMF					import TEMP_MODE, TEST_MODE, QA_MODE, PROD_MODE
 from 	util_Transformation 	import transform_TimeSinceValue, transform_TimeToValue
 from 	util_Transformation 	import TIME_SINCE_VALUE, TIME_TO_VALUE, DATA_KEY
-from 	lib_EMF					import TEMP_MODE, TEST_MODE
 from 	util_DB 	 			import connect_to_DB
 
 class EMF_DataGenerator_Runner:
-	def __init__(self, DBHandle):
-		self.hndl_DB = DBHandle
+	def __init__(self, hndl_DB):
+		self.hndl_DB = hndl_DB
 
 	def insert_time_to_peak(self):
 		raise NotImplementedError
@@ -62,8 +67,14 @@ class EMF_DataGenerator_Runner:
 				return count
 			count += 1
 
+######################## CURRENT RUN PARAMS
+settings = EMF_Settings_Handle()
+
 def main():
-	hndl_DB = connect_to_DB(mode=TEST_MODE)
+	DB_MODE = settings.DB_MODE
+	EMF_MODE = settings.EMF_MODE
+	hndl_Log = EMF_Logging_Handle(mode=EMF_MODE)
+	hndl_DB = get_DB_Handle(EMF_mode=EMF_MODE, DB_mode=DB_MODE)
 	dataGen = EMF_DataGenerator_Runner(hndl_DB)
 	dataGen.insert_time_to_recession()
 

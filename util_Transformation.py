@@ -511,7 +511,7 @@ def spec_desc_Cat(kwargs, name, value, splits):
 def spec_desc_NormRd(kwargs, name, value, splits):
 	limit_string = LIMITS_STRING(splits, value)
 	norm_round_string = NORM_ROUND_STRING(value)
-	return 'Value of {0} is {1} {2}'.format(name, limit_string, norm_round_string)
+	return 'Value of {0} is {1} {2}'.format(name, limit_string, NORM_ROUND_STRINGring)
 
 def spec_desc_PastDiff(kwargs, name, value, splits):
 	up_down_string = 'down' if value < 0 else 'up'
